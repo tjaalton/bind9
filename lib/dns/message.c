@@ -1382,6 +1382,16 @@ getsection(isc_buffer_t *source, dns_message_t *msg, dns_decompress_t *dctx,
 			covers = 0;
 
 		/*
+		 * Check the ownername of NSEC3 records
+		 */
+		if (rdtype == dns_rdatatype_nsec3 &&
+		    !dns_rdata_checkowner(name, msg->rdclass, rdtype,
+					  ISC_FALSE)) {
+			result = DNS_R_BADOWNERNAME;
+			goto cleanup;
+		}
+
+		/*
 		 * If we are doing a dynamic update or this is a meta-type,
 		 * don't bother searching for a name, just append this one
 		 * to the end of the message.
@@ -3238,7 +3248,8 @@ dns_message_pseudosectiontotext(dns_message_t *msg,
 				dns_pseudosection_t section,
 				const dns_master_style_t *style,
 				dns_messagetextflag_t flags,
-				isc_buffer_t *target) {
+				isc_buffer_t *target)
+{
 	dns_rdataset_t *ps = NULL;
 	dns_name_t *name = NULL;
 	isc_result_t result;
@@ -3359,6 +3370,8 @@ dns_message_pseudosectiontotext(dns_message_t *msg,
 				 * version
 				 */
 				ADD_STRING(target, "(\"");
+				if (isc_buffer_availablelength(target) < optlen)
+					return (ISC_R_NOSPACE);
 				for (i = 0; i < optlen; i++) {
 					if (isprint(optdata[i]))
 						isc_buffer_putmem(target,
