@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013, 2014  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2013-2015  Internet Systems Consortium, Inc. ("ISC")
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -48,7 +48,7 @@
  * so that successive lookups for the same data from the same IP
  * address will not require repeated calls into the GeoIP library
  * to look up data in the database. This should improve performance
- * somwhat.
+ * somewhat.
  *
  * For lookups in the City and Region databases, we preserve pointers
  * to the GeoIPRecord and GeoIPregion structures; these will need to be
@@ -144,12 +144,18 @@ clean_state(geoip_state_t *state) {
 	if (state == NULL)
 		return;
 
-	if (state->record != NULL)
+	if (state->record != NULL) {
 		GeoIPRecord_delete(state->record);
-	if (state->region != NULL)
+		state->record = NULL;
+	}
+	if (state->region != NULL) {
 		GeoIPRegion_delete(state->region);
-	if (state->name != NULL)
+		state->region = NULL;
+	}
+	if (state->name != NULL) {
 		free (state->name);
+		state->name = NULL;
+	}
 	state->ipnum = 0;
 	state->text = NULL;
 	state->id = 0;
@@ -160,10 +166,11 @@ set_state(unsigned int family, isc_uint32_t ipnum, const geoipv6_t *ipnum6,
 	  dns_geoip_subtype_t subtype, GeoIPRecord *record,
 	  GeoIPRegion *region, char *name, const char *text, int id)
 {
-	isc_result_t result;
 	geoip_state_t *state = NULL;
 
 #ifdef ISC_PLATFORM_USETHREADS
+	isc_result_t result;
+
 	result = state_key_init();
 	if (result != ISC_R_SUCCESS)
 		return (result);
@@ -187,8 +194,7 @@ set_state(unsigned int family, isc_uint32_t ipnum, const geoipv6_t *ipnum6,
 		clean_state(state);
 #else
 	state = &prev_state;
-	if (state->ipnum != ipnum)
-		clean_state(state);
+	clean_state(state);
 #endif
 
 	if (family == AF_INET)
@@ -208,20 +214,32 @@ set_state(unsigned int family, isc_uint32_t ipnum, const geoipv6_t *ipnum6,
 }
 
 static geoip_state_t *
-get_state(void) {
+get_state_for(unsigned int family, isc_uint32_t ipnum,
+	      const geoipv6_t *ipnum6)
+{
+	geoip_state_t *state;
+
 #ifdef ISC_PLATFORM_USETHREADS
 	isc_result_t result;
-	geoip_state_t *state;
 
 	result = state_key_init();
 	if (result != ISC_R_SUCCESS)
 		return (NULL);
 
 	state = (geoip_state_t *) isc_thread_key_getspecific(state_key);
-	return (state);
+	if (state == NULL)
+		return (NULL);
 #else
-	return (&prev_state);
+	state = &prev_state;
 #endif
+
+	if (state->family == family &&
+	    ((state->family == AF_INET && state->ipnum == ipnum) ||
+	     (state->family == AF_INET6 && ipnum6 != NULL &&
+	      memcmp(state->ipnum6.s6_addr, ipnum6->s6_addr, 16) == 0)))
+		return (state);
+
+	return (NULL);
 }
 
 /*
@@ -245,14 +263,8 @@ country_lookup(GeoIP *db, dns_geoip_subtype_t subtype,
 		return (NULL);
 #endif
 
-	prev_state = get_state();
-
-	if (prev_state != NULL &&
-	    prev_state->subtype == subtype &&
-	    prev_state->family == family &&
-	    ((prev_state->family == AF_INET && prev_state->ipnum == ipnum) ||
-	     (prev_state->family == AF_INET6 && ipnum6 != NULL &&
-	      memcmp(prev_state->ipnum6.s6_addr, ipnum6->s6_addr, 16) == 0)))
+	prev_state = get_state_for(family, ipnum, ipnum6);
+	if (prev_state != NULL && prev_state->subtype == subtype)
 		text = prev_state->text;
 
 	if (text == NULL) {
@@ -390,13 +402,8 @@ city_lookup(GeoIP *db, dns_geoip_subtype_t subtype,
 		return (NULL);
 #endif
 
-	prev_state = get_state();
-
-	if (prev_state != NULL &&
-	    is_city(prev_state->subtype) &&
-	    ((prev_state->family == AF_INET && prev_state->ipnum == ipnum) ||
-	     (prev_state->family == AF_INET6 &&
-	      memcmp(prev_state->ipnum6.s6_addr, ipnum6->s6_addr, 16) == 0)))
+	prev_state = get_state_for(family, ipnum, ipnum6);
+	if (prev_state != NULL && is_city(prev_state->subtype))
 		record = prev_state->record;
 
 	if (record == NULL) {
@@ -465,10 +472,8 @@ region_lookup(GeoIP *db, dns_geoip_subtype_t subtype, isc_uint32_t ipnum) {
 
 	REQUIRE(db != NULL);
 
-	prev_state = get_state();
-
-	if (prev_state != NULL && prev_state->ipnum == ipnum &&
-	    is_region(prev_state->subtype))
+	prev_state = get_state_for(AF_INET, ipnum, NULL);
+	if (prev_state != NULL && is_region(prev_state->subtype))
 		region = prev_state->region;
 
 	if (region == NULL) {
@@ -495,10 +500,8 @@ name_lookup(GeoIP *db, dns_geoip_subtype_t subtype, isc_uint32_t ipnum) {
 
 	REQUIRE(db != NULL);
 
-	prev_state = get_state();
-
-	if (prev_state != NULL && prev_state->ipnum == ipnum &&
-	    prev_state->subtype == subtype)
+	prev_state = get_state_for(AF_INET, ipnum, NULL);
+	if (prev_state != NULL && prev_state->subtype == subtype)
 		name = prev_state->name;
 
 	if (name == NULL) {
@@ -526,10 +529,8 @@ netspeed_lookup(GeoIP *db, dns_geoip_subtype_t subtype, isc_uint32_t ipnum) {
 
 	REQUIRE(db != NULL);
 
-	prev_state = get_state();
-
-	if (prev_state != NULL && prev_state->ipnum == ipnum &&
-	    prev_state->subtype == subtype) {
+	prev_state = get_state_for(AF_INET, ipnum, NULL);
+	if (prev_state != NULL && prev_state->subtype == subtype) {
 		id = prev_state->id;
 		found = ISC_TRUE;
 	}
@@ -795,6 +796,16 @@ dns_geoip_match(const isc_netaddr_t *reqaddr,
 			return (ISC_TRUE);
 		break;
 
+	case dns_geoip_countrycode:
+	case dns_geoip_countrycode3:
+	case dns_geoip_countryname:
+	case dns_geoip_regionname:
+		/*
+		 * If these were not remapped by fix_subtype(),
+		 * the database was unavailable. Always return false.
+		 */
+		break;
+
 	default:
 		INSIST(0);
 	}
@@ -805,9 +816,12 @@ dns_geoip_match(const isc_netaddr_t *reqaddr,
 
 void
 dns_geoip_shutdown(void) {
-#if defined(HAVE_GEOIP) && defined(ISC_PLATFORM_USETHREADS)
+#ifdef HAVE_GEOIP
+	GeoIP_cleanup();
+#ifdef ISC_PLATFORM_USETHREADS
 	if (state_mctx != NULL)
 		isc_mem_detach(&state_mctx);
+#endif
 #else
 	return;
 #endif
