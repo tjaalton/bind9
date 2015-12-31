@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2014  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2009-2015  Internet Systems Consortium, Inc. ("ISC")
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,8 +14,6 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* $Id: client.c,v 1.14 2011/03/12 04:59:47 tbox Exp $ */
-
 #include <config.h>
 
 #include <stddef.h>
@@ -24,6 +22,7 @@
 #include <isc/buffer.h>
 #include <isc/mem.h>
 #include <isc/mutex.h>
+#include <isc/safe.h>
 #include <isc/sockaddr.h>
 #include <isc/socket.h>
 #include <isc/task.h>
@@ -2598,7 +2597,6 @@ copy_name(isc_mem_t *mctx, dns_message_t *msg, dns_name_t *name,
 		result = dns_message_gettemprdataset(msg, &newrdataset);
 		if (result != ISC_R_SUCCESS)
 			goto fail;
-		dns_rdataset_init(newrdataset);
 		dns_rdatalist_tordataset(rdatalist, newrdataset);
 
 		ISC_LIST_APPEND(newname->list, newrdataset, link);
