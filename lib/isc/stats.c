@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009, 2012, 2014  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2009, 2012-2015  Internet Systems Consortium, Inc. ("ISC")
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -169,19 +169,22 @@ isc_stats_detach(isc_stats_t **statsp) {
 
 	LOCK(&stats->lock);
 	stats->references--;
-	UNLOCK(&stats->lock);
 
 	if (stats->references == 0) {
 		isc_mem_put(stats->mctx, stats->copiedcounters,
 			    sizeof(isc_stat_t) * stats->ncounters);
 		isc_mem_put(stats->mctx, stats->counters,
 			    sizeof(isc_stat_t) * stats->ncounters);
+		UNLOCK(&stats->lock);
 		DESTROYLOCK(&stats->lock);
 #ifdef ISC_RWLOCK_USEATOMIC
 		isc_rwlock_destroy(&stats->counterlock);
 #endif
 		isc_mem_putanddetach(&stats->mctx, stats, sizeof(*stats));
+		return;
 	}
+
+	UNLOCK(&stats->lock);
 }
 
 int
@@ -324,3 +327,31 @@ isc_stats_dump(isc_stats_t *stats, isc_stats_dumper_t dump_fn,
 		dump_fn((isc_statscounter_t)i, stats->copiedcounters[i], arg);
 	}
 }
+
+void
+isc_stats_set(isc_stats_t *stats, isc_uint64_t val,
+	      isc_statscounter_t counter)
+{
+	REQUIRE(ISC_STATS_VALID(stats));
+	REQUIRE(counter < stats->ncounters);
+
+#ifdef ISC_RWLOCK_USEATOMIC
+	/*
+	 * We use a "write" lock before "reading" the statistics counters as
+	 * an exclusive lock.
+	 */
+	isc_rwlock_lock(&stats->counterlock, isc_rwlocktype_write);
+#endif
+
+#if ISC_STATS_USEMULTIFIELDS
+	stats->counters[counter].hi = (isc_uint32_t)((val >> 32) & 0xffffffff);
+	stats->counters[counter].lo = (isc_uint32_t)(val & 0xffffffff);
+#else
+	stats->counters[counter] = val;
+#endif
+
+#ifdef ISC_RWLOCK_USEATOMIC
+	isc_rwlock_unlock(&stats->counterlock, isc_rwlocktype_write);
+#endif
+}
+

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004, 2005, 2007, 2009-2014  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2004, 2005, 2007, 2009-2015  Internet Systems Consortium, Inc. ("ISC")
  * Copyright (C) 2000, 2001, 2003  Internet Software Consortium.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
@@ -14,8 +14,6 @@
  * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
  */
-
-/* $Id: dnssectool.c,v 1.63 2011/10/21 03:55:33 marka Exp $ */
 
 /*! \file */
 
@@ -122,6 +120,12 @@ vbprintf(int level, const char *fmt, ...) {
 }
 
 void
+version(const char *name) {
+	fprintf(stderr, "%s %s\n", name, VERSION);
+	exit(0);
+}
+
+void
 type_format(const dns_rdatatype_t type, char *cp, unsigned int size) {
 	isc_buffer_t b;
 	isc_region_t r;
@@ -145,7 +149,7 @@ sig_format(dns_rdata_rrsig_t *sig, char *cp, unsigned int size) {
 }
 
 void
-setup_logging(int verbose, isc_mem_t *mctx, isc_log_t **logp) {
+setup_logging(isc_mem_t *mctx, isc_log_t **logp) {
 	isc_result_t result;
 	isc_logdestination_t destination;
 	isc_logconfig_t *logconfig = NULL;
@@ -300,11 +304,20 @@ time_units(isc_stdtime_t offset, char *suffix, const char *str) {
 	return(0); /* silence compiler warning */
 }
 
+static inline isc_boolean_t
+isnone(const char *str) {
+	return (ISC_TF((strcasecmp(str, "none") == 0) ||
+		       (strcasecmp(str, "never") == 0)));
+}
+
 dns_ttl_t
 strtottl(const char *str) {
 	const char *orig = str;
 	dns_ttl_t ttl;
 	char *endp;
+
+	if (isnone(str))
+		return ((dns_ttl_t) 0);
 
 	ttl = strtol(str, &endp, 0);
 	if (ttl == 0 && endp == str)
@@ -314,12 +327,23 @@ strtottl(const char *str) {
 }
 
 isc_stdtime_t
-strtotime(const char *str, isc_int64_t now, isc_int64_t base) {
+strtotime(const char *str, isc_int64_t now, isc_int64_t base,
+	  isc_boolean_t *setp)
+{
 	isc_int64_t val, offset;
 	isc_result_t result;
 	const char *orig = str;
 	char *endp;
-	int n;
+	size_t n;
+
+	if (isnone(str)) {
+		if (setp != NULL)
+			*setp = ISC_FALSE;
+		return ((isc_stdtime_t) 0);
+	}
+
+	if (setp != NULL)
+		*setp = ISC_TRUE;
 
 	if ((str[0] == '0' || str[0] == '-') && str[1] == '\0')
 		return ((isc_stdtime_t) 0);
@@ -332,14 +356,14 @@ strtotime(const char *str, isc_int64_t now, isc_int64_t base) {
 	 *   [+-]offset
 	 */
 	n = strspn(str, "0123456789");
-	if ((n == 8 || n == 14) &&
+	if ((n == 8u || n == 14u) &&
 	    (str[n] == '\0' || str[n] == '-' || str[n] == '+'))
 	{
 		char timestr[15];
 
 		strlcpy(timestr, str, sizeof(timestr));
 		timestr[n] = 0;
-		if (n == 8)
+		if (n == 8u)
 			strlcat(timestr, "000000", sizeof(timestr));
 		result = dns_time64_fromtext(timestr, &val);
 		if (result != ISC_R_SUCCESS)

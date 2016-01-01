@@ -1,6 +1,6 @@
 #!/bin/sh 
 #
-# Copyright (C) 2010, 2012  Internet Systems Consortium, Inc. ("ISC")
+# Copyright (C) 2010, 2012, 2014, 2015  Internet Systems Consortium, Inc. ("ISC")
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -14,18 +14,14 @@
 # OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 
-# $Id: sign.sh,v 1.3 2010/12/17 00:57:39 marka Exp $
-
 SYSTEMTESTTOP=../..
 . $SYSTEMTESTTOP/conf.sh
-
-RANDFILE=../random.data
 
 zone=example.
 infile=example.db.in
 zonefile=example.db
 
-(cd ../ns4 && sh -e sign.sh )
+(cd ../ns4 && $SHELL -e sign.sh )
 
 cp ../ns4/dsset-sub.example. .
 
@@ -46,4 +42,24 @@ trusted-keys {
 };
 EOF
 ' > trusted.conf
+
+zone=undelegated
+infile=undelegated.db.in
+zonefile=undelegated.db
+keyname1=`$KEYGEN -q -r $RANDFILE -a RSASHA256 -b 1024 -n zone $zone`
+keyname2=`$KEYGEN -q -r $RANDFILE -a RSASHA256 -b 2048 -f KSK -n zone $zone`
+cat $infile $keyname1.key $keyname2.key > $zonefile
+
+$SIGNER -g -r $RANDFILE -o $zone $zonefile > /dev/null 2>&1
+
+cat $keyname2.key | grep -v '^; ' | $PERL -n -e '
+local ($dn, $class, $type, $flags, $proto, $alg, @rest) = split;
+local $key = join("", @rest);
+print <<EOF
+trusted-keys {
+    "$dn" $flags $proto $alg "$key";
+};
+EOF
+' >> trusted.conf
+
 cp trusted.conf ../ns2/trusted.conf

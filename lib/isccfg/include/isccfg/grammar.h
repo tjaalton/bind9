@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2011, 2014  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2004-2011, 2013-2015  Internet Systems Consortium, Inc. ("ISC")
  * Copyright (C) 2002, 2003  Internet Software Consortium.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
@@ -158,6 +158,10 @@ struct cfg_obj {
 		cfg_list_t	list;
 		cfg_obj_t **	tuple;
 		isc_sockaddr_t	sockaddr;
+		struct {
+			isc_sockaddr_t	sockaddr;
+			isc_dscp_t	dscp;
+		} sockaddrdscp;
 		cfg_netprefix_t netprefix;
 	}               value;
 	isc_refcount_t  references;     /*%< reference counter */
@@ -238,6 +242,7 @@ struct cfg_parser {
 #define CFG_ADDR_V4PREFIXOK 	0x00000002
 #define CFG_ADDR_V6OK 		0x00000004
 #define CFG_ADDR_WILDOK		0x00000008
+#define CFG_ADDR_DSCPOK		0x00000010
 #define CFG_ADDR_MASK		(CFG_ADDR_V6OK|CFG_ADDR_V4OK)
 /*@}*/
 
@@ -255,6 +260,7 @@ LIBISCCFG_EXTERNAL_DATA extern cfg_rep_t cfg_rep_tuple;
 LIBISCCFG_EXTERNAL_DATA extern cfg_rep_t cfg_rep_sockaddr;
 LIBISCCFG_EXTERNAL_DATA extern cfg_rep_t cfg_rep_netprefix;
 LIBISCCFG_EXTERNAL_DATA extern cfg_rep_t cfg_rep_void;
+LIBISCCFG_EXTERNAL_DATA extern cfg_rep_t cfg_rep_fixedpoint;
 /*@}*/
 
 /*@{*/
@@ -269,6 +275,7 @@ LIBISCCFG_EXTERNAL_DATA extern cfg_type_t cfg_type_astring;
 LIBISCCFG_EXTERNAL_DATA extern cfg_type_t cfg_type_ustring;
 LIBISCCFG_EXTERNAL_DATA extern cfg_type_t cfg_type_sstring;
 LIBISCCFG_EXTERNAL_DATA extern cfg_type_t cfg_type_sockaddr;
+LIBISCCFG_EXTERNAL_DATA extern cfg_type_t cfg_type_sockaddrdscp;
 LIBISCCFG_EXTERNAL_DATA extern cfg_type_t cfg_type_netaddr;
 LIBISCCFG_EXTERNAL_DATA extern cfg_type_t cfg_type_netaddr4;
 LIBISCCFG_EXTERNAL_DATA extern cfg_type_t cfg_type_netaddr4wild;
@@ -278,6 +285,7 @@ LIBISCCFG_EXTERNAL_DATA extern cfg_type_t cfg_type_netprefix;
 LIBISCCFG_EXTERNAL_DATA extern cfg_type_t cfg_type_void;
 LIBISCCFG_EXTERNAL_DATA extern cfg_type_t cfg_type_token;
 LIBISCCFG_EXTERNAL_DATA extern cfg_type_t cfg_type_unsupported;
+LIBISCCFG_EXTERNAL_DATA extern cfg_type_t cfg_type_fixedpoint;
 /*@}*/
 
 isc_result_t
@@ -329,6 +337,9 @@ cfg_lookingat_netaddr(cfg_parser_t *pctx, unsigned int flags);
 
 isc_result_t
 cfg_parse_rawport(cfg_parser_t *pctx, unsigned int flags, in_port_t *port);
+
+isc_result_t
+cfg_parse_dscp(cfg_parser_t *pctx, isc_dscp_t *dscp);
 
 isc_result_t
 cfg_parse_sockaddr(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret);
@@ -436,6 +447,12 @@ cfg_print_void(cfg_printer_t *pctx, const cfg_obj_t *obj);
 
 void
 cfg_doc_void(cfg_printer_t *pctx, const cfg_type_t *type);
+
+isc_result_t
+cfg_parse_fixedpoint(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret);
+
+void
+cfg_print_fixedpoint(cfg_printer_t *pctx, const cfg_obj_t *obj);
 
 isc_result_t
 cfg_parse_obj(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret);

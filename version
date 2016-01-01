@@ -1,13 +1,12 @@
-# $Id$
-# 
 # This file must follow /bin/sh rules.  It is imported directly via
 # configure.
 #
 PRODUCT=BIND
-DESCRIPTION="(Extended Support Version)"
+DESCRIPTION=
 MAJORVER=9
-MINORVER=9
-PATCHVER=5
-RELEASETYPE=
-RELEASEVER=
+MINORVER=10
+PATCHVER=3
+RELEASETYPE=-P
+RELEASEVER=2
+EXTENSIONS=
 EXTENSIONS="$(dpkg-parsechangelog | sed -n '/^Version/s/[^-]*//p')-$(dpkg-vendor --query Vendor)"

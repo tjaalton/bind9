@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2007, 2009, 2011-2013  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2004-2007, 2009, 2011, 2012, 2014  Internet Systems Consortium, Inc. ("ISC")
  * Copyright (C) 2000, 2001  Internet Software Consortium.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
@@ -62,7 +62,7 @@ isc_file_getmodtime(const char *file, isc_time_t *time);
  *\li	#ISC_R_NOPERM
  *		The file's metainformation could not be retrieved because
  *		permission was denied to some part of the file's path.
- *\li	#ISC_R_EIO
+ *\li	#ISC_R_IOERROR
  *		Hardware error interacting with the filesystem.
  *\li	#ISC_R_UNEXPECTED
  *		Something totally unexpected happened.
@@ -198,6 +198,9 @@ isc_file_isabsolute(const char *filename);
 
 isc_result_t
 isc_file_isplainfile(const char *name);
+
+isc_result_t
+isc_file_isplainfilefd(int fd);
 /*!<
  * \brief Check that the file is a plain file
  *
@@ -213,7 +216,7 @@ isc_file_isplainfile(const char *name);
  *		permitted in addition to ISC_R_SUCCESS. This is done since
  *		the next call in logconf.c is to isc_stdio_open(), which
  *		will create the file if it can.
- *\li	#other ISC_R_* errors translated from errno
+ *\li	other ISC_R_* errors translated from errno
  *		These occur when stat returns -1 and an errno.
  */
 
@@ -229,7 +232,7 @@ isc_file_isdirectory(const char *name);
  *		File is not a directory.
  *\li	#ISC_R_FILENOTFOUND
  *		File does not exist.
- *\li	#other ISC_R_* errors translated from errno
+ *\li	other ISC_R_* errors translated from errno
  *		These occur when stat returns -1 and an errno.
  */
 
@@ -327,6 +330,16 @@ isc_file_splitpath(isc_mem_t *mctx, char *path,
  */
 
 isc_result_t
+isc_file_getsize(const char *file, off_t *size);
+/*%<
+ * Return the size of the file (stored in the parameter pointed
+ * to by 'size') in bytes.
+ *
+ * Returns:
+ * - ISC_R_SUCCESS on success
+ */
+
+isc_result_t
 isc_file_getsizefd(int fd, off_t *size);
 /*%<
  * Return the size of the file (stored in the parameter pointed
@@ -334,6 +347,22 @@ isc_file_getsizefd(int fd, off_t *size);
  *
  * Returns:
  * - ISC_R_SUCCESS on success
+ */
+
+void *
+isc_file_mmap(void *addr, size_t len, int prot,
+	      int flags, int fd, off_t offset);
+/*%<
+ * Portable front-end to mmap().  If mmap() is not defined on this
+ * platform, then we simulate it by calling malloc() and read().
+ * (In this event, the addr, prot, and flags parameters are ignored).
+ */
+
+int
+isc_file_munmap(void *addr, size_t len);
+/*%<
+ * Portable front-end to munmap().  If munmap() is not defined on
+ * this platform, then we simply free the memory.
  */
 
 ISC_LANG_ENDDECLS

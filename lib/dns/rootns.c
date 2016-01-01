@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004, 2005, 2007, 2008, 2010, 2012, 2013  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2004, 2005, 2007, 2008, 2010, 2012-2015  Internet Systems Consortium, Inc. ("ISC")
  * Copyright (C) 1999-2002  Internet Software Consortium.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
@@ -15,7 +15,7 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* $Id: rootns.c,v 1.40 2010/06/18 05:36:24 marka Exp $ */
+/* $Id: rootns.c,v 1.40.476.1 2012/02/07 00:44:14 each Exp $ */
 
 /*! \file */
 
@@ -63,14 +63,15 @@ static char root_ns[] =
 "A.ROOT-SERVERS.NET.     3600000 IN      AAAA    2001:503:BA3E::2:30\n"
 "B.ROOT-SERVERS.NET.     3600000 IN      A       192.228.79.201\n"
 "C.ROOT-SERVERS.NET.     3600000 IN      A       192.33.4.12\n"
+"C.ROOT-SERVERS.NET.     3600000 IN      AAAA    2001:500:2::c\n"
 "D.ROOT-SERVERS.NET.     3600000 IN      A       199.7.91.13\n"
 "D.ROOT-SERVERS.NET.     3600000 IN      AAAA    2001:500:2d::d\n"
 "E.ROOT-SERVERS.NET.     3600000 IN      A       192.203.230.10\n"
 "F.ROOT-SERVERS.NET.     3600000 IN      A       192.5.5.241\n"
 "F.ROOT-SERVERS.NET.     3600000 IN      AAAA    2001:500:2F::F\n"
 "G.ROOT-SERVERS.NET.     3600000 IN      A       192.112.36.4\n"
-"H.ROOT-SERVERS.NET.     3600000 IN      A       128.63.2.53\n"
-"H.ROOT-SERVERS.NET.     3600000 IN      AAAA    2001:500:1::803F:235\n"
+"H.ROOT-SERVERS.NET.     3600000 IN      A       198.97.190.53\n"
+"H.ROOT-SERVERS.NET.     3600000 IN      AAAA    2001:500:1::53\n"
 "I.ROOT-SERVERS.NET.     3600000 IN      A       192.36.148.17\n"
 "I.ROOT-SERVERS.NET.     3600000 IN      AAAA    2001:7fe::53\n"
 "J.ROOT-SERVERS.NET.     3600000 IN      A       192.58.128.30\n"
@@ -210,18 +211,16 @@ dns_rootns_create(isc_mem_t *mctx, dns_rdataclass_t rdclass,
 	result = dns_db_create(mctx, "rbt", dns_rootname, dns_dbtype_zone,
 			       rdclass, 0, NULL, &db);
 	if (result != ISC_R_SUCCESS)
-		return (result);
-
-	dns_rdatacallbacks_init(&callbacks);
+		goto failure;
 
 	len = strlen(root_ns);
 	isc_buffer_init(&source, root_ns, len);
 	isc_buffer_add(&source, len);
 
-	result = dns_db_beginload(db, &callbacks.add,
-				  &callbacks.add_private);
+	dns_rdatacallbacks_init(&callbacks);
+	result = dns_db_beginload(db, &callbacks);
 	if (result != ISC_R_SUCCESS)
-		return (result);
+		goto failure;
 	if (filename != NULL) {
 		/*
 		 * Load the hints from the specified filename.
@@ -240,11 +239,11 @@ dns_rootns_create(isc_mem_t *mctx, dns_rdataclass_t rdclass,
 					       &callbacks, db->mctx);
 	} else
 		result = ISC_R_NOTFOUND;
-	eresult = dns_db_endload(db, &callbacks.add_private);
+	eresult = dns_db_endload(db, &callbacks);
 	if (result == ISC_R_SUCCESS || result == DNS_R_SEENINCLUDE)
 		result = eresult;
 	if (result != ISC_R_SUCCESS && result != DNS_R_SEENINCLUDE)
-		goto db_detach;
+		goto failure;
 	if (check_hints(db) != ISC_R_SUCCESS)
 		isc_log_write(dns_lctx, DNS_LOGCATEGORY_GENERAL,
 			      DNS_LOGMODULE_HINTS, ISC_LOG_WARNING,
@@ -253,8 +252,14 @@ dns_rootns_create(isc_mem_t *mctx, dns_rdataclass_t rdclass,
 	*target = db;
 	return (ISC_R_SUCCESS);
 
- db_detach:
-	dns_db_detach(&db);
+ failure:
+	isc_log_write(dns_lctx, DNS_LOGCATEGORY_GENERAL, DNS_LOGMODULE_HINTS,
+		      ISC_LOG_ERROR, "could not configure root hints from "
+		      "'%s': %s", (filename != NULL) ? filename : "<BUILT-IN>",
+		      isc_result_totext(result));
+
+	if (db != NULL)
+		dns_db_detach(&db);
 
 	return (result);
 }

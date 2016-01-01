@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004, 2005, 2007-2009, 2011-2013  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2004, 2005, 2007-2009, 2011-2014  Internet Systems Consortium, Inc. ("ISC")
  * Copyright (C) 1999-2001  Internet Software Consortium.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
@@ -110,7 +110,8 @@ use(dst_key_t *key, isc_mem_t *mctx, isc_result_t exp_result, int *nfails) {
 	isc_buffer_add(&databuf, strlen(data));
 	isc_buffer_usedregion(&databuf, &datareg);
 
-	ret = dst_context_create(key, mctx, &ctx);
+	ret = dst_context_create3(key, mctx,
+				  DNS_LOGCATEGORY_GENERAL, ISC_TRUE, &ctx);
 	if (ret != exp_result) {
 		t_info("dst_context_create(%d) returned (%s) expected (%s)\n",
 		       dst_key_alg(key), dst_result_totext(ret),
@@ -139,7 +140,8 @@ use(dst_key_t *key, isc_mem_t *mctx, isc_result_t exp_result, int *nfails) {
 	dst_context_destroy(&ctx);
 
 	isc_buffer_remainingregion(&sigbuf, &sigreg);
-	ret = dst_context_create(key, mctx, &ctx);
+	ret = dst_context_create3(key, mctx,
+				  DNS_LOGCATEGORY_GENERAL, ISC_FALSE, &ctx);
 	if (ret != ISC_R_SUCCESS) {
 		t_info("dst_context_create(%d) returned (%s)\n",
 		       dst_key_alg(key), dst_result_totext(ret));
@@ -468,7 +470,7 @@ t1(void) {
 	if (!dst_algorithm_supported(DST_ALG_RSAMD5)) {
 		dst_lib_destroy();
 		t_info("library built without crypto support\n");
-		t_result(T_UNTESTED);
+		t_result(T_SKIPPED);
 		return;
 	}
 
@@ -653,13 +655,12 @@ sig_fromfile(char *path, isc_buffer_t *iscbuf) {
 
 	len = (size_t)size;
 	p = buf;
-	while (len) {
+	while (len != 0U) {
 		isc_result = isc_stdio_read(p, 1, len, fp, &rval);
 		if (isc_result == ISC_R_SUCCESS) {
 			len -= rval;
 			p += rval;
-		}
-		else {
+		} else {
 			t_info("read failed %d, result: %s\n",
 			       (int)rval, isc_result_totext(isc_result));
 			(void) free(buf);
@@ -671,29 +672,38 @@ sig_fromfile(char *path, isc_buffer_t *iscbuf) {
 
 	p = buf;
 	len = size;
-	while(len) {
+	while (len > 0U) {
 		if ((*p == '\r') || (*p == '\n')) {
 			++p;
 			--len;
 			continue;
-		}
+		} else if (len < 2U)
+		       goto err;
 		if (('0' <= *p) && (*p <= '9'))
 			val = *p - '0';
-		else
+		else if (('A' <= *p) && (*p <= 'F'))
 			val = *p - 'A' + 10;
+		else
+			goto err;
 		++p;
 		val <<= 4;
 		--len;
 		if (('0' <= *p) && (*p <= '9'))
 			val |= (*p - '0');
-		else
+		else if (('A' <= *p) && (*p <= 'F'))
 			val |= (*p - 'A' + 10);
+		else
+			goto err;
 		++p;
 		--len;
 		isc_buffer_putuint8(iscbuf, val);
 	}
 	(void) free(buf);
 	return(0);
+
+ err:
+	(void) free(buf);
+	return (1);
 }
 
 static void
@@ -798,7 +808,9 @@ t2_sigchk(char *datapath, char *sigpath, char *keyname,
 	memset(sig, 0, sizeof(sig));
 	isc_buffer_init(&sigbuf, sig, sizeof(sig));
 
-	isc_result = dst_context_create(key, mctx, &ctx);
+	isc_result = dst_context_create3(key, mctx,
+					 DNS_LOGCATEGORY_GENERAL,
+					 ISC_TRUE, &ctx);
 	if (isc_result != ISC_R_SUCCESS) {
 		t_info("dst_context_create(%d) failed %s\n",
 		       dst_result_totext(isc_result));
@@ -864,7 +876,9 @@ t2_sigchk(char *datapath, char *sigpath, char *keyname,
 	if (strstr(expected_result, "!"))
 		exp_res = 1;
 
-	isc_result = dst_context_create(key, mctx, &ctx);
+	isc_result = dst_context_create3(key, mctx,
+					 DNS_LOGCATEGORY_GENERAL,
+					 ISC_FALSE, &ctx);
 	if (isc_result != ISC_R_SUCCESS) {
 		t_info("dst_context_create returned %s\n",
 			isc_result_totext(isc_result));
@@ -978,7 +992,7 @@ t2_vfy(char **av) {
 	if (!dst_algorithm_supported(DST_ALG_RSAMD5)) {
 		dst_lib_destroy();
 		t_info("library built without crypto support\n");
-		return (T_UNTESTED);
+		return (T_SKIPPED);
 	}
 
 	t_info("testing %s, %s, %s, %s, %s, %s\n",

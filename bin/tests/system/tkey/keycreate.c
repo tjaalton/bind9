@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004, 2005, 2007, 2009, 2011, 2012  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2004, 2005, 2007, 2009, 2011, 2012, 2014, 2015  Internet Systems Consortium, Inc. ("ISC")
  * Copyright (C) 2001  Internet Software Consortium.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
@@ -28,6 +28,7 @@
 #include <isc/hash.h>
 #include <isc/log.h>
 #include <isc/mem.h>
+#include <isc/print.h>
 #include <isc/sockaddr.h>
 #include <isc/socket.h>
 #include <isc/task.h>
@@ -189,8 +190,9 @@ sendquery(isc_task_t *task, isc_event_t *event) {
 
 	request = NULL;
 	result = dns_request_create(requestmgr, query, &address,
-				    0, initialkey, TIMEOUT, task,
-				    recvquery, query, &request);
+				    DNS_REQUESTOPT_TCP, initialkey,
+				    TIMEOUT, task, recvquery, query,
+				    &request);
 	CHECK("dns_request_create", result);
 }
 
@@ -228,11 +230,12 @@ main(int argc, char *argv[]) {
 	dns_result_register();
 
 	mctx = NULL;
+	isc_mem_debugging = ISC_MEM_DEBUGRECORD;
 	RUNCHECK(isc_mem_create(0, 0, &mctx));
 
 	ectx = NULL;
 	RUNCHECK(isc_entropy_create(mctx, &ectx));
-	RUNCHECK(isc_entropy_createfilesource(ectx, "random.data"));
+	RUNCHECK(isc_entropy_createfilesource(ectx, "../random.data"));
 	RUNCHECK(isc_hash_create(mctx, ectx, DNS_NAME_MAXWIRE));
 
 	log = NULL;

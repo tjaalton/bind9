@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2004, 2005, 2007, 2011-2013  Internet Systems Consortium, Inc. ("ISC")
+# Copyright (C) 2004, 2005, 2007, 2011-2015  Internet Systems Consortium, Inc. ("ISC")
 # Copyright (C) 2000, 2001  Internet Software Consortium.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
@@ -15,7 +15,7 @@
 # OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 
-# $Id$
+# $Id: tests.sh,v 1.37 2012/02/22 23:47:35 tbox Exp $
 
 SYSTEMTESTTOP=..
 . $SYSTEMTESTTOP/conf.sh
@@ -27,7 +27,7 @@ status=0
 echo "I:testing basic zone transfer functionality"
 $DIG $DIGOPTS example. \
 	@10.53.0.2 axfr -p 5300 > dig.out.ns2 || status=1
-grep ";" dig.out.ns2
+grep "^;" dig.out.ns2
 
 #
 # Spin to allow the zone to tranfer.
@@ -37,13 +37,13 @@ do
 tmp=0
 $DIG $DIGOPTS example. \
 	@10.53.0.3 axfr -p 5300 > dig.out.ns3 || tmp=1
-	grep ";" dig.out.ns3 > /dev/null
+	grep "^;" dig.out.ns3 > /dev/null
 	if test $? -ne 0 ; then break; fi
 	echo "I: plain zone re-transfer"
 	sleep 5
 done
 if test $tmp -eq 1 ; then status=1; fi
-grep ";" dig.out.ns3
+grep "^;" dig.out.ns3
 
 $PERL ../digcomp.pl dig1.good dig.out.ns2 || status=1
 
@@ -53,7 +53,7 @@ echo "I:testing TSIG signed zone transfers"
 $DIG $DIGOPTS tsigzone. \
     	@10.53.0.2 axfr -y tsigzone.:1234abcd8765 -p 5300 \
 	> dig.out.ns2 || status=1
-grep ";" dig.out.ns2
+grep "^;" dig.out.ns2
 
 #
 # Spin to allow the zone to tranfer.
@@ -64,13 +64,13 @@ tmp=0
 $DIG $DIGOPTS tsigzone. \
     	@10.53.0.3 axfr -y tsigzone.:1234abcd8765 -p 5300 \
 	> dig.out.ns3 || tmp=1
-	grep ";" dig.out.ns3 > /dev/null
+	grep "^;" dig.out.ns3 > /dev/null
 	if test $? -ne 0 ; then break; fi
 	echo "I: plain zone re-transfer"
 	sleep 5
 done
 if test $tmp -eq 1 ; then status=1; fi
-grep ";" dig.out.ns3
+grep "^;" dig.out.ns3
 
 $PERL ../digcomp.pl dig.out.ns2 dig.out.ns3 || status=1
 
@@ -135,7 +135,7 @@ done
 
 $DIG $DIGOPTS example. \
 	@10.53.0.3 axfr -p 5300 > dig.out.ns3 || tmp=1
-grep ";" dig.out.ns3
+grep "^;" dig.out.ns3
 
 $PERL ../digcomp.pl dig2.good dig.out.ns3 || tmp=1
 
@@ -151,11 +151,11 @@ tmp=0
 
 $DIG $DIGOPTS master. \
 	@10.53.0.6 axfr -p 5300 > dig.out.ns6 || tmp=1
-grep ";" dig.out.ns6
+grep "^;" dig.out.ns6
 
 $DIG $DIGOPTS master. \
 	@10.53.0.3 axfr -p 5300 > dig.out.ns3 || tmp=1
-grep ";" dig.out.ns3 && cat dig.out.ns3
+grep "^;" dig.out.ns3 && cat dig.out.ns3
 
 $PERL ../digcomp.pl dig.out.ns6 dig.out.ns3 || tmp=1
 
@@ -171,11 +171,11 @@ tmp=0
 
 $DIG $DIGOPTS slave. \
 	@10.53.0.6 axfr -p 5300 > dig.out.ns6 || tmp=1
-grep ";" dig.out.ns6
+grep "^;" dig.out.ns6
 
 $DIG $DIGOPTS slave. \
 	@10.53.0.1 axfr -p 5300 > dig.out.ns1 || tmp=1
-grep ";" dig.out.ns1
+grep "^;" dig.out.ns1
 
 $PERL ../digcomp.pl dig.out.ns6 dig.out.ns1 || tmp=1
 
@@ -200,11 +200,11 @@ tmp=0
 
 $DIG $DIGOPTS slave. \
 	@10.53.0.1 axfr -p 5300 > dig.out.ns1 || tmp=1
-grep ";" dig.out.ns1
+grep "^;" dig.out.ns1
 
 $DIG $DIGOPTS slave. \
 	@10.53.0.7 axfr -p 5300 > dig.out.ns7 || tmp=1
-grep ";" dig.out.ns1
+grep "^;" dig.out.ns1
 
 $PERL ../digcomp.pl dig.out.ns7 dig.out.ns1 || tmp=1
 
@@ -235,7 +235,7 @@ $SENDCMD < ans5/goodaxfr
 sleep 1
 
 # Initially, ns4 is not authoritative for anything.
-# Now that ans is up and running with the right data, we make it
+# Now that ans is up and running with the right data, we make ns4
 # a slave for nil.
 
 cat <<EOF >>ns4/named.conf
@@ -248,6 +248,7 @@ EOF
 
 $RNDCCMD reload | sed 's/^/I:ns4 /'
 
+cur=`awk 'END {print NR}' ns4/named.run`
 
 for i in 0 1 2 3 4 5 6 7 8 9
 do
@@ -255,6 +256,12 @@ do
 	grep SOA dig.out.ns4 > /dev/null && break
 	sleep 1
 done
+
+tail -n +"$cur" < ns4/named.run | grep "Transfer status: success" > /dev/null || {
+    echo "I: failed: expected status was not logged"
+    status=1
+}
+cur=`awk 'END {print NR}' ns4/named.run`
 
 $DIGCMD nil. TXT | grep 'initial AXFR' >/dev/null || {
     echo "I:failed"
@@ -270,6 +277,12 @@ $RNDCCMD retransfer nil | sed 's/^/I:ns4 /'
 
 sleep 2
 
+tail -n +"$cur" < ns4/named.run | grep "Transfer status: expected a TSIG or SIG(0)" > /dev/null || {
+    echo "I: failed: expected status was not logged"
+    status=1
+}
+cur=`awk 'END {print NR}' ns4/named.run`
+
 $DIGCMD nil. TXT | grep 'unsigned AXFR' >/dev/null && {
     echo "I:failed"
     status=1
@@ -283,6 +296,12 @@ sleep 1
 $RNDCCMD retransfer nil | sed 's/^/I:ns4 /'
 
 sleep 2
+
+tail -n +"$cur" < ns4/named.run | grep "Transfer status: tsig verify failure" > /dev/null || {
+    echo "I: failed: expected status was not logged"
+    status=1
+}
+cur=`awk 'END {print NR}' ns4/named.run`
 
 $DIGCMD nil. TXT | grep 'bad keydata AXFR' >/dev/null && {
     echo "I:failed"
@@ -298,6 +317,12 @@ $RNDCCMD retransfer nil | sed 's/^/I:ns4 /'
 
 sleep 2
 
+tail -n +"$cur" < ns4/named.run | grep "Transfer status: expected a TSIG or SIG(0)" > /dev/null || {
+    echo "I: failed: expected status was not logged"
+    status=1
+}
+cur=`awk 'END {print NR}' ns4/named.run`
+
 $DIGCMD nil. TXT | grep 'partially signed AXFR' >/dev/null && {
     echo "I:failed"
     status=1
@@ -312,6 +337,12 @@ $RNDCCMD retransfer nil | sed 's/^/I:ns4 /'
 
 sleep 2
 
+tail -n +"$cur" < ns4/named.run | grep "tsig key 'tsig_key': key name and algorithm do not match" > /dev/null || {
+    echo "I: failed: expected status was not logged"
+    status=1
+}
+cur=`awk 'END {print NR}' ns4/named.run`
+
 $DIGCMD nil. TXT | grep 'unknown key AXFR' >/dev/null && {
     echo "I:failed"
     status=1
@@ -325,6 +356,12 @@ sleep 1
 $RNDCCMD retransfer nil | sed 's/^/I:ns4 /'
 
 sleep 2
+
+tail -n +"$cur" < ns4/named.run | grep "tsig key 'tsig_key': key name and algorithm do not match" > /dev/null || {
+    echo "I: failed: expected status was not logged"
+    status=1
+}
+cur=`awk 'END {print NR}' ns4/named.run`
 
 $DIGCMD nil. TXT | grep 'incorrect key AXFR' >/dev/null && {
     echo "I:failed"

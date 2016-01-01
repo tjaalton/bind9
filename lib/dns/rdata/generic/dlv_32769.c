@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004, 2006, 2007, 2009-2013  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2004, 2006, 2007, 2009-2015  Internet Systems Consortium, Inc. ("ISC")
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -16,7 +16,7 @@
 
 /* $Id$ */
 
-/* draft-ietf-dnsext-delegation-signer-05.txt */
+/* RFC3658 */
 
 #ifndef RDATA_GENERIC_DLV_32769_C
 #define RDATA_GENERIC_DLV_32769_C
@@ -28,6 +28,7 @@
 
 #include <dns/ds.h>
 
+#include "dst_gost.h"
 
 static inline isc_result_t
 fromtext_dlv(ARGS_FROMTEXT) {
@@ -35,7 +36,7 @@ fromtext_dlv(ARGS_FROMTEXT) {
 	unsigned char c;
 	int length;
 
-	REQUIRE(type == 32769);
+	REQUIRE(type == dns_rdatatype_dlv);
 
 	UNUSED(type);
 	UNUSED(rdclass);
@@ -81,9 +82,11 @@ fromtext_dlv(ARGS_FROMTEXT) {
 	case DNS_DSDIGEST_SHA256:
 		length = ISC_SHA256_DIGESTLENGTH;
 		break;
+#ifdef ISC_GOST_DIGESTLENGTH
 	case DNS_DSDIGEST_GOST:
 		length = ISC_GOST_DIGESTLENGTH;
 		break;
+#endif
 	case DNS_DSDIGEST_SHA384:
 		length = ISC_SHA384_DIGESTLENGTH;
 		break;
@@ -100,7 +103,7 @@ totext_dlv(ARGS_TOTEXT) {
 	char buf[sizeof("64000 ")];
 	unsigned int n;
 
-	REQUIRE(rdata->type == 32769);
+	REQUIRE(rdata->type == dns_rdatatype_dlv);
 	REQUIRE(rdata->length != 0);
 
 	UNUSED(tctx);
@@ -137,11 +140,14 @@ totext_dlv(ARGS_TOTEXT) {
 	if ((tctx->flags & DNS_STYLEFLAG_MULTILINE) != 0)
 		RETERR(str_totext(" (", target));
 	RETERR(str_totext(tctx->linebreak, target));
-	if (tctx->width == 0) /* No splitting */
-		RETERR(isc_hex_totext(&sr, 0, "", target));
-	else
-		RETERR(isc_hex_totext(&sr, tctx->width - 2,
-				      tctx->linebreak, target));
+	if ((tctx->flags & DNS_STYLEFLAG_NOCRYPTO) == 0) {
+		if (tctx->width == 0) /* No splitting */
+			RETERR(isc_hex_totext(&sr, 0, "", target));
+		else
+			RETERR(isc_hex_totext(&sr, tctx->width - 2,
+					      tctx->linebreak, target));
+	} else
+		RETERR(str_totext("[omitted]", target));
 	if ((tctx->flags & DNS_STYLEFLAG_MULTILINE) != 0)
 		RETERR(str_totext(" )", target));
 	return (ISC_R_SUCCESS);
@@ -151,7 +157,7 @@ static inline isc_result_t
 fromwire_dlv(ARGS_FROMWIRE) {
 	isc_region_t sr;
 
-	REQUIRE(type == 32769);
+	REQUIRE(type == dns_rdatatype_dlv);
 
 	UNUSED(type);
 	UNUSED(rdclass);
@@ -168,8 +174,10 @@ fromwire_dlv(ARGS_FROMWIRE) {
 	     sr.length < 4 + ISC_SHA1_DIGESTLENGTH) ||
 	    (sr.base[3] == DNS_DSDIGEST_SHA256 &&
 	     sr.length < 4 + ISC_SHA256_DIGESTLENGTH) ||
+#ifdef ISC_GOST_DIGESTLENGTH
 	    (sr.base[3] == DNS_DSDIGEST_GOST &&
 	     sr.length < 4 + ISC_GOST_DIGESTLENGTH) ||
+#endif
 	    (sr.base[3] == DNS_DSDIGEST_SHA384 &&
 	     sr.length < 4 + ISC_SHA384_DIGESTLENGTH))
 		return (ISC_R_UNEXPECTEDEND);
@@ -183,8 +191,10 @@ fromwire_dlv(ARGS_FROMWIRE) {
 		sr.length = 4 + ISC_SHA1_DIGESTLENGTH;
 	else if (sr.base[3] == DNS_DSDIGEST_SHA256)
 		sr.length = 4 + ISC_SHA256_DIGESTLENGTH;
+#ifdef ISC_GOST_DIGESTLENGTH
 	else if (sr.base[3] == DNS_DSDIGEST_GOST)
 		sr.length = 4 + ISC_GOST_DIGESTLENGTH;
+#endif
 	else if (sr.base[3] == DNS_DSDIGEST_SHA384)
 		sr.length = 4 + ISC_SHA384_DIGESTLENGTH;
 
@@ -196,7 +206,7 @@ static inline isc_result_t
 towire_dlv(ARGS_TOWIRE) {
 	isc_region_t sr;
 
-	REQUIRE(rdata->type == 32769);
+	REQUIRE(rdata->type == dns_rdatatype_dlv);
 	REQUIRE(rdata->length != 0);
 
 	UNUSED(cctx);
@@ -212,7 +222,7 @@ compare_dlv(ARGS_COMPARE) {
 
 	REQUIRE(rdata1->type == rdata2->type);
 	REQUIRE(rdata1->rdclass == rdata2->rdclass);
-	REQUIRE(rdata1->type == 32769);
+	REQUIRE(rdata1->type == dns_rdatatype_dlv);
 	REQUIRE(rdata1->length != 0);
 	REQUIRE(rdata2->length != 0);
 
@@ -225,7 +235,7 @@ static inline isc_result_t
 fromstruct_dlv(ARGS_FROMSTRUCT) {
 	dns_rdata_dlv_t *dlv = source;
 
-	REQUIRE(type == 32769);
+	REQUIRE(type == dns_rdatatype_dlv);
 	REQUIRE(source != NULL);
 	REQUIRE(dlv->common.rdtype == type);
 	REQUIRE(dlv->common.rdclass == rdclass);
@@ -236,9 +246,11 @@ fromstruct_dlv(ARGS_FROMSTRUCT) {
 	case DNS_DSDIGEST_SHA256:
 		REQUIRE(dlv->length == ISC_SHA256_DIGESTLENGTH);
 		break;
+#ifdef ISC_GOST_DIGESTLENGTH
 	case DNS_DSDIGEST_GOST:
 		REQUIRE(dlv->length == ISC_GOST_DIGESTLENGTH);
 		break;
+#endif
 	case DNS_DSDIGEST_SHA384:
 		REQUIRE(dlv->length == ISC_SHA384_DIGESTLENGTH);
 		break;
@@ -259,7 +271,7 @@ tostruct_dlv(ARGS_TOSTRUCT) {
 	dns_rdata_dlv_t *dlv = target;
 	isc_region_t region;
 
-	REQUIRE(rdata->type == 32769);
+	REQUIRE(rdata->type == dns_rdatatype_dlv);
 	REQUIRE(target != NULL);
 	REQUIRE(rdata->length != 0);
 
@@ -290,7 +302,7 @@ freestruct_dlv(ARGS_FREESTRUCT) {
 	dns_rdata_dlv_t *dlv = source;
 
 	REQUIRE(dlv != NULL);
-	REQUIRE(dlv->common.rdtype == 32769);
+	REQUIRE(dlv->common.rdtype == dns_rdatatype_dlv);
 
 	if (dlv->mctx == NULL)
 		return;
@@ -302,7 +314,7 @@ freestruct_dlv(ARGS_FREESTRUCT) {
 
 static inline isc_result_t
 additionaldata_dlv(ARGS_ADDLDATA) {
-	REQUIRE(rdata->type == 32769);
+	REQUIRE(rdata->type == dns_rdatatype_dlv);
 
 	UNUSED(rdata);
 	UNUSED(add);
@@ -315,7 +327,7 @@ static inline isc_result_t
 digest_dlv(ARGS_DIGEST) {
 	isc_region_t r;
 
-	REQUIRE(rdata->type == 32769);
+	REQUIRE(rdata->type == dns_rdatatype_dlv);
 
 	dns_rdata_toregion(rdata, &r);
 
@@ -325,7 +337,7 @@ digest_dlv(ARGS_DIGEST) {
 static inline isc_boolean_t
 checkowner_dlv(ARGS_CHECKOWNER) {
 
-	REQUIRE(type == 32769);
+	REQUIRE(type == dns_rdatatype_dlv);
 
 	UNUSED(name);
 	UNUSED(type);
@@ -338,7 +350,7 @@ checkowner_dlv(ARGS_CHECKOWNER) {
 static inline isc_boolean_t
 checknames_dlv(ARGS_CHECKNAMES) {
 
-	REQUIRE(rdata->type == 32769);
+	REQUIRE(rdata->type == dns_rdatatype_dlv);
 
 	UNUSED(rdata);
 	UNUSED(owner);

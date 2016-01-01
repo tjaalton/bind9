@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2013  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2004-2015  Internet Systems Consortium, Inc. ("ISC")
  * Copyright (C) 2000-2003  Internet Software Consortium.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
@@ -14,8 +14,6 @@
  * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
  */
-
-/* $Id: nslookup.c,v 1.130 2011/12/16 23:01:16 each Exp $ */
 
 #include <config.h>
 
@@ -427,13 +425,12 @@ printmessage(dig_query_t *query, dns_message_t *msg, isc_boolean_t headers) {
 	puts("");
 
 	if (!short_form) {
-		isc_boolean_t headers = ISC_TRUE;
 		puts("------------");
 		/*		detailheader(query, msg);*/
-		detailsection(query, msg, headers, DNS_SECTION_QUESTION);
-		detailsection(query, msg, headers, DNS_SECTION_ANSWER);
-		detailsection(query, msg, headers, DNS_SECTION_AUTHORITY);
-		detailsection(query, msg, headers, DNS_SECTION_ADDITIONAL);
+		detailsection(query, msg, ISC_TRUE, DNS_SECTION_QUESTION);
+		detailsection(query, msg, ISC_TRUE, DNS_SECTION_ANSWER);
+		detailsection(query, msg, ISC_TRUE, DNS_SECTION_AUTHORITY);
+		detailsection(query, msg, ISC_TRUE, DNS_SECTION_ADDITIONAL);
 		puts("------------");
 	}
 
@@ -582,8 +579,13 @@ set_ndots(const char *value) {
 }
 
 static void
+version(void) {
+	fputs("nslookup " VERSION "\n", stderr);
+}
+
+static void
 setoption(char *opt) {
-	if (strncasecmp(opt, "all", 4) == 0) {
+	if (strncasecmp(opt, "all", 3) == 0) {
 		show_settings(ISC_TRUE, ISC_FALSE);
 	} else if (strncasecmp(opt, "class=", 6) == 0) {
 		if (testclass(&opt[6]))
@@ -805,9 +807,12 @@ parse_args(int argc, char **argv) {
 	for (argc--, argv++; argc > 0; argc--, argv++) {
 		debug("main parsing %s", argv[0]);
 		if (argv[0][0] == '-') {
-			if (argv[0][1] != 0)
+			if (strncasecmp(argv[0], "-ver", 4) == 0) {
+				version();
+				exit(0);
+			} else if (argv[0][1] != 0) {
 				setoption(&argv[0][1]);
-			else
+			} else
 				have_lookup = ISC_TRUE;
 		} else {
 			if (!have_lookup) {

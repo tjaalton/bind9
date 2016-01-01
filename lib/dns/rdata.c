@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2014  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2004-2015  Internet Systems Consortium, Inc. ("ISC")
  * Copyright (C) 1998-2003  Internet Software Consortium.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
@@ -35,6 +35,7 @@
 #include <dns/callbacks.h>
 #include <dns/cert.h>
 #include <dns/compress.h>
+#include <dns/dsdigest.h>
 #include <dns/enumtype.h>
 #include <dns/keyflags.h>
 #include <dns/keyvalues.h>
@@ -116,7 +117,7 @@ typedef struct dns_rdata_textctx {
 } dns_rdata_textctx_t;
 
 static isc_result_t
-txt_totext(isc_region_t *source, isc_buffer_t *target);
+txt_totext(isc_region_t *source, isc_boolean_t quote, isc_buffer_t *target);
 
 static isc_result_t
 txt_fromtext(isc_textregion_t *source, isc_buffer_t *target);
@@ -129,9 +130,6 @@ multitxt_totext(isc_region_t *source, isc_buffer_t *target);
 
 static isc_result_t
 multitxt_fromtext(isc_textregion_t *source, isc_buffer_t *target);
-
-static isc_result_t
-multitxt_fromwire(isc_buffer_t *source, isc_buffer_t *target);
 
 static isc_boolean_t
 name_prefix(dns_name_t *name, dns_name_t *origin, dns_name_t *target);
@@ -226,6 +224,21 @@ unknown_totext(dns_rdata_t *rdata, dns_rdata_textctx_t *tctx,
 /*% IPv6 Address Size */
 #define NS_LOCATORSZ	8
 
+/*
+ * Active Diretory gc._msdcs.<forest> prefix.
+ */
+static unsigned char gc_msdcs_data[]  = "\002gc\006_msdcs";
+static unsigned char gc_msdcs_offset [] = { 0, 3 };
+
+static const dns_name_t gc_msdcs = {
+	DNS_NAME_MAGIC,
+	gc_msdcs_data, 10, 2,
+	DNS_NAMEATTR_READONLY,
+	gc_msdcs_offset, NULL,
+	{(void *)-1, (void *)-1},
+	{NULL, NULL}
+};
+
 /*%
  *	convert presentation level address to network order binary form.
  * \return
@@ -316,15 +329,15 @@ name_duporclone(dns_name_t *source, isc_mem_t *mctx, dns_name_t *target) {
 
 static inline void *
 mem_maybedup(isc_mem_t *mctx, void *source, size_t length) {
-	void *new;
+	void *copy;
 
 	if (mctx == NULL)
 		return (source);
-	new = isc_mem_allocate(mctx, length);
-	if (new != NULL)
-		memmove(new, source, length);
+	copy = isc_mem_allocate(mctx, length);
+	if (copy != NULL)
+		memmove(copy, source, length);
 
-	return (new);
+	return (copy);
 }
 
 static const char hexdigits[] = "0123456789abcdef";
@@ -839,6 +852,7 @@ rdata_totext(dns_rdata_t *rdata, dns_rdata_textctx_t *tctx,
 {
 	isc_result_t result = ISC_R_NOTIMPLEMENTED;
 	isc_boolean_t use_default = ISC_FALSE;
+	unsigned int cur;
 
 	REQUIRE(rdata != NULL);
 	REQUIRE(tctx->origin == NULL ||
@@ -852,10 +866,17 @@ rdata_totext(dns_rdata_t *rdata, dns_rdata_textctx_t *tctx,
 		return (ISC_R_SUCCESS);
 	}
 
+	cur = isc_buffer_usedlength(target);
+
 	TOTEXTSWITCH
 
-	if (use_default)
+	if (use_default || (result == ISC_R_NOTIMPLEMENTED)) {
+		unsigned int u = isc_buffer_usedlength(target);
+
+		INSIST(u >= cur);
+		isc_buffer_subtract(target, u - cur);
 		result = unknown_totext(rdata, tctx, target);
+	}
 
 	return (result);
 }
@@ -1131,7 +1152,7 @@ name_length(dns_name_t *name) {
 }
 
 static isc_result_t
-txt_totext(isc_region_t *source, isc_buffer_t *target) {
+txt_totext(isc_region_t *source, isc_boolean_t quote, isc_buffer_t *target) {
 	unsigned int tl;
 	unsigned int n;
 	unsigned char *sp;
@@ -1146,13 +1167,20 @@ txt_totext(isc_region_t *source, isc_buffer_t *target) {
 	n = *sp++;
 
 	REQUIRE(n + 1 <= source->length);
+	if (n == 0U)
+		REQUIRE(quote == ISC_TRUE);
 
-	if (tl < 1)
-		return (ISC_R_NOSPACE);
-	*tp++ = '"';
-	tl--;
+	if (quote) {
+		if (tl < 1)
+			return (ISC_R_NOSPACE);
+		*tp++ = '"';
+		tl--;
+	}
 	while (n--) {
-		if (*sp < 0x20 || *sp >= 0x7f) {
+		/*
+		 * \DDD space (0x20) if not quoting.
+		 */
+		if (*sp < (quote ? 0x20 : 0x21) || *sp >= 0x7f) {
 			if (tl < 4)
 				return (ISC_R_NOSPACE);
 			*tp++ = 0x5c;
@@ -1163,8 +1191,13 @@ txt_totext(isc_region_t *source, isc_buffer_t *target) {
 			tl -= 4;
 			continue;
 		}
-		/* double quote, semi-colon, backslash */
-		if (*sp == 0x22 || *sp == 0x3b || *sp == 0x5c) {
+		/*
+		 * Escape double quote and backslash.  If we are not
+		 * enclosing the string in double quotes also escape
+		 * at sign and semicolon.
+		 */
+		if (*sp == 0x22 || *sp == 0x5c ||
+		    (!quote && (*sp == 0x40 || *sp == 0x3b))) {
 			if (tl < 2)
 				return (ISC_R_NOSPACE);
 			*tp++ = '\\';
@@ -1175,10 +1208,12 @@ txt_totext(isc_region_t *source, isc_buffer_t *target) {
 		*tp++ = *sp++;
 		tl--;
 	}
-	if (tl < 1)
-		return (ISC_R_NOSPACE);
-	*tp++ = '"';
-	tl--;
+	if (quote) {
+		if (tl < 1)
+			return (ISC_R_NOSPACE);
+		*tp++ = '"';
+		tl--;
+	}
 	isc_buffer_add(target, (unsigned int)(tp - (char *)region.base));
 	isc_region_consume(source, *source->base + 1);
 	return (ISC_R_SUCCESS);
@@ -1258,7 +1293,7 @@ txt_fromwire(isc_buffer_t *source, isc_buffer_t *target) {
 
 	isc_buffer_activeregion(source, &sregion);
 	if (sregion.length == 0)
-		return(ISC_R_UNEXPECTEDEND);
+		return (ISC_R_UNEXPECTEDEND);
 	n = *sregion.base + 1;
 	if (n > sregion.length)
 		return (ISC_R_UNEXPECTEDEND);
@@ -1274,6 +1309,9 @@ txt_fromwire(isc_buffer_t *source, isc_buffer_t *target) {
 	return (ISC_R_SUCCESS);
 }
 
+/*
+ * Conversion of TXT-like rdata fields without length limits.
+ */
 static isc_result_t
 multitxt_totext(isc_region_t *source, isc_buffer_t *target) {
 	unsigned int tl;
@@ -1292,9 +1330,8 @@ multitxt_totext(isc_region_t *source, isc_buffer_t *target) {
 	*tp++ = '"';
 	tl--;
 	do {
-		n0 = n = *sp++;
-
-		REQUIRE(n0 + 1 <= source->length);
+		n = source->length;
+		n0 = source->length - 1;
 
 		while (n--) {
 			if (*sp < 0x20 || *sp >= 0x7f) {
@@ -1346,17 +1383,11 @@ multitxt_fromtext(isc_textregion_t *source, isc_buffer_t *target) {
 
 	do {
 		isc_buffer_availableregion(target, &tregion);
-		t0 = tregion.base;
+		t0 = t = tregion.base;
 		nrem = tregion.length;
 		if (nrem < 1)
 			return (ISC_R_NOSPACE);
-		/* length byte */
-		t = t0;
-		nrem--;
-		t++;
-		/* 255 byte character-string slice */
-		if (nrem > 255)
-			nrem = 255;
+
 		while (n != 0) {
 			--n;
 			c = (*s++) & 0xff;
@@ -1390,39 +1421,9 @@ multitxt_fromtext(isc_textregion_t *source, isc_buffer_t *target) {
 		}
 		if (escape)
 			return (DNS_R_SYNTAX);
-		*t0 = (unsigned char)(t - t0 - 1);
-		isc_buffer_add(target, *t0 + 1);
+
+		isc_buffer_add(target, (unsigned int)(t - t0));
 	} while (n != 0);
-	return (ISC_R_SUCCESS);
-}
-
-static isc_result_t
-multitxt_fromwire(isc_buffer_t *source, isc_buffer_t *target) {
-	unsigned int n;
-	isc_region_t sregion;
-	isc_region_t tregion;
-
-	isc_buffer_activeregion(source, &sregion);
-	if (sregion.length == 0)
-		return(ISC_R_UNEXPECTEDEND);
-	n = 256U;
-	do {
-		if (n != 256U)
-			return (DNS_R_SYNTAX);
-		n = *sregion.base + 1;
-		if (n > sregion.length)
-			return (ISC_R_UNEXPECTEDEND);
-
-		isc_buffer_availableregion(target, &tregion);
-		if (n > tregion.length)
-			return (ISC_R_NOSPACE);
-
-		if (tregion.base != sregion.base)
-			memmove(tregion.base, sregion.base, n);
-		isc_buffer_forward(source, n);
-		isc_buffer_add(target, n);
-		isc_buffer_activeregion(source, &sregion);
-	} while (sregion.length != 0);
 	return (ISC_R_SUCCESS);
 }
 
@@ -1602,7 +1603,7 @@ mem_tobuffer(isc_buffer_t *target, void *base, unsigned int length) {
 
 static int
 hexvalue(char value) {
-	char *s;
+	const char *s;
 	unsigned char c;
 
 	c = (unsigned char)value;
@@ -1618,7 +1619,7 @@ hexvalue(char value) {
 
 static int
 decvalue(char value) {
-	char *s;
+	const char *s;
 
 	/*
 	 * isascii() is valid for full range of int values, no need to
@@ -1676,7 +1677,7 @@ static isc_result_t	byte_btoa(int c, isc_buffer_t *, struct state *state);
  */
 static isc_result_t
 byte_atob(int c, isc_buffer_t *target, struct state *state) {
-	char *s;
+	const char *s;
 	if (c == 'z') {
 		if (bcount != 0)
 			return(DNS_R_SYNTAX);
@@ -1772,8 +1773,12 @@ atob_tobuffer(isc_lex_t *lexer, isc_buffer_t *target) {
 	 */
 	RETERR(isc_lex_getmastertoken(lexer, &token, isc_tokentype_number,
 				      ISC_FALSE));
-	if ((token.value.as_ulong % 4) != 0U)
-		isc_buffer_subtract(target,  4 - (token.value.as_ulong % 4));
+	if ((token.value.as_ulong % 4) != 0U) {
+		unsigned long padding = 4 - (token.value.as_ulong % 4);
+		if (isc_buffer_usedlength(target) < padding)
+			return (DNS_R_SYNTAX);
+		isc_buffer_subtract(target, padding);
+	}
 
 	/*
 	 * Checksum.
