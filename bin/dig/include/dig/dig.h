@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2009, 2011-2014  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2004-2009, 2011-2015  Internet Systems Consortium, Inc. ("ISC")
  * Copyright (C) 2000-2003  Internet Software Consortium.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
@@ -14,8 +14,6 @@
  * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
  */
-
-/* $Id: dig.h,v 1.114 2011/12/07 17:23:28 each Exp $ */
 
 #ifndef DIG_H
 #define DIG_H
@@ -117,6 +115,7 @@ struct dig_lookup {
 		trace, /*% dig +trace */
 		trace_root, /*% initial query for either +trace or +nssearch */
 		tcp_mode,
+		tcp_mode_set,
 		ip6_int,
 		comments,
 		stats,
@@ -130,7 +129,12 @@ struct dig_lookup {
 		done_as_is,
 		besteffort,
 		dnssec,
-		nsid;   /*% Name Server ID (RFC 5001) */
+		expire,
+#ifdef ISC_PLATFORM_USESIT
+		sit,
+#endif
+		nsid,   /*% Name Server ID (RFC 5001) */
+		ednsneg;
 #ifdef DIG_SIGCHASE
 isc_boolean_t	sigchase;
 #if DIG_SIGCHASE_TD
@@ -184,6 +188,14 @@ isc_boolean_t	sigchase;
 	isc_buffer_t *querysig;
 	isc_uint32_t msgcounter;
 	dns_fixedname_t fdomain;
+	isc_sockaddr_t *ecs_addr;
+#ifdef ISC_PLATFORM_USESIT
+	char *sitvalue;
+#endif
+	dns_ednsopt_t *ednsopts;
+	unsigned int ednsoptscnt;
+	unsigned int ednsflags;
+	dns_opcode_t opcode;
 };
 
 /*% The dig_query structure */
@@ -219,6 +231,7 @@ struct dig_query {
 	ISC_LINK(dig_query_t) clink;
 	isc_sockaddr_t sockaddr;
 	isc_time_t time_sent;
+	isc_time_t time_recv;
 	isc_uint64_t byte_count;
 	isc_buffer_t sendbuf;
 };
@@ -257,7 +270,6 @@ extern isc_boolean_t check_ra, have_ipv4, have_ipv6, specified_source,
 extern in_port_t port;
 extern unsigned int timeout;
 extern isc_mem_t *mctx;
-extern dns_messageid_t id;
 extern int sendcount;
 extern int ndots;
 extern int lookup_counter;
@@ -309,7 +321,7 @@ debug(const char *format, ...) ISC_FORMAT_PRINTF(1, 2);
 void
 check_result(isc_result_t result, const char *msg);
 
-void
+isc_boolean_t
 setup_lookup(dig_lookup_t *lookup);
 
 void
@@ -336,6 +348,13 @@ setup_system(void);
 isc_result_t
 parse_uint(isc_uint32_t *uip, const char *value, isc_uint32_t max,
 	   const char *desc);
+
+isc_result_t
+parse_xint(isc_uint32_t *uip, const char *value, isc_uint32_t max,
+	   const char *desc);
+
+isc_result_t
+parse_netprefix(isc_sockaddr_t **sap, const char *value);
 
 void
 parse_hmac(const char *hmacstr);
@@ -415,6 +434,8 @@ chase_scanname(dns_name_t *name, dns_rdatatype_t type, dns_rdatatype_t covers);
 void
 chase_sig(dns_message_t *msg);
 #endif
+
+void save_opt(dig_lookup_t *lookup, char *code, char *value);
 
 ISC_LANG_ENDDECLS
 

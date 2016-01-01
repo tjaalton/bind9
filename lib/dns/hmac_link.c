@@ -1,5 +1,5 @@
 /*
- * Portions Copyright (C) 2004-2014  Internet Systems Consortium, Inc. ("ISC")
+ * Portions Copyright (C) 2004-2015  Internet Systems Consortium, Inc. ("ISC")
  * Portions Copyright (C) 1999-2002  Internet Software Consortium.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
@@ -76,7 +76,7 @@ hmacmd5_createctx(dst_key_t *key, dst_context_t *dctx) {
 	hmacmd5ctx = isc_mem_get(dctx->mctx, sizeof(isc_hmacmd5_t));
 	if (hmacmd5ctx == NULL)
 		return (ISC_R_NOMEMORY);
-	isc_hmacmd5_init(hmacmd5ctx, hkey->key, ISC_SHA1_BLOCK_LENGTH);
+	isc_hmacmd5_init(hmacmd5ctx, hkey->key, ISC_MD5_BLOCK_LENGTH);
 	dctx->ctxdata.hmacmd5ctx = hmacmd5ctx;
 	return (ISC_R_SUCCESS);
 }
@@ -139,7 +139,7 @@ hmacmd5_compare(const dst_key_t *key1, const dst_key_t *key2) {
 	else if (hkey1 == NULL || hkey2 == NULL)
 		return (ISC_FALSE);
 
-	if (isc_safe_memcmp(hkey1->key, hkey2->key, ISC_SHA1_BLOCK_LENGTH))
+	if (isc_safe_memequal(hkey1->key, hkey2->key, ISC_MD5_BLOCK_LENGTH))
 		return (ISC_TRUE);
 	else
 		return (ISC_FALSE);
@@ -150,17 +150,17 @@ hmacmd5_generate(dst_key_t *key, int pseudorandom_ok, void (*callback)(int)) {
 	isc_buffer_t b;
 	isc_result_t ret;
 	unsigned int bytes;
-	unsigned char data[ISC_SHA1_BLOCK_LENGTH];
+	unsigned char data[ISC_MD5_BLOCK_LENGTH];
 
 	UNUSED(callback);
 
 	bytes = (key->key_size + 7) / 8;
-	if (bytes > ISC_SHA1_BLOCK_LENGTH) {
-		bytes = ISC_SHA1_BLOCK_LENGTH;
-		key->key_size = ISC_SHA1_BLOCK_LENGTH * 8;
+	if (bytes > ISC_MD5_BLOCK_LENGTH) {
+		bytes = ISC_MD5_BLOCK_LENGTH;
+		key->key_size = ISC_MD5_BLOCK_LENGTH * 8;
 	}
 
-	memset(data, 0, ISC_SHA1_BLOCK_LENGTH);
+	memset(data, 0, ISC_MD5_BLOCK_LENGTH);
 	ret = dst__entropy_getdata(data, bytes, ISC_TF(pseudorandom_ok != 0));
 
 	if (ret != ISC_R_SUCCESS)
@@ -169,7 +169,7 @@ hmacmd5_generate(dst_key_t *key, int pseudorandom_ok, void (*callback)(int)) {
 	isc_buffer_init(&b, data, bytes);
 	isc_buffer_add(&b, bytes);
 	ret = hmacmd5_fromdns(key, &b);
-	memset(data, 0, ISC_SHA1_BLOCK_LENGTH);
+	memset(data, 0, ISC_MD5_BLOCK_LENGTH);
 
 	return (ret);
 }
@@ -223,7 +223,7 @@ hmacmd5_fromdns(dst_key_t *key, isc_buffer_t *data) {
 
 	memset(hkey->key, 0, sizeof(hkey->key));
 
-	if (r.length > ISC_SHA1_BLOCK_LENGTH) {
+	if (r.length > ISC_MD5_BLOCK_LENGTH) {
 		isc_md5_init(&md5ctx);
 		isc_md5_update(&md5ctx, r.base, r.length);
 		isc_md5_final(&md5ctx, hkey->key);
@@ -235,6 +235,8 @@ hmacmd5_fromdns(dst_key_t *key, isc_buffer_t *data) {
 
 	key->key_size = keylen * 8;
 	key->keydata.hmacmd5 = hkey;
+
+	isc_buffer_forward(data, r.length);
 
 	return (ISC_R_SUCCESS);
 }
@@ -249,6 +251,9 @@ hmacmd5_tofile(const dst_key_t *key, const char *directory) {
 
 	if (key->keydata.hmacmd5 == NULL)
 		return (DST_R_NULLKEY);
+
+	if (key->external)
+		return (DST_R_EXTERNALKEY);
 
 	hkey = key->keydata.hmacmd5;
 
@@ -281,6 +286,9 @@ hmacmd5_parse(dst_key_t *key, isc_lex_t *lexer, dst_key_t *pub) {
 	if (result != ISC_R_SUCCESS)
 		return (result);
 
+	if (key->external)
+		result = DST_R_EXTERNALKEY;
+
 	key->key_bits = 0;
 	for (i = 0; i < priv.nelements && result == ISC_R_SUCCESS; i++) {
 		switch (priv.elements[i].tag) {
@@ -309,6 +317,7 @@ hmacmd5_parse(dst_key_t *key, isc_lex_t *lexer, dst_key_t *pub) {
 
 static dst_func_t hmacmd5_functions = {
 	hmacmd5_createctx,
+	NULL, /*%< createctx2 */
 	hmacmd5_destroyctx,
 	hmacmd5_adddata,
 	hmacmd5_sign,
@@ -415,7 +424,7 @@ hmacsha1_compare(const dst_key_t *key1, const dst_key_t *key2) {
 	else if (hkey1 == NULL || hkey2 == NULL)
 		return (ISC_FALSE);
 
-	if (isc_safe_memcmp(hkey1->key, hkey2->key, ISC_SHA1_BLOCK_LENGTH))
+	if (isc_safe_memequal(hkey1->key, hkey2->key, ISC_SHA1_BLOCK_LENGTH))
 		return (ISC_TRUE);
 	else
 		return (ISC_FALSE);
@@ -512,6 +521,8 @@ hmacsha1_fromdns(dst_key_t *key, isc_buffer_t *data) {
 	key->key_size = keylen * 8;
 	key->keydata.hmacsha1 = hkey;
 
+	isc_buffer_forward(data, r.length);
+
 	return (ISC_R_SUCCESS);
 }
 
@@ -525,6 +536,9 @@ hmacsha1_tofile(const dst_key_t *key, const char *directory) {
 
 	if (key->keydata.hmacsha1 == NULL)
 		return (DST_R_NULLKEY);
+
+	if (key->external)
+		return (DST_R_EXTERNALKEY);
 
 	hkey = key->keydata.hmacsha1;
 
@@ -557,8 +571,11 @@ hmacsha1_parse(dst_key_t *key, isc_lex_t *lexer, dst_key_t *pub) {
 	if (result != ISC_R_SUCCESS)
 		return (result);
 
+	if (key->external)
+		result = DST_R_EXTERNALKEY;
+
 	key->key_bits = 0;
-	for (i = 0; i < priv.nelements; i++) {
+	for (i = 0; i < priv.nelements && result == ISC_R_SUCCESS; i++) {
 		switch (priv.elements[i].tag) {
 		case TAG_HMACSHA1_KEY:
 			isc_buffer_init(&b, priv.elements[i].data,
@@ -585,6 +602,7 @@ hmacsha1_parse(dst_key_t *key, isc_lex_t *lexer, dst_key_t *pub) {
 
 static dst_func_t hmacsha1_functions = {
 	hmacsha1_createctx,
+	NULL, /*%< createctx2 */
 	hmacsha1_destroyctx,
 	hmacsha1_adddata,
 	hmacsha1_sign,
@@ -691,7 +709,7 @@ hmacsha224_compare(const dst_key_t *key1, const dst_key_t *key2) {
 	else if (hkey1 == NULL || hkey2 == NULL)
 		return (ISC_FALSE);
 
-	if (isc_safe_memcmp(hkey1->key, hkey2->key, ISC_SHA224_BLOCK_LENGTH))
+	if (isc_safe_memequal(hkey1->key, hkey2->key, ISC_SHA224_BLOCK_LENGTH))
 		return (ISC_TRUE);
 	else
 		return (ISC_FALSE);
@@ -790,6 +808,8 @@ hmacsha224_fromdns(dst_key_t *key, isc_buffer_t *data) {
 	key->key_size = keylen * 8;
 	key->keydata.hmacsha224 = hkey;
 
+	isc_buffer_forward(data, r.length);
+
 	return (ISC_R_SUCCESS);
 }
 
@@ -803,6 +823,9 @@ hmacsha224_tofile(const dst_key_t *key, const char *directory) {
 
 	if (key->keydata.hmacsha224 == NULL)
 		return (DST_R_NULLKEY);
+
+	if (key->external)
+		return (DST_R_EXTERNALKEY);
 
 	hkey = key->keydata.hmacsha224;
 
@@ -835,8 +858,11 @@ hmacsha224_parse(dst_key_t *key, isc_lex_t *lexer, dst_key_t *pub) {
 	if (result != ISC_R_SUCCESS)
 		return (result);
 
+	if (key->external)
+		result = DST_R_EXTERNALKEY;
+
 	key->key_bits = 0;
-	for (i = 0; i < priv.nelements; i++) {
+	for (i = 0; i < priv.nelements && result == ISC_R_SUCCESS; i++) {
 		switch (priv.elements[i].tag) {
 		case TAG_HMACSHA224_KEY:
 			isc_buffer_init(&b, priv.elements[i].data,
@@ -863,6 +889,7 @@ hmacsha224_parse(dst_key_t *key, isc_lex_t *lexer, dst_key_t *pub) {
 
 static dst_func_t hmacsha224_functions = {
 	hmacsha224_createctx,
+	NULL, /*%< createctx2 */
 	hmacsha224_destroyctx,
 	hmacsha224_adddata,
 	hmacsha224_sign,
@@ -969,7 +996,7 @@ hmacsha256_compare(const dst_key_t *key1, const dst_key_t *key2) {
 	else if (hkey1 == NULL || hkey2 == NULL)
 		return (ISC_FALSE);
 
-	if (isc_safe_memcmp(hkey1->key, hkey2->key, ISC_SHA256_BLOCK_LENGTH))
+	if (isc_safe_memequal(hkey1->key, hkey2->key, ISC_SHA256_BLOCK_LENGTH))
 		return (ISC_TRUE);
 	else
 		return (ISC_FALSE);
@@ -1068,6 +1095,8 @@ hmacsha256_fromdns(dst_key_t *key, isc_buffer_t *data) {
 	key->key_size = keylen * 8;
 	key->keydata.hmacsha256 = hkey;
 
+	isc_buffer_forward(data, r.length);
+
 	return (ISC_R_SUCCESS);
 }
 
@@ -1081,6 +1110,9 @@ hmacsha256_tofile(const dst_key_t *key, const char *directory) {
 
 	if (key->keydata.hmacsha256 == NULL)
 		return (DST_R_NULLKEY);
+
+	if (key->external)
+		return (DST_R_EXTERNALKEY);
 
 	hkey = key->keydata.hmacsha256;
 
@@ -1113,8 +1145,11 @@ hmacsha256_parse(dst_key_t *key, isc_lex_t *lexer, dst_key_t *pub) {
 	if (result != ISC_R_SUCCESS)
 		return (result);
 
+	if (key->external)
+		result = DST_R_EXTERNALKEY;
+
 	key->key_bits = 0;
-	for (i = 0; i < priv.nelements; i++) {
+	for (i = 0; i < priv.nelements && result == ISC_R_SUCCESS; i++) {
 		switch (priv.elements[i].tag) {
 		case TAG_HMACSHA256_KEY:
 			isc_buffer_init(&b, priv.elements[i].data,
@@ -1141,6 +1176,7 @@ hmacsha256_parse(dst_key_t *key, isc_lex_t *lexer, dst_key_t *pub) {
 
 static dst_func_t hmacsha256_functions = {
 	hmacsha256_createctx,
+	NULL, /*%< createctx2 */
 	hmacsha256_destroyctx,
 	hmacsha256_adddata,
 	hmacsha256_sign,
@@ -1247,7 +1283,7 @@ hmacsha384_compare(const dst_key_t *key1, const dst_key_t *key2) {
 	else if (hkey1 == NULL || hkey2 == NULL)
 		return (ISC_FALSE);
 
-	if (isc_safe_memcmp(hkey1->key, hkey2->key, ISC_SHA384_BLOCK_LENGTH))
+	if (isc_safe_memequal(hkey1->key, hkey2->key, ISC_SHA384_BLOCK_LENGTH))
 		return (ISC_TRUE);
 	else
 		return (ISC_FALSE);
@@ -1346,6 +1382,8 @@ hmacsha384_fromdns(dst_key_t *key, isc_buffer_t *data) {
 	key->key_size = keylen * 8;
 	key->keydata.hmacsha384 = hkey;
 
+	isc_buffer_forward(data, r.length);
+
 	return (ISC_R_SUCCESS);
 }
 
@@ -1359,6 +1397,9 @@ hmacsha384_tofile(const dst_key_t *key, const char *directory) {
 
 	if (key->keydata.hmacsha384 == NULL)
 		return (DST_R_NULLKEY);
+
+	if (key->external)
+		return (DST_R_EXTERNALKEY);
 
 	hkey = key->keydata.hmacsha384;
 
@@ -1391,8 +1432,11 @@ hmacsha384_parse(dst_key_t *key, isc_lex_t *lexer, dst_key_t *pub) {
 	if (result != ISC_R_SUCCESS)
 		return (result);
 
+	if (key->external)
+		result = DST_R_EXTERNALKEY;
+
 	key->key_bits = 0;
-	for (i = 0; i < priv.nelements; i++) {
+	for (i = 0; i < priv.nelements && result == ISC_R_SUCCESS; i++) {
 		switch (priv.elements[i].tag) {
 		case TAG_HMACSHA384_KEY:
 			isc_buffer_init(&b, priv.elements[i].data,
@@ -1419,6 +1463,7 @@ hmacsha384_parse(dst_key_t *key, isc_lex_t *lexer, dst_key_t *pub) {
 
 static dst_func_t hmacsha384_functions = {
 	hmacsha384_createctx,
+	NULL, /*%< createctx2 */
 	hmacsha384_destroyctx,
 	hmacsha384_adddata,
 	hmacsha384_sign,
@@ -1525,7 +1570,7 @@ hmacsha512_compare(const dst_key_t *key1, const dst_key_t *key2) {
 	else if (hkey1 == NULL || hkey2 == NULL)
 		return (ISC_FALSE);
 
-	if (isc_safe_memcmp(hkey1->key, hkey2->key, ISC_SHA512_BLOCK_LENGTH))
+	if (isc_safe_memequal(hkey1->key, hkey2->key, ISC_SHA512_BLOCK_LENGTH))
 		return (ISC_TRUE);
 	else
 		return (ISC_FALSE);
@@ -1624,6 +1669,8 @@ hmacsha512_fromdns(dst_key_t *key, isc_buffer_t *data) {
 	key->key_size = keylen * 8;
 	key->keydata.hmacsha512 = hkey;
 
+	isc_buffer_forward(data, r.length);
+
 	return (ISC_R_SUCCESS);
 }
 
@@ -1637,6 +1684,9 @@ hmacsha512_tofile(const dst_key_t *key, const char *directory) {
 
 	if (key->keydata.hmacsha512 == NULL)
 		return (DST_R_NULLKEY);
+
+	if (key->external)
+		return (DST_R_EXTERNALKEY);
 
 	hkey = key->keydata.hmacsha512;
 
@@ -1669,8 +1719,11 @@ hmacsha512_parse(dst_key_t *key, isc_lex_t *lexer, dst_key_t *pub) {
 	if (result != ISC_R_SUCCESS)
 		return (result);
 
+	if (key->external)
+		result = DST_R_EXTERNALKEY;
+
 	key->key_bits = 0;
-	for (i = 0; i < priv.nelements; i++) {
+	for (i = 0; i < priv.nelements && result == ISC_R_SUCCESS; i++) {
 		switch (priv.elements[i].tag) {
 		case TAG_HMACSHA512_KEY:
 			isc_buffer_init(&b, priv.elements[i].data,
@@ -1697,6 +1750,7 @@ hmacsha512_parse(dst_key_t *key, isc_lex_t *lexer, dst_key_t *pub) {
 
 static dst_func_t hmacsha512_functions = {
 	hmacsha512_createctx,
+	NULL, /*%< createctx2 */
 	hmacsha512_destroyctx,
 	hmacsha512_adddata,
 	hmacsha512_sign,

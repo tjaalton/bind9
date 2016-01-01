@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2011-2014  Internet Systems Consortium, Inc. ("ISC")
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -162,7 +162,9 @@ dlopen_dlz_authority(const char *zone, void *driverarg, void *dbdata,
 }
 
 static isc_result_t
-dlopen_dlz_findzonedb(void *driverarg, void *dbdata, const char *name)
+dlopen_dlz_findzonedb(void *driverarg, void *dbdata, const char *name,
+		      dns_clientinfomethods_t *methods,
+		      dns_clientinfo_t *clientinfo)
 {
 	dlopen_data_t *cd = (dlopen_data_t *) dbdata;
 	isc_result_t result;
@@ -170,7 +172,7 @@ dlopen_dlz_findzonedb(void *driverarg, void *dbdata, const char *name)
 	UNUSED(driverarg);
 
 	MAYBE_LOCK(cd);
-	result = cd->dlz_findzonedb(cd->dbdata, name);
+	result = cd->dlz_findzonedb(cd->dbdata, name, methods, clientinfo);
 	MAYBE_UNLOCK(cd);
 	return (result);
 }
@@ -242,18 +244,22 @@ dlopen_dlz_create(const char *dlzname, unsigned int argc, char *argv[],
 
 	cd->dl_path = isc_mem_strdup(cd->mctx, argv[1]);
 	if (cd->dl_path == NULL) {
+		result = ISC_R_NOMEMORY;
 		goto failed;
 	}
 
 	cd->dlzname = isc_mem_strdup(cd->mctx, dlzname);
 	if (cd->dlzname == NULL) {
+		result = ISC_R_NOMEMORY;
 		goto failed;
 	}
 
 	triedload = ISC_TRUE;
 
 	/* Initialize the lock */
-	isc_mutex_init(&cd->lock);
+	result = isc_mutex_init(&cd->lock);
+	if (result != ISC_R_SUCCESS)
+		goto failed;
 
 	/* Open the library */
 	cd->dl_handle = LoadLibraryA(cd->dl_path);
@@ -263,7 +269,8 @@ dlopen_dlz_create(const char *dlzname, unsigned int argc, char *argv[],
 		dlopen_log(ISC_LOG_ERROR,
 			   "dlz_dlopen failed to open library '%s' - %u",
 			   cd->dl_path, error);
-		goto failed;
+		result = ISC_R_FAILURE;
+		goto cleanup_lock;
 	}
 
 	/* Find the symbols */
@@ -277,11 +284,13 @@ dlopen_dlz_create(const char *dlzname, unsigned int argc, char *argv[],
 		dl_load_symbol(cd, "dlz_findzonedb", ISC_TRUE);
 
 	if (cd->dlz_create == NULL ||
+	    cd->dlz_version == NULL ||
 	    cd->dlz_lookup == NULL ||
 	    cd->dlz_findzonedb == NULL)
 	{
 		/* We're missing a required symbol */
-		goto failed;
+		result = ISC_R_FAILURE;
+		goto cleanup_lock;
 	}
 
 	cd->dlz_allowzonexfr = (dlz_dlopen_allowzonexfr_t *)
@@ -309,12 +318,15 @@ dlopen_dlz_create(const char *dlzname, unsigned int argc, char *argv[],
 
 	/* Check the version of the API is the same */
 	cd->version = cd->dlz_version(&cd->flags);
-	if (cd->version != DLZ_DLOPEN_VERSION) {
+	if (cd->version < (DLZ_DLOPEN_VERSION - DLZ_DLOPEN_AGE) ||
+	    cd->version > DLZ_DLOPEN_VERSION)
+	{
 		dlopen_log(ISC_LOG_ERROR,
-			   "dlz_dlopen: incorrect version %d "
-			   "should be %d in '%s'",
-			   cd->version, DLZ_DLOPEN_VERSION, cd->dl_path);
-		goto failed;
+			   "dlz_dlopen: %s: incorrect driver API version %d, "
+			   "requires %d",
+			   cd->dl_path, cd->version, DLZ_DLOPEN_VERSION);
+		result = ISC_R_FAILURE;
+		goto cleanup_lock;
 	}
 
 	/*
@@ -334,12 +346,14 @@ dlopen_dlz_create(const char *dlzname, unsigned int argc, char *argv[],
 				NULL);
 	MAYBE_UNLOCK(cd);
 	if (result != ISC_R_SUCCESS)
-		goto failed;
+		goto cleanup_lock;
 
 	*dbdata = cd;
 
 	return (ISC_R_SUCCESS);
 
+cleanup_lock:
+	DESTROYLOCK(&cd->lock);
 failed:
 	dlopen_log(ISC_LOG_ERROR, "dlz_dlopen of '%s' failed", dlzname);
 	if (cd->dl_path)
@@ -380,7 +394,7 @@ dlopen_dlz_destroy(void *driverarg, void *dbdata) {
 	if (cd->dl_handle)
 		FreeLibrary(cd->dl_handle);
 
-	(void) isc_mutex_destroy(&cd->lock);
+	DESTROYLOCK(&cd->lock);
 
 	mctx = cd->mctx;
 	isc_mem_put(mctx, cd, sizeof(*cd));
@@ -433,7 +447,9 @@ dlopen_dlz_closeversion(const char *zone, isc_boolean_t commit,
  * Called on startup to configure any writeable zones
  */
 static isc_result_t
-dlopen_dlz_configure(dns_view_t *view, void *driverarg, void *dbdata) {
+dlopen_dlz_configure(dns_view_t *view, dns_dlzdb_t *dlzdb,
+		     void *driverarg, void *dbdata)
+{
 	dlopen_data_t *cd = (dlopen_data_t *) dbdata;
 	isc_result_t result;
 
@@ -444,7 +460,7 @@ dlopen_dlz_configure(dns_view_t *view, void *driverarg, void *dbdata) {
 
 	MAYBE_LOCK(cd);
 	cd->in_configure = ISC_TRUE;
-	result = cd->dlz_configure(view, cd->dbdata);
+	result = cd->dlz_configure(view, dlzdb, cd->dbdata);
 	cd->in_configure = ISC_FALSE;
 	MAYBE_UNLOCK(cd);
 
@@ -577,6 +593,7 @@ dlz_dlopen_init(isc_mem_t *mctx) {
 
 	result = dns_sdlzregister("dlopen", &dlz_dlopen_methods, NULL,
 				  DNS_SDLZFLAG_RELATIVEOWNER |
+				  DNS_SDLZFLAG_RELATIVERDATA |
 				  DNS_SDLZFLAG_THREADSAFE,
 				  mctx, &dlz_dlopen);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2014  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2004-2015  Internet Systems Consortium, Inc. ("ISC")
  * Copyright (C) 1998-2003  Internet Software Consortium.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
@@ -53,7 +53,6 @@ typedef enum {
 typedef enum {
 	fw_start = 0,
 	fw_ordinary,
-	fw_copy,
 	fw_newcurrent
 } fw_state;
 
@@ -237,6 +236,46 @@ dns_name_invalidate(dns_name_t *name) {
 	name->offsets = NULL;
 	name->buffer = NULL;
 	ISC_LINK_INIT(name, link);
+}
+
+isc_boolean_t
+dns_name_isvalid(const dns_name_t *name) {
+	unsigned char *ndata, *offsets;
+	unsigned int offset, count, length, nlabels;
+
+	if (!VALID_NAME(name))
+		return (ISC_FALSE);
+
+	if (name->length > 255U || name->labels > 127U)
+		return (ISC_FALSE);
+
+	ndata = name->ndata;
+	length = name->length;
+	offsets = name->offsets;
+	offset = 0;
+	nlabels = 0;
+
+	while (offset != length) {
+		count = *ndata;
+		if (count > 63U)
+			return (ISC_FALSE);
+		if (offsets != NULL && offsets[nlabels] != offset)
+			return (ISC_FALSE);
+
+		nlabels++;
+		offset += count + 1;
+		ndata += count + 1;
+		if (offset > length)
+			return (ISC_FALSE);
+
+		if (count == 0)
+			break;
+	}
+
+	if (nlabels != name->labels || offset != name->length)
+		return (ISC_FALSE);
+
+	return (ISC_TRUE);
 }
 
 void
@@ -580,6 +619,7 @@ dns_name_fullcompare(const dns_name_t *name1, const dns_name_t *name2,
 
 	if (name1 == name2) {
 		*orderp = 0;
+		*nlabelsp = name1->labels;
 		return (dns_namereln_equal);
 	}
 
@@ -1161,7 +1201,7 @@ dns_name_fromtext(dns_name_t *name, isc_buffer_t *source,
 				count++;
 				CONVERTTOASCII(c);
 				if (downcase)
-					c = maptolower[(int)c];
+					c = maptolower[c & 0xff];
 				*ndata++ = c;
 				nrem--;
 				nused++;
@@ -1185,7 +1225,7 @@ dns_name_fromtext(dns_name_t *name, isc_buffer_t *source,
 				count++;
 				CONVERTTOASCII(c);
 				if (downcase)
-					c = maptolower[(int)c];
+					c = maptolower[c & 0xff];
 				*ndata++ = c;
 				nrem--;
 				nused++;
@@ -1200,7 +1240,7 @@ dns_name_fromtext(dns_name_t *name, isc_buffer_t *source,
 			if (!isdigit(c & 0xff))
 				return (DNS_R_BADESCAPE);
 			value *= 10;
-			value += digitvalue[(int)c];
+			value += digitvalue[c & 0xff];
 			digits++;
 			if (digits == 3) {
 				if (value > 255)
@@ -1252,7 +1292,7 @@ dns_name_fromtext(dns_name_t *name, isc_buffer_t *source,
 				while (n2 > 0) {
 					c = *label++;
 					if (downcase)
-						c = maptolower[(int)c];
+						c = maptolower[c & 0xff];
 					*ndata++ = c;
 					n2--;
 				}
@@ -1859,7 +1899,6 @@ dns_name_fromwire(dns_name_t *name, isc_buffer_t *source,
 				    0)
 					return (DNS_R_DISALLOWED);
 				new_current = c & 0x3F;
-				n = 1;
 				state = fw_newcurrent;
 			} else
 				return (DNS_R_BADLABELTYPE);
@@ -1867,8 +1906,6 @@ dns_name_fromwire(dns_name_t *name, isc_buffer_t *source,
 		case fw_ordinary:
 			if (downcase)
 				c = maptolower[c];
-			/* FALLTHROUGH */
-		case fw_copy:
 			*ndata++ = c;
 			n--;
 			if (n == 0)
@@ -1877,9 +1914,6 @@ dns_name_fromwire(dns_name_t *name, isc_buffer_t *source,
 		case fw_newcurrent:
 			new_current *= 256;
 			new_current += c;
-			n--;
-			if (n != 0)
-				break;
 			if (new_current >= biggest_pointer)
 				return (DNS_R_BADPOINTER);
 			biggest_pointer = new_current;
@@ -2120,11 +2154,9 @@ dns_name_split(dns_name_t *name, unsigned int suffixlabels,
 	REQUIRE(prefix != NULL || suffix != NULL);
 	REQUIRE(prefix == NULL ||
 		(VALID_NAME(prefix) &&
-		 prefix->buffer != NULL &&
 		 BINDABLE(prefix)));
 	REQUIRE(suffix == NULL ||
 		(VALID_NAME(suffix) &&
-		 suffix->buffer != NULL &&
 		 BINDABLE(suffix)));
 
 	splitlabel = name->labels - suffixlabels;
@@ -2393,6 +2425,8 @@ dns_name_tostring(dns_name_t *name, char **target, isc_mem_t *mctx) {
 
 	isc_buffer_usedregion(&buf, &reg);
 	p = isc_mem_allocate(mctx, reg.length + 1);
+	if (p == NULL)
+		return (ISC_R_NOMEMORY);
 	memmove(p, (char *) reg.base, (int) reg.length);
 	p[reg.length] = '\0';
 
@@ -2506,4 +2540,77 @@ dns_name_destroy(void) {
 	UNLOCK(&thread_key_mutex);
 
 #endif
+}
+
+/*
+ * Service Discovery Prefixes RFC 6763.
+ */
+static unsigned char b_dns_sd_udp_data[]  = "\001b\007_dns-sd\004_udp";
+static unsigned char b_dns_sd_udp_offsets[] = { 0, 2, 10 };
+static unsigned char db_dns_sd_udp_data[]  = "\002db\007_dns-sd\004_udp";
+static unsigned char db_dns_sd_udp_offsets[] = { 0, 3, 11 };
+static unsigned char r_dns_sd_udp_data[]  = "\001r\007_dns-sd\004_udp";
+static unsigned char r_dns_sd_udp_offsets[] = { 0, 2, 10 };
+static unsigned char dr_dns_sd_udp_data[]  = "\002dr\007_dns-sd\004_udp";
+static unsigned char dr_dns_sd_udp_offsets[] = { 0, 3, 11 };
+static unsigned char lb_dns_sd_udp_data[]  = "\002lb\007_dns-sd\004_udp";
+static unsigned char lb_dns_sd_udp_offsets[] = { 0, 3, 11 };
+
+static const dns_name_t dns_sd[] = {
+	{
+		DNS_NAME_MAGIC,
+		b_dns_sd_udp_data, 15, 3,
+		DNS_NAMEATTR_READONLY,
+		b_dns_sd_udp_offsets, NULL,
+		{(void *)-1, (void *)-1},
+		{NULL, NULL}
+	},
+	{
+		DNS_NAME_MAGIC,
+		db_dns_sd_udp_data, 16, 3,
+		DNS_NAMEATTR_READONLY,
+		db_dns_sd_udp_offsets, NULL,
+		{(void *)-1, (void *)-1},
+		{NULL, NULL}
+	},
+	{
+		DNS_NAME_MAGIC,
+		r_dns_sd_udp_data, 15, 3,
+		DNS_NAMEATTR_READONLY,
+		r_dns_sd_udp_offsets, NULL,
+		{(void *)-1, (void *)-1},
+		{NULL, NULL}
+	},
+	{
+		DNS_NAME_MAGIC,
+		dr_dns_sd_udp_data, 16, 3,
+		DNS_NAMEATTR_READONLY,
+		dr_dns_sd_udp_offsets, NULL,
+		{(void *)-1, (void *)-1},
+		{NULL, NULL}
+	},
+	{
+		DNS_NAME_MAGIC,
+		lb_dns_sd_udp_data, 16, 3,
+		DNS_NAMEATTR_READONLY,
+		lb_dns_sd_udp_offsets, NULL,
+		{(void *)-1, (void *)-1},
+		{NULL, NULL}
+	}
+};
+
+isc_boolean_t
+dns_name_isdnssd(const dns_name_t *name) {
+	size_t i;
+	dns_name_t prefix;
+
+	if (dns_name_countlabels(name) > 3U) {
+		dns_name_init(&prefix, NULL);
+		dns_name_getlabelsequence(name, 0, 3, &prefix);
+		for (i = 0; i < (sizeof(dns_sd)/sizeof(dns_sd[0])); i++)
+			if (dns_name_equal(&prefix, &dns_sd[i]))
+				return (ISC_TRUE);
+	}
+
+	return (ISC_FALSE);
 }

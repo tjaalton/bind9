@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004, 2006, 2007, 2009, 2011, 2013  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2004, 2006, 2007, 2009, 2011, 2013-2015  Internet Systems Consortium, Inc. ("ISC")
  * Copyright (C) 1999-2002  Internet Software Consortium.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
@@ -23,6 +23,7 @@
 #include <isc/app.h>
 #include <isc/commandline.h>
 #include <isc/log.h>
+#include <isc/print.h>
 
 #include <named/globals.h>
 #include <named/ntservice.h>
@@ -44,7 +45,7 @@ int bindmain(int, char *[]); /* From main.c */
  * Initialize the Service by registering it.
  */
 void
-ntservice_init() {
+ntservice_init(void) {
 	if (!foreground) {
 		/* Register handler with the SCM */
 		hServiceStatus = RegisterServiceCtrlHandler(BIND_SERVICE_NAME,
@@ -64,14 +65,14 @@ ntservice_init() {
 }
 
 void
-ntservice_shutdown() {
+ntservice_shutdown(void) {
 	UpdateSCM(SERVICE_STOPPED);
 }
 /*
  * Routine to check if this is a service or a foreground program
  */
 BOOL
-ntservice_isservice() {
+ntservice_isservice(void) {
 	return(!foreground);
 }
 /*
@@ -140,9 +141,7 @@ int main(int argc, char *argv[])
 
 	/* Command line users should put -f in the options. */
 	isc_commandline_errprint = ISC_FALSE;
-	while ((ch = isc_commandline_parse(argc, argv,
-					   "46c:C:d:D:E:fFgi:lm:n:N:p:P:"
-					   "sS:t:T:U:u:vVx:")) != -1) {
+	while ((ch = isc_commandline_parse(argc, argv, NS_MAIN_ARGS)) != -1) {
 		switch (ch) {
 		case 'f':
 		case 'g':

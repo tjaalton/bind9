@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2010, 2012, 2013  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2004-2010, 2012-2015  Internet Systems Consortium, Inc. ("ISC")
  * Copyright (C) 1999-2003  Internet Software Consortium.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
@@ -14,8 +14,6 @@
  * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
  */
-
-/* $Id$ */
 
 #ifndef DNS_MESSAGE_H
 #define DNS_MESSAGE_H 1
@@ -106,6 +104,11 @@
 /*%< EDNS0 extended OPT codes */
 #define DNS_OPT_NSID		0x0003		/*%< NSID opt code */
 #define DNS_OPT_CLIENT_SUBNET	0x0008		/*%< client subnet opt code */
+#define DNS_OPT_EXPIRE		0x0009		/*%< EXPIRE opt code */
+#define DNS_OPT_COOKIE		0x000a		/*%< COOKIE opt code */
+
+/*%< The number of EDNS options we know about. */
+#define DNS_EDNSOPTIONS	4
 
 #define DNS_MESSAGE_REPLYPRESERVE	(DNS_MESSAGEFLAG_RD|DNS_MESSAGEFLAG_CD)
 #define DNS_MESSAGEEXTFLAG_REPLYPRESERVE (DNS_MESSAGEEXTFLAG_DO)
@@ -139,6 +142,7 @@ typedef int dns_messagetextflag_t;
 #define DNS_MESSAGETEXTFLAG_NOHEADERS	0x0002
 #define DNS_MESSAGETEXTFLAG_ONESOA	0x0004
 #define DNS_MESSAGETEXTFLAG_OMITSOA	0x0008
+#define DNS_MESSAGETEXTFLAG_COMMENTDATA	0x0010
 
 /*
  * Dynamic update names for these sections.
@@ -176,7 +180,7 @@ typedef int dns_messagetextflag_t;
 						      additional section. */
 #define DNS_MESSAGERENDER_PREFER_AAAA	0x0010	/*%< prefer AAAA records in
 						  additional section. */
-#ifdef ALLOW_FILTER_AAAA_ON_V4
+#ifdef ALLOW_FILTER_AAAA
 #define DNS_MESSAGERENDER_FILTER_AAAA	0x0020	/*%< filter AAAA records */
 #endif
 
@@ -189,7 +193,7 @@ struct dns_message {
 	dns_messageid_t			id;
 	unsigned int			flags;
 	dns_rcode_t			rcode;
-	unsigned int			opcode;
+	dns_opcode_t			opcode;
 	dns_rdataclass_t		rdclass;
 
 	/* 4 real, 1 pseudo */
@@ -211,6 +215,10 @@ struct dns_message {
 	unsigned int			verify_attempted : 1;
 	unsigned int			free_query : 1;
 	unsigned int			free_saved : 1;
+	unsigned int			sitok : 1;
+	unsigned int			sitbad : 1;
+	unsigned int			tkey : 1;
+	unsigned int			rdclass_set : 1;
 
 	unsigned int			opt_reserved;
 	unsigned int			sig_reserved;
@@ -1357,6 +1365,21 @@ dns_message_gettimeadjust(dns_message_t *msg);
  *\li	msg be a valid message.
  */
 
+void
+dns_message_logpacket(dns_message_t *message, const char *description,
+		      isc_logcategory_t *category, isc_logmodule_t *module,
+		      int level, isc_mem_t *mctx);
+void
+dns_message_logfmtpacket(dns_message_t *message, const char *description,
+			 isc_logcategory_t *category, isc_logmodule_t *module,
+			 const dns_master_style_t *style, int level,
+			 isc_mem_t *mctx);
+/*%<
+ * Log 'message' at the specified logging parameters.
+ * 'description' will be emitted at the start of the message and will
+ * normally end with a newline.
+ */
+
 isc_result_t
 dns_message_buildopt(dns_message_t *msg, dns_rdataset_t **opt,
 		     unsigned int version, isc_uint16_t udpsize,
@@ -1373,6 +1396,15 @@ dns_message_buildopt(dns_message_t *msg, dns_rdataset_t **opt,
  * \li	 ISC_R_NOMEMORY
  * \li	 ISC_R_NOSPACE
  * \li	 other.
+ */
+
+void
+dns_message_setclass(dns_message_t *msg, dns_rdataclass_t rdclass);
+/*%<
+ * Set the expected class of records in the response.
+ *
+ * Requires:
+ * \li   msg be a valid message with parsing intent.
  */
 
 ISC_LANG_ENDDECLS

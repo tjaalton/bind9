@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009, 2012-2014  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2009, 2012-2015  Internet Systems Consortium, Inc. ("ISC")
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -138,6 +138,7 @@
 #include <isc/sockaddr.h>
 #include <isc/string.h>
 #include <isc/util.h>
+#include <isc/mutex.h>
 
 #include <dns/client.h>
 #include <dns/fixedname.h>
@@ -178,6 +179,7 @@ static int add_ipv6(const char *hostname, int flags, struct addrinfo **aip,
 		    int socktype, int port);
 static void set_order(int, int (**)(const char *, int, struct addrinfo **,
 				    int, int));
+static void _freeaddrinfo(struct addrinfo *ai);
 
 #define FOUND_IPV4	0x1
 #define FOUND_IPV6	0x2
@@ -339,7 +341,7 @@ getaddrinfo(const char *hostname, const char *servname,
 		if (family == AF_INET6 || family == 0) {
 			ai = ai_alloc(AF_INET6, sizeof(struct sockaddr_in6));
 			if (ai == NULL) {
-				freeaddrinfo(ai_list);
+				_freeaddrinfo(ai_list);
 				return (EAI_MEMORY);
 			}
 			ai->ai_socktype = socktype;
@@ -453,12 +455,13 @@ getaddrinfo(const char *hostname, const char *servname,
 					SIN6(ai->ai_addr)->sin6_scope_id =
 						scopeid;
 #endif
-				if (getnameinfo(ai->ai_addr, ai->ai_addrlen,
+				if (getnameinfo(ai->ai_addr,
+						(socklen_t)ai->ai_addrlen,
 						nbuf, sizeof(nbuf), NULL, 0,
 						NI_NUMERICHOST) == 0) {
 					ai->ai_canonname = strdup(nbuf);
 					if (ai->ai_canonname == NULL) {
-						freeaddrinfo(ai);
+						_freeaddrinfo(ai);
 						return (EAI_MEMORY);
 					}
 				} else {
@@ -481,7 +484,7 @@ getaddrinfo(const char *hostname, const char *servname,
 					     socktype, port);
 			if (err != 0) {
 				if (ai_list != NULL) {
-					freeaddrinfo(ai_list);
+					_freeaddrinfo(ai_list);
 					ai_list = NULL;
 				}
 				break;
@@ -529,6 +532,7 @@ typedef struct gai_statehead {
 	int				ai_port;
 	isc_appctx_t			*actx;
 	dns_client_t			*dnsclient;
+	isc_mutex_t			list_lock;
 	ISC_LIST(struct gai_resstate)	resstates;
 	unsigned int			activestates;
 } gai_statehead_t;
@@ -541,7 +545,7 @@ make_resstate(isc_mem_t *mctx, gai_statehead_t *head, const char *hostname,
 	gai_resstate_t *state;
 	dns_fixedname_t fixeddomain;
 	dns_name_t *qdomain;
-	size_t namelen;
+	unsigned int namelen;
 	isc_buffer_t b;
 	isc_boolean_t need_v4 = ISC_FALSE;
 	isc_boolean_t need_v6 = ISC_FALSE;
@@ -831,7 +835,7 @@ process_answer(isc_task_t *task, isc_event_t *event) {
 			error = EAI_NONAME;
 	} else {
 		if (trans->ai_sentinel.ai_next != NULL) {
-			freeaddrinfo(trans->ai_sentinel.ai_next);
+			_freeaddrinfo(trans->ai_sentinel.ai_next);
 			trans->ai_sentinel.ai_next = NULL;
 		}
 	}
@@ -856,6 +860,7 @@ process_answer(isc_task_t *task, isc_event_t *event) {
 		 * and have any answer, we can stop now by canceling the
 		 * others.
 		 */
+		LOCK(&resstate->head->list_lock);
 		if (resstate == ISC_LIST_HEAD(resstate->head->resstates)) {
 			if ((resstate->trans4 != NULL &&
 			     resstate->trans4->ai_sentinel.ai_next != NULL) ||
@@ -887,6 +892,7 @@ process_answer(isc_task_t *task, isc_event_t *event) {
 						resstate, link);
 			}
 		}
+		UNLOCK(&resstate->head->list_lock);
 	}
 }
 
@@ -927,11 +933,19 @@ resolve_name(int family, const char *hostname, int flags,
 	head.ai_port = port;
 	head.actx = actx;
 	head.dnsclient = client;
+	result = isc_mutex_init(&head.list_lock);
+	if (result != ISC_R_SUCCESS) {
+		return (EAI_FAIL);
+	}
+
 	ISC_LIST_INIT(head.resstates);
 	result = make_resstates(mctx, hostname, &head, conf);
-	if (result != ISC_R_SUCCESS)
+	if (result != ISC_R_SUCCESS) {
+		DESTROYLOCK(&head.list_lock);
 		return (EAI_FAIL);
+	}
 
+	LOCK(&head.list_lock);
 	for (resstate = ISC_LIST_HEAD(head.resstates);
 	     resstate != NULL; resstate = ISC_LIST_NEXT(resstate, link)) {
 		if (resstate->trans4 != NULL) {
@@ -965,6 +979,8 @@ resolve_name(int family, const char *hostname, int flags,
 				resstate->trans6->is_inprogress= ISC_FALSE;
 		}
 	}
+	UNLOCK(&head.list_lock);
+
 	if (!all_fail) {
 		/* Start all the events */
 		isc_app_ctxrun(actx);
@@ -1036,6 +1052,7 @@ resolve_name(int family, const char *hostname, int flags,
 	irs_context_destroy(&irsctx);
 #endif
 
+	DESTROYLOCK(&head.list_lock);
 	return (error);
 }
 
@@ -1122,10 +1139,8 @@ add_ipv4(const char *hostname, int flags, struct addrinfo **aip,
 	UNUSED(flags);
 
 	ai = ai_clone(*aip, AF_INET); /* don't use ai_clone() */
-	if (ai == NULL) {
-		freeaddrinfo(*aip);
+	if (ai == NULL)
 		return (EAI_MEMORY);
-	}
 
 	*aip = ai;
 	ai->ai_socktype = socktype;
@@ -1161,6 +1176,11 @@ add_ipv6(const char *hostname, int flags, struct addrinfo **aip,
 /*% Free address info. */
 void
 freeaddrinfo(struct addrinfo *ai) {
+	_freeaddrinfo(ai);
+}
+
+static void
+_freeaddrinfo(struct addrinfo *ai) {
 	struct addrinfo *ai_next;
 
 	while (ai != NULL) {
@@ -1240,11 +1260,8 @@ ai_clone(struct addrinfo *oai, int family) {
 	ai = ai_alloc(family, ((family == AF_INET6) ?
 	    sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in)));
 
-	if (ai == NULL) {
-		if (oai != NULL)
-			freeaddrinfo(oai);
+	if (ai == NULL)
 		return (NULL);
-	}
 	if (oai == NULL)
 		return (ai);
 

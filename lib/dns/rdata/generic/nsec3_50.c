@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008, 2009, 2011, 2012  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2008, 2009, 2011, 2012, 2014, 2015  Internet Systems Consortium, Inc. ("ISC")
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -53,7 +53,7 @@ fromtext_nsec3(ARGS_FROMTEXT) {
 	unsigned char hashalg;
 	isc_buffer_t b;
 
-	REQUIRE(type == 50);
+	REQUIRE(type == dns_rdatatype_nsec3);
 
 	UNUSED(type);
 	UNUSED(rdclass);
@@ -100,7 +100,7 @@ fromtext_nsec3(ARGS_FROMTEXT) {
 	RETERR(isc_lex_getmastertoken(lexer, &token, isc_tokentype_string,
 				      ISC_FALSE));
 	isc_buffer_init(&b, bm, sizeof(bm));
-	RETTOK(isc_base32hex_decodestring(DNS_AS_STR(token), &b));
+	RETTOK(isc_base32hexnp_decodestring(DNS_AS_STR(token), &b));
 	if (isc_buffer_usedlength(&b) > 0xffU)
 		RETTOK(ISC_R_RANGE);
 	RETERR(uint8_tobuffer(isc_buffer_usedlength(&b), target));
@@ -140,11 +140,11 @@ totext_nsec3(ARGS_TOTEXT) {
 	unsigned int window, len;
 	unsigned char hash;
 	unsigned char flags;
-	char buf[sizeof("65535 ")];
+	char buf[sizeof("TYPE65535")];
 	isc_uint32_t iterations;
 	isc_boolean_t first;
 
-	REQUIRE(rdata->type == 50);
+	REQUIRE(rdata->type == dns_rdatatype_nsec3);
 	REQUIRE(rdata->length != 0);
 
 	dns_rdata_toregion(rdata, &sr);
@@ -191,7 +191,7 @@ totext_nsec3(ARGS_TOTEXT) {
 
 	i = sr.length;
 	sr.length = j;
-	RETERR(isc_base32hex_totext(&sr, 1, "", target));
+	RETERR(isc_base32hexnp_totext(&sr, 1, "", target));
 	sr.length = i - j;
 
 	if ((tctx->flags & DNS_STYLEFLAG_MULTILINE) == 0)
@@ -224,7 +224,6 @@ totext_nsec3(ARGS_TOTEXT) {
 				if (dns_rdatatype_isknown(t)) {
 					RETERR(dns_rdatatype_totext(t, target));
 				} else {
-					char buf[sizeof("TYPE65535")];
 					sprintf(buf, "TYPE%u", t);
 					RETERR(str_totext(buf, target));
 				}
@@ -247,7 +246,7 @@ fromwire_nsec3(ARGS_FROMWIRE) {
 	isc_boolean_t first = ISC_TRUE;
 	unsigned int i;
 
-	REQUIRE(type == 50);
+	REQUIRE(type == dns_rdatatype_nsec3);
 
 	UNUSED(type);
 	UNUSED(rdclass);
@@ -319,7 +318,7 @@ static inline isc_result_t
 towire_nsec3(ARGS_TOWIRE) {
 	isc_region_t sr;
 
-	REQUIRE(rdata->type == 50);
+	REQUIRE(rdata->type == dns_rdatatype_nsec3);
 	REQUIRE(rdata->length != 0);
 
 	UNUSED(cctx);
@@ -335,7 +334,7 @@ compare_nsec3(ARGS_COMPARE) {
 
 	REQUIRE(rdata1->type == rdata2->type);
 	REQUIRE(rdata1->rdclass == rdata2->rdclass);
-	REQUIRE(rdata1->type == 50);
+	REQUIRE(rdata1->type == dns_rdatatype_nsec3);
 	REQUIRE(rdata1->length != 0);
 	REQUIRE(rdata2->length != 0);
 
@@ -350,7 +349,7 @@ fromstruct_nsec3(ARGS_FROMSTRUCT) {
 	unsigned int i, len, window, lastwindow = 0;
 	isc_boolean_t first = ISC_TRUE;
 
-	REQUIRE(type == 50);
+	REQUIRE(type == dns_rdatatype_nsec3);
 	REQUIRE(source != NULL);
 	REQUIRE(nsec3->common.rdtype == type);
 	REQUIRE(nsec3->common.rdclass == rdclass);
@@ -391,7 +390,7 @@ tostruct_nsec3(ARGS_TOSTRUCT) {
 	isc_region_t region;
 	dns_rdata_nsec3_t *nsec3 = target;
 
-	REQUIRE(rdata->type == 50);
+	REQUIRE(rdata->type == dns_rdatatype_nsec3);
 	REQUIRE(target != NULL);
 	REQUIRE(rdata->length != 0);
 
@@ -437,7 +436,7 @@ freestruct_nsec3(ARGS_FREESTRUCT) {
 	dns_rdata_nsec3_t *nsec3 = source;
 
 	REQUIRE(source != NULL);
-	REQUIRE(nsec3->common.rdtype == 50);
+	REQUIRE(nsec3->common.rdtype == dns_rdatatype_nsec3);
 
 	if (nsec3->mctx == NULL)
 		return;
@@ -453,7 +452,7 @@ freestruct_nsec3(ARGS_FREESTRUCT) {
 
 static inline isc_result_t
 additionaldata_nsec3(ARGS_ADDLDATA) {
-	REQUIRE(rdata->type == 50);
+	REQUIRE(rdata->type == dns_rdatatype_nsec3);
 
 	UNUSED(rdata);
 	UNUSED(add);
@@ -466,7 +465,7 @@ static inline isc_result_t
 digest_nsec3(ARGS_DIGEST) {
 	isc_region_t r;
 
-	REQUIRE(rdata->type == 50);
+	REQUIRE(rdata->type == dns_rdatatype_nsec3);
 
 	dns_rdata_toregion(rdata, &r);
 	return ((digest)(arg, &r));
@@ -474,21 +473,32 @@ digest_nsec3(ARGS_DIGEST) {
 
 static inline isc_boolean_t
 checkowner_nsec3(ARGS_CHECKOWNER) {
+	unsigned char owner[NSEC3_MAX_HASH_LENGTH];
+	isc_buffer_t buffer;
+	dns_label_t label;
 
-       REQUIRE(type == 50);
+	REQUIRE(type == dns_rdatatype_nsec3);
 
-       UNUSED(name);
-       UNUSED(type);
-       UNUSED(rdclass);
-       UNUSED(wildcard);
+	UNUSED(type);
+	UNUSED(rdclass);
+	UNUSED(wildcard);
 
-       return (ISC_TRUE);
+	/*
+	 * First label is a base32hex string without padding.
+	 */
+	dns_name_getlabel(name, 0, &label);
+	isc_region_consume(&label, 1);
+	isc_buffer_init(&buffer, owner, sizeof(owner));
+	if (isc_base32hexnp_decoderegion(&label, &buffer) == ISC_R_SUCCESS)
+		return (ISC_TRUE);
+
+	return (ISC_FALSE);
 }
 
 static inline isc_boolean_t
 checknames_nsec3(ARGS_CHECKNAMES) {
 
-	REQUIRE(rdata->type == 50);
+	REQUIRE(rdata->type == dns_rdatatype_nsec3);
 
 	UNUSED(rdata);
 	UNUSED(owner);

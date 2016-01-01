@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2009, 2011-2014  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2004-2009, 2011-2015  Internet Systems Consortium, Inc. ("ISC")
  * Copyright (C) 1998-2003  Internet Software Consortium.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
@@ -24,6 +24,7 @@
 
 #include <isc/buffer.h>
 #include <isc/mem.h>
+#include <isc/print.h>
 #include <isc/string.h>
 
 #include <dns/compress.h>
@@ -823,7 +824,6 @@ t_dns_name_fullcompare(void) {
 	if (fp != NULL) {
 		line = 0;
 		while ((p = t_fgetbs(fp)) != NULL) {
-
 			++line;
 
 			/*
@@ -851,8 +851,8 @@ t_dns_name_fullcompare(void) {
 				else if (!strcmp(Tokens[2], "commonancestor"))
 					reln = dns_namereln_commonancestor;
 				else {
-					t_info("bad format at line %d\n",
-					       line);
+					t_info("bad format at line %d\n", line);
+					(void)free(p);
 					continue;
 				}
 				result = test_dns_name_fullcompare(
