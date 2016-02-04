@@ -2,7 +2,10 @@
 # Sample debian/rules that uses debhelper.
 # GNU copyright 1997 to 1999 by Joey Hess.
 
-export DEB_BUILD_HARDENING=1
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+DPKG_EXPORT_BUILDFLAGS = 1
+include /usr/share/dpkg/buildflags.mk
+
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
@@ -14,13 +17,13 @@ export arch = $(DEB_HOST_ARCH)
 DEB_HOST_MULTIARCH := $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 
 ifneq (,$(findstring debug,$(DEB_BUILD_OPTIONS)))
-DEBUG = -g
+DEBUG += -g
 endif
 
 ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
-OPT = 
+OPT += 
 else
-OPT = -O2
+OPT += -O2
 endif
 
 ifneq (,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
@@ -28,7 +31,7 @@ NUMJOBS = $(patsubst parallel=%,%,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
 export MAKEFLAGS += -j$(NUMJOBS)
 endif
 
-export CFLAGS=-fno-strict-aliasing -DDIG_SIGCHASE $(DEBUG) $(OPT)
+export CFLAGS += -fno-strict-aliasing -DDIG_SIGCHASE $(DEBUG) $(OPT)
 
 ifeq ($(DEB_HOST_ARCH_OS),kfreebsd)
 EXTRA_FEATURES=--disable-linux-caps --disable-threads
