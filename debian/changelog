@@ -1,4 +1,4 @@
-bind9 (1:9.10.3.dfsg.P2-0.1) sid; urgency=medium
+bind9 (1:9.10.3.dfsg.P2-0.2) sid; urgency=medium
 
   * New upstream
 

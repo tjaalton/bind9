@@ -93,6 +93,19 @@ Description: DNS Shared Library used by BIND
  This package delivers the libdns shared library used by BIND's daemons and
  clients.
 
+Package: libirs141
+Section: libs
+Priority: standard
+Architecture: any
+Conflicts: libbind0, libbind9-41
+Replaces: libbind0
+Depends: ${shlibs:Depends}, ${misc:Depends}, libisc160
+Description: DNS Shared Library used by BIND
+ ${Description}
+ .
+ This package delivers the libirs shared library used by BIND's daemons and
+ clients.
+
 Package: libisc160
 Section: libs
 Priority: standard
