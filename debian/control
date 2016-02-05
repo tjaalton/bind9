@@ -2,12 +2,12 @@ Source: bind9
 Section: net
 Priority: optional
 Maintainer: LaMont Jones <lamont@debian.org>
-Uploaders: Bdale Garbee <bdale@gag.com>
+Uploaders: Bdale Garbee <bdale@gag.com>, Robie Basak <robie.basak@canonical.com>
 Build-Depends: libkrb5-dev, debhelper (>= 5), libssl-dev, libtool, bison, libdb-dev (>>4.6), libldap2-dev, libxml2-dev, libcap2-dev [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386], libgeoip-dev (>= 1.4.6.dfsg-5), dpkg-dev (>= 1.16.1~), python, python-argparse, dh-systemd, autotools-dev, dh-autoreconf
 Build-Conflicts: libdb4.2-dev
 Standards-Version: 3.7.3.0
-XS-Vcs-Browser: http://git.debian.org/?p=users/lamont/bind9.git
-XS-Vcs-Git: git://git.debian.org/~lamont/bind9.git
+Vcs-Browser: https://git.launchpad.net/bind
+Vcs-Git: git://git.launchpad.net/bind
 
 Package: bind9
 Architecture: any
