@@ -9,4 +9,3 @@ PATCHVER=3
 RELEASETYPE=-P
 RELEASEVER=2
 EXTENSIONS=
-EXTENSIONS="$(dpkg-parsechangelog | sed -n '/^Version/s/[^-]*//p')-$(dpkg-vendor --query Vendor)"

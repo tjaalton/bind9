@@ -1,0 +1,11 @@
+02_version.diff
+05_non-linux.diff
+10_min-cache-ttl.diff
+20_random_1.diff
+25_library_paths.diff
+28_prechroot_init.diff
+30_dynamic_db.diff
+31_geoip_acl.diff
+32_mips_atomic.diff
+33_resource_missing_include.diff
+99_libtool.diff

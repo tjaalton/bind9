@@ -151,8 +151,6 @@ struct dns_view {
 	isc_boolean_t			requestsit;
 	dns_ttl_t			maxcachettl;
 	dns_ttl_t			maxncachettl;
-	dns_ttl_t			mincachettl;
-	dns_ttl_t			minncachettl;
 	dns_ttl_t			prefetch_trigger;
 	dns_ttl_t			prefetch_eligible;
 	in_port_t			dstport;

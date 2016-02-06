@@ -1,0 +1,303 @@
+Author: Martin Nagy <mnagy@fedoraproject.org>
+Date:   Fri Nov 8 07:16:57 2013 -0700
+
+    dynamic loading of database backends. See: http://pkgs.fedoraproject.org/cgit/bind.git/tree/bind-96-dyndb.patch
+
+    Signed-off-by: Adam Tkac <atkac@redhat.com>
+    Signed-off-by: LaMont Jones <lamont@debian.org>
+    Addresses-Debian-Bug: #722669
+
+--- a/bin/named/main.c
++++ b/bin/named/main.c
+@@ -43,6 +43,7 @@
+ #include <isccc/result.h>
+ 
+ #include <dns/dispatch.h>
++#include <dns/dynamic_db.h>
+ #include <dns/name.h>
+ #include <dns/result.h>
+ #include <dns/view.h>
+--- a/bin/named/server.c
++++ b/bin/named/server.c
+@@ -68,6 +68,7 @@
+ #include <dns/db.h>
+ #include <dns/dispatch.h>
+ #include <dns/dlz.h>
++#include <dns/dynamic_db.h>
+ #include <dns/dns64.h>
+ #include <dns/forward.h>
+ #include <dns/journal.h>
+@@ -1311,6 +1312,72 @@
+ }
+ 
+ static isc_result_t
++configure_dynamic_db(const cfg_obj_t *dynamic_db, isc_mem_t *mctx,
++		     const dns_dyndb_arguments_t *dyndb_args)
++{
++	isc_result_t result;
++	const cfg_obj_t *obj;
++	const cfg_obj_t *options;
++	const cfg_listelt_t *element;
++	const char *name;
++	const char *libname;
++	const char **argv = NULL;
++	unsigned int i;
++	unsigned int len;
++
++	/* Get the name of the database. */
++	obj = cfg_tuple_get(dynamic_db, "name");
++	name = cfg_obj_asstring(obj);
++
++	/* Get options. */
++	options = cfg_tuple_get(dynamic_db, "options");
++
++	/* Get library name. */
++	obj = NULL;
++	CHECK(cfg_map_get(options, "library", &obj));
++	libname = cfg_obj_asstring(obj);
++
++	/* Create a list of arguments. */
++	obj = NULL;
++	result = cfg_map_get(options, "arg", &obj);
++	if (result == ISC_R_NOTFOUND)
++		len = 0;
++	else if (result == ISC_R_SUCCESS)
++		len = cfg_list_length(obj, isc_boolean_false);
++	else
++		goto cleanup;
++
++	/* Account for the last terminating NULL. */
++	len++;
++
++	argv = isc_mem_allocate(mctx, len * sizeof(const char *));
++	if (argv == NULL) {
++		result = ISC_R_NOMEMORY;
++		goto cleanup;
++	}
++	for (element = cfg_list_first(obj), i = 0;
++	     element != NULL;
++	     element = cfg_list_next(element), i++)
++	{
++		REQUIRE(i < len);
++
++		obj = cfg_listelt_value(element);
++		argv[i] = cfg_obj_asstring(obj);
++	}
++	REQUIRE(i < len);
++	argv[i] = NULL;
++
++	CHECK(dns_dynamic_db_load(libname, name, mctx, argv, dyndb_args));
++
++cleanup:
++	if (argv != NULL)
++		isc_mem_free(mctx, argv);
++
++	return result;
++}
++
++
++static isc_result_t
+ disable_algorithms(const cfg_obj_t *disabled, dns_resolver_t *resolver) {
+ 	isc_result_t result;
+ 	const cfg_obj_t *algorithms;
+@@ -2346,6 +2413,7 @@
+ 	const cfg_obj_t *dlz;
+ 	unsigned int dlzargc;
+ 	char **dlzargv;
++	const cfg_obj_t *dynamic_db_list;
+ 	const cfg_obj_t *disabled;
+ 	const cfg_obj_t *obj;
+ #ifdef ENABLE_FETCHLIMIT
+@@ -3712,6 +3780,37 @@
+ 		dns_view_setrootdelonly(view, ISC_FALSE);
+ 
+ 	/*
++	 * Configure dynamic databases.
++	 */
++	dynamic_db_list = NULL;
++	if (voptions != NULL)
++		(void)cfg_map_get(voptions, "dynamic-db", &dynamic_db_list);
++	else
++		(void)cfg_map_get(config, "dynamic-db", &dynamic_db_list);
++	element = cfg_list_first(dynamic_db_list);
++	if (element != NULL) {
++		dns_dyndb_arguments_t *args;
++
++		args = dns_dyndb_arguments_create(mctx);
++		if (args == NULL) {
++			result = ISC_R_NOMEMORY;
++			goto cleanup;
++		}
++		dns_dyndb_set_view(args, view);
++		dns_dyndb_set_zonemgr(args, ns_g_server->zonemgr);
++		dns_dyndb_set_task(args, ns_g_server->task);
++		dns_dyndb_set_timermgr(args, ns_g_timermgr);
++		while (element != NULL) {
++			obj = cfg_listelt_value(element);
++			CHECK(configure_dynamic_db(obj, mctx, args));
++
++			element = cfg_list_next(element);
++		}
++
++		dns_dyndb_arguments_destroy(mctx, args);
++	}
++
++	/*
+ 	 * Setup automatic empty zones.  If recursion is off then
+ 	 * they are disabled by default.
+ 	 */
+@@ -5457,6 +5556,7 @@
+ 		cfg_aclconfctx_detach(&ns_g_aclconfctx);
+ 	CHECK(cfg_aclconfctx_create(ns_g_mctx, &ns_g_aclconfctx));
+ 
++	dns_dynamic_db_cleanup(ISC_FALSE);
+ 	/*
+ 	 * Parse the global default pseudo-config file.
+ 	 */
+@@ -6685,6 +6785,8 @@
+ 			dns_view_detach(&view);
+ 	}
+ 
++	dns_dynamic_db_cleanup(ISC_TRUE);
++
+ 	while ((nsc = ISC_LIST_HEAD(server->cachelist)) != NULL) {
+ 		ISC_LIST_UNLINK(server->cachelist, nsc, link);
+ 		dns_cache_detach(&nsc->cache);
+--- a/lib/dns/Makefile.in
++++ b/lib/dns/Makefile.in
+@@ -43,7 +43,7 @@
+ 
+ ISCDEPLIBS =	../../lib/isc/libisc.@A@
+ 
+-LIBS =		@LIBS@ -L../../lib/isc -lcrypto
++LIBS =		@LIBS@ -L../../lib/isc -lcrypto @GEOIP_LIBS@
+ 
+ # Alphabetically
+ 
+@@ -66,6 +66,7 @@
+ 		cache.@O@ callbacks.@O@ clientinfo.@O@ compress.@O@ \
+ 		db.@O@ dbiterator.@O@ dbtable.@O@ diff.@O@ dispatch.@O@ \
+ 		dlz.@O@ dns64.@O@ dnssec.@O@ ds.@O@ forward.@O@ \
++		dynamic_db.@O@ \
+ 		iptable.@O@ journal.@O@ keydata.@O@ keytable.@O@ \
+ 		lib.@O@ log.@O@ lookup.@O@ \
+ 		master.@O@ masterdump.@O@ message.@O@ \
+@@ -104,6 +105,7 @@
+ 		cache.c callbacks.c clientinfo.c compress.c \
+ 		db.c dbiterator.c dbtable.c diff.c dispatch.c \
+ 		dlz.c dns64.c dnssec.c ds.c forward.c geoip.c \
++		dynamic_db.c \
+ 		iptable.c journal.c keydata.c keytable.c lib.c log.c \
+ 		lookup.c master.c masterdump.c message.c \
+ 		name.c ncache.c nsec.c nsec3.c order.c peer.c portlist.c \
+@@ -138,6 +140,11 @@
+ 		-DLIBAGE=${LIBAGE} \
+ 		-c ${srcdir}/version.c
+ 
++dynamic_db.@O@: dynamic_db.c
++	${LIBTOOL_MODE_COMPILE} ${CC} ${ALL_CFLAGS} \
++	-DDYNDB_LIBDIR=\"@libdir@/bind/\" \
++	-c ${srcdir}/dynamic_db.c
++
+ libdns.@SA@: ${OBJS}
+ 	${AR} ${ARFLAGS} $@ ${OBJS}
+ 	${RANLIB} $@
+--- a/lib/dns/include/dns/Makefile.in
++++ b/lib/dns/include/dns/Makefile.in
+@@ -24,6 +24,7 @@
+ HEADERS =	acache.h acl.h adb.h bit.h byaddr.h cache.h callbacks.h cert.h \
+ 		client.h clientinfo.h compress.h \
+ 		db.h dbiterator.h dbtable.h diff.h dispatch.h \
++		dynamic_db.h \
+ 		dlz.h dlz_dlopen.h dns64.h dnssec.h ds.h dsdigest.h \
+ 		ecdb.h events.h fixedname.h forward.h geoip.h iptable.h \
+ 		journal.h keydata.h keyflags.h keytable.h keyvalues.h \
+--- a/lib/dns/include/dns/log.h
++++ b/lib/dns/include/dns/log.h
+@@ -78,6 +78,7 @@
+ #define DNS_LOGMODULE_DNSSEC		(&dns_modules[27])
+ #define DNS_LOGMODULE_CRYPTO		(&dns_modules[28])
+ #define DNS_LOGMODULE_PACKETS		(&dns_modules[29])
++#define DNS_LOGMODULE_DYNDB		(&dns_modules[30])
+ 
+ ISC_LANG_BEGINDECLS
+ 
+--- a/lib/dns/include/dns/types.h
++++ b/lib/dns/include/dns/types.h
+@@ -77,6 +77,7 @@
+ typedef ISC_LIST(dns_dnsseckey_t)		dns_dnsseckeylist_t;
+ typedef isc_uint8_t				dns_dsdigest_t;
+ typedef struct dns_dumpctx			dns_dumpctx_t;
++typedef struct dns_dyndb_arguments		dns_dyndb_arguments_t;
+ typedef struct dns_ednsopt			dns_ednsopt_t;
+ typedef struct dns_fetch			dns_fetch_t;
+ typedef struct dns_fixedname			dns_fixedname_t;
+--- a/lib/dns/log.c
++++ b/lib/dns/log.c
+@@ -84,6 +84,7 @@
+ 	{ "dns/dnssec",		0 },
+ 	{ "dns/crypto",		0 },
+ 	{ "dns/packets",	0 },
++	{ "dns/dynamic_db",	0 },
+ 	{ NULL, 		0 }
+ };
+ 
+--- a/lib/isccfg/namedconf.c
++++ b/lib/isccfg/namedconf.c
+@@ -105,6 +105,7 @@
+ static cfg_type_t cfg_type_controls_sockaddr;
+ static cfg_type_t cfg_type_destinationlist;
+ static cfg_type_t cfg_type_dialuptype;
++static cfg_type_t cfg_type_dynamic_db;
+ static cfg_type_t cfg_type_ixfrdifftype;
+ static cfg_type_t cfg_type_key;
+ static cfg_type_t cfg_type_logfile;
+@@ -962,6 +963,7 @@
+ 	{ "key", &cfg_type_key, CFG_CLAUSEFLAG_MULTI },
+ 	{ "zone", &cfg_type_zone, CFG_CLAUSEFLAG_MULTI },
+ 	{ "dlz", &cfg_type_dlz, CFG_CLAUSEFLAG_MULTI },
++	{ "dynamic-db", &cfg_type_dynamic_db, CFG_CLAUSEFLAG_MULTI },
+ 	{ "server", &cfg_type_server, CFG_CLAUSEFLAG_MULTI },
+ 	{ "trusted-keys", &cfg_type_dnsseckeys, CFG_CLAUSEFLAG_MULTI },
+ 	{ "managed-keys", &cfg_type_managedkeys, CFG_CLAUSEFLAG_MULTI },
+@@ -2190,6 +2192,40 @@
+ 	&cfg_rep_string, dialup_enums
+ };
+ 
++/*
++ * Dynamic database clauses.
++ */
++
++static cfg_clausedef_t
++dynamic_db_clauses[] = {
++	{ "library", &cfg_type_qstring, 0 },
++	{ "arg", &cfg_type_qstring, CFG_CLAUSEFLAG_MULTI },
++	{ NULL, NULL, 0 }
++};
++
++static cfg_clausedef_t *
++dynamic_db_clausesets[] = {
++	dynamic_db_clauses,
++	NULL
++};
++
++static cfg_type_t cfg_type_dynamic_db_opts = {
++	"dynamically_loadable_zones_opts", cfg_parse_map,
++	cfg_print_map, cfg_doc_map, &cfg_rep_map,
++	dynamic_db_clausesets
++};
++
++static cfg_tuplefielddef_t dynamic_db_fields[] = {
++	{ "name", &cfg_type_astring, 0 },
++	{ "options", &cfg_type_dynamic_db_opts, 0 },
++	{ NULL, NULL, 0 }
++};
++
++static cfg_type_t cfg_type_dynamic_db = {
++	"dynamic_db", cfg_parse_tuple, cfg_print_tuple, cfg_doc_tuple,
++	&cfg_rep_tuple, dynamic_db_fields
++};
++
+ static const char *notify_enums[] = { "explicit", "master-only", NULL };
+ static isc_result_t
+ parse_notify_type(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {

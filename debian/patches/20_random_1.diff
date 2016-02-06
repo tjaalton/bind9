@@ -1,0 +1,116 @@
+Author: LaMont Jones <lamont@debian.org>
+Date:   Mon Mar 10 11:38:41 2008 -0600
+
+    add "order random_1" support (return one random RR)
+
+    Clients who implement RFC 3484, Section 6, Rule 9 for IPv4 addresses
+    create serious issues for domains that use rrset-order cyclic or random to do
+    load balancing, since they erroneously decide that the host with the longest
+    prefix in common with their own address is "closest", while no such relationship
+    exists in IPv4.
+
+    While technically incorrect, returning exactly one A RR from a random ordering
+    works around this behavior.  Using a short TTL is a good idea, for fault
+    tollerance.
+
+    Signed-off-by: LaMont Jones <lamont@ubuntu.com>
+
+--- a/bin/named/server.c
++++ b/bin/named/server.c
+@@ -1134,6 +1134,8 @@
+ #endif /* DNS_RDATASET_FIXED */
+ 	else if (!strcasecmp(str, "random"))
+ 		mode = DNS_RDATASETATTR_RANDOMIZE;
++	else if (!strcasecmp(str, "random_1"))
++		mode = DNS_RDATASETATTR_RANDOMIZE|DNS_RDATASETATTR_SINGLE;
+ 	else if (!strcasecmp(str, "cyclic"))
+ 		mode = 0;
+ 	else
+@@ -6923,8 +6925,6 @@
+ 	if (server->tkeyctx != NULL)
+ 		dns_tkeyctx_destroy(&server->tkeyctx);
+ 
+-	dst_lib_destroy();
+-
+ 	isc_event_free(&server->reload_event);
+ 
+ 	INSIST(ISC_LIST_EMPTY(server->viewlist));
+--- a/lib/bind9/check.c
++++ b/lib/bind9/check.c
+@@ -147,6 +147,7 @@
+ 			    "compilation time");
+ #endif
+ 	} else if (strcasecmp(cfg_obj_asstring(obj), "random") != 0 &&
++		   strcasecmp(cfg_obj_asstring(obj), "random_1") != 0 &&
+ 		   strcasecmp(cfg_obj_asstring(obj), "cyclic") != 0) {
+ 		cfg_obj_log(obj, logctx, ISC_LOG_ERROR,
+ 			    "rrset-order: invalid order '%s'",
+--- a/lib/dns/include/dns/rdataset.h
++++ b/lib/dns/include/dns/rdataset.h
+@@ -209,6 +209,8 @@
+ #define DNS_RDATASETATTR_NEGATIVE	0x00200000
+ #define DNS_RDATASETATTR_PREFETCH	0x00400000
+ 
++#define DNS_RDATASETATTR_SINGLE		0x10000000	/* Only return 1 answer */
++
+ /*%
+  * _OMITDNSSEC:
+  * 	Omit DNSSEC records when rendering ncache records.
+--- a/lib/dns/order.c
++++ b/lib/dns/order.c
+@@ -88,6 +88,7 @@
+ 
+ 	REQUIRE(DNS_ORDER_VALID(order));
+ 	REQUIRE(mode == DNS_RDATASETATTR_RANDOMIZE ||
++		mode == (DNS_RDATASETATTR_RANDOMIZE|DNS_RDATASETATTR_SINGLE) ||
+ 		mode == DNS_RDATASETATTR_FIXEDORDER ||
+ 		mode == 0 /* DNS_RDATASETATTR_CYCLIC */ );
+ 
+--- a/lib/dns/rdataset.c
++++ b/lib/dns/rdataset.c
+@@ -299,6 +299,7 @@
+ #define MAX_SHUFFLE	32
+ #define WANT_FIXED(r)	(((r)->attributes & DNS_RDATASETATTR_FIXEDORDER) != 0)
+ #define WANT_RANDOM(r)	(((r)->attributes & DNS_RDATASETATTR_RANDOMIZE) != 0)
++#define WANT_SINGLE(r)	(((r)->attributes & DNS_RDATASETATTR_SINGLE) != 0)
+ 
+ struct towire_sort {
+ 	int key;
+@@ -323,6 +324,7 @@
+ 	isc_region_t r;
+ 	isc_result_t result;
+ 	unsigned int i, count = 0, added, choice;
++	unsigned int real_count;
+ 	isc_buffer_t savedbuffer, rdlen, rrbuffer;
+ 	unsigned int headlen;
+ 	isc_boolean_t question = ISC_FALSE;
+@@ -364,6 +366,7 @@
+ 		if (result != ISC_R_SUCCESS)
+ 			return (result);
+ 	}
++	real_count = count;
+ 
+ 	/*
+ 	 * Do we want to shuffle this answer?
+@@ -431,6 +434,9 @@
+ 					sorted[i].key = 0; /* Unused */
+ 				sorted[i].rdata = &shuffled[i];
+ 			}
++			if (count > 1 && WANT_SINGLE(rdataset)) {
++				count = 1;
++			}
+ 		} else {
+ 			/*
+ 			 * "Cyclic" order.
+@@ -551,9 +557,9 @@
+ 
+  cleanup:
+ 	if (sorted != NULL && sorted != sorted_fixed)
+-		isc_mem_put(cctx->mctx, sorted, count * sizeof(*sorted));
++		isc_mem_put(cctx->mctx, sorted, real_count * sizeof(*sorted));
+ 	if (shuffled != NULL && shuffled != shuffled_fixed)
+-		isc_mem_put(cctx->mctx, shuffled, count * sizeof(*shuffled));
++		isc_mem_put(cctx->mctx, shuffled, real_count * sizeof(*shuffled));
+ 	return (result);
+ }
+ 

@@ -1,0 +1,94 @@
+Author: LaMont Jones <lamont@debian.org>
+Date:   Thu Nov 8 15:16:39 2007 -0700
+
+    Makefile.in: be explicit about library paths
+
+    Debian policy requires that all dependant libs be in the .so, not just the
+    immediately depended ones.
+
+    Signed-off-by: LaMont Jones <lamont@debian.org>
+
+--- a/lib/dns/Makefile.in
++++ b/lib/dns/Makefile.in
+@@ -43,7 +43,7 @@
+ 
+ ISCDEPLIBS =	../../lib/isc/libisc.@A@
+ 
+-LIBS =		@LIBS@
++LIBS =		@LIBS@ -L../../lib/isc -lcrypto
+ 
+ # Alphabetically
+ 
+@@ -147,6 +147,7 @@
+ 		${CC} ${ALL_CFLAGS} ${LDFLAGS} -o libdns.la -rpath ${libdir} \
+ 		-version-info ${LIBINTERFACE}:${LIBREVISION}:${LIBAGE} \
+ 		${OBJS} ${ISCLIBS} @DNS_CRYPTO_LIBS@ ${LIBS}
++	ln -sf .libs/libdns.so .
+ 
+ timestamp: libdns.@A@
+ 	touch timestamp
+@@ -161,6 +162,7 @@
+ 	rm -f libdns.@A@ timestamp
+ 	rm -f gen code.h include/dns/enumtype.h include/dns/enumclass.h
+ 	rm -f include/dns/rdatastruct.h
++	rm -f libdns.so
+ 
+ newrr::
+ 	rm -f code.h include/dns/enumtype.h include/dns/enumclass.h
+--- a/lib/isc/Makefile.in
++++ b/lib/isc/Makefile.in
+@@ -122,12 +122,14 @@
+ 		${CC} ${ALL_CFLAGS} ${LDFLAGS} -o libisc.la -rpath ${libdir} \
+ 		-version-info ${LIBINTERFACE}:${LIBREVISION}:${LIBAGE} \
+ 		${OBJS} ${SYMTBLOBJS} ${LIBS}
++	ln -sf .libs/libisc.so .
+ 
+ libisc-nosymtbl.la: ${OBJS}
+ 	${LIBTOOL_MODE_LINK} \
+ 		${CC} ${ALL_CFLAGS} ${LDFLAGS} -o libisc-nosymtbl.la -rpath ${libdir} \
+ 		-version-info ${LIBINTERFACE}:${LIBREVISION}:${LIBAGE} \
+ 		${OBJS} ${LIBS}
++	ln -sf .libs/libisc-nosymtbl.so .
+ 
+ timestamp: libisc.@A@ libisc-nosymtbl.@A@
+ 	touch timestamp
+@@ -141,3 +143,4 @@
+ clean distclean::
+ 	rm -f libisc.@A@ libisc-nosymtbl.@A@ libisc.la \
+ 	libisc-nosymtbl.la timestamp
++	rm -f libisc.so libisc-nosymtbl.so
+--- a/lib/isccc/Makefile.in
++++ b/lib/isccc/Makefile.in
+@@ -36,7 +36,7 @@
+ ISCDEPLIBS =	../../lib/isc/libisc.@A@
+ ISCCCDEPLIBS =	libisccc.@A@
+ 
+-LIBS =		@LIBS@
++LIBS =		@LIBS@ -L../../lib/isc
+ 
+ SUBDIRS =	include
+ 
+@@ -72,6 +72,7 @@
+ 		${CC} ${ALL_CFLAGS} ${LDFLAGS} -o libisccc.la -rpath ${libdir} \
+ 		-version-info ${LIBINTERFACE}:${LIBREVISION}:${LIBAGE} \
+ 		${OBJS} ${ISCLIBS} ${LIBS}
++	ln -sf .libs/libisccc.so .
+ 
+ timestamp: libisccc.@A@
+ 	touch timestamp
+@@ -84,3 +85,4 @@
+ 
+ clean distclean::
+ 	rm -f libisccc.@A@ timestamp
++	rm -f libisccc.so
+--- a/lib/isccfg/Makefile.in
++++ b/lib/isccfg/Makefile.in
+@@ -38,7 +38,7 @@
+ ISCDEPLIBS =	../../lib/isc/libisc.@A@
+ ISCCFGDEPLIBS =	libisccfg.@A@
+ 
+-LIBS =		@LIBS@
++LIBS =		@LIBS@ -L../dns -L../isc -L../isccc
+ 
+ SUBDIRS =	include
+ 

@@ -1,0 +1,19 @@
+Author: Julien Cristau <jcristau@falla.debian.org>, others
+Date:   Thu Apr 24 10:45:02 2014 -0600
+
+    FTBFS on kfreebsd.
+
+    Addresses-Debian-Bug: 741285
+    Signed-off-by: LaMont Jones <lamont@debian.org>
+
+--- a/configure.in
++++ b/configure.in
+@@ -1202,7 +1202,7 @@
+ 		# LinuxThreads requires some changes to the way we
+ 		# deal with signals.
+ 		#
+-		*-linux*)
++		*-linux*|*-kfreebsd*-gnu)
+ 			AC_DEFINE(HAVE_LINUXTHREADS)
+ 			;;
+ 		#
