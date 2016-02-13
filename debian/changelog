@@ -1,3 +1,10 @@
+bind9 (1:9.9.5.dfsg-8) unstable; urgency=medium
+
+  * Launch rndc command in the background in networking scripts to avoid a
+    hang in named from bringing down the entire network (closes: #760555).
+
+ -- Michael Gilbert <mgilbert@debian.org>  Thu, 01 Jan 2015 17:51:52 +0000
+
 bind9 (1:9.9.5.dfsg-7) unstable; urgency=medium
 
   * Fix CVE-2014-8500: limit recursion in order to avoid memory consuption

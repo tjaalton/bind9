@@ -10,6 +10,6 @@ if [ ! -d /usr/sbin ]; then
 fi
 
 # if named is running, reconfig it.
-rndc reconfig >/dev/null 2>&1 || true
+rndc reconfig >/dev/null 2>&1 &
 
 exit 0
