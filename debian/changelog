@@ -1,3 +1,9 @@
+bind9 (1:9.9.5.dfsg-12) unstable; urgency=high
+
+  * Fix CVE-2015-5722: maliciously crafted DNSSEC key can cause named to crash.
+
+ -- Michael Gilbert <mgilbert@debian.org>  Thu, 03 Sep 2015 01:16:32 +0000
+
 bind9 (1:9.9.5.dfsg-11) unstable; urgency=high
 
   * Fix CVE-2015-5477: maliciously crafted TKEY query can cause named to exit
