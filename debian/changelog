@@ -1,3 +1,11 @@
+bind9 (1:9.9.5.dfsg-4.1) unstable; urgency=low
+
+  * Non-maintainer upload.
+  * Add support for hurd.  Closes: #746540
+  * Provide shared libraries for isc-dhcp.  Closes: #656150
+
+ -- Michael Gilbert <mgilbert@debian.org>  Sun, 14 Sep 2014 00:58:06 +0000
+
 bind9 (1:9.9.5.dfsg-4) unstable; urgency=low
 
   [Julien Cristau]

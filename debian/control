@@ -60,7 +60,7 @@ Section: libdevel
 Architecture: any
 Conflicts: bind-dev
 Replaces: bind-dev
-Depends: ${shlibs:Depends}, ${misc:Depends}, libdns100 (=${binary:Version}), libisccfg90 (=${binary:Version}), libisc95 (=${binary:Version}), liblwres90 (=${binary:Version}), libbind9-90 (=${binary:Version})
+Depends: ${misc:Depends}, libdns100 (=${binary:Version}), libisccfg90 (=${binary:Version}), libisc95 (=${binary:Version}), liblwres90 (=${binary:Version}), libbind9-90 (=${binary:Version})
 Description: Static Libraries and Headers used by BIND
  This package delivers archive-style libraries, header files, and API man
  pages for libbind, libdns, libisc, and liblwres.  These are only needed 
@@ -171,3 +171,58 @@ Description: Lightweight Resolver Daemon
  the BIND 9 lightweight resolver library.  It is essentially a stripped-
  down, caching-only name server that answers queries using the BIND 9
  lightweight resolver protocol rather than the DNS protocol.
+
+Package: libbind-export-dev
+Section: libdevel
+Architecture: any
+Conflicts: libbind-dev
+Depends: ${misc:Depends}, libdns-export100 (=${binary:Version}), libisccfg-export90 (=${binary:Version}), libisc-export95 (=${binary:Version}), libirs-export91 (=${binary:Version})
+Description: Development files for the exported BIND libraries
+ ${Description}
+ .
+ This package delivers development files for the exported BIND libraries.
+
+Package: libbind-export-udeb
+Section: debian-installer
+Architecture: any
+Priority: extra
+Depends: ${shlibs:Depends}
+XC-Package-Type: udeb
+Description: Exported BIND libraries for debian-installer
+ libbind-export-udeb is a minimal bind package used by the debian-installer.
+
+Package: libdns-export100
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Exported DNS Shared Library
+ ${Description}
+ .
+ This package delivers the exported libdns shared library.
+
+Package: libisc-export95
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Exported ISC Shared Library 
+ ${Description}
+ .
+ This package delivers the exported libisc shared library.
+
+Package: libisccfg-export90
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Exported ISC CFG Shared Library
+ ${Description}
+ .
+ This package delivers the exported libisccfg shared library.
+
+Package: libirs-export91
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Exported IRS Shared Library
+ ${Description}
+ .
+ This package delivers the exported libirs shared library.

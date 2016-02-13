@@ -39,6 +39,23 @@ configure-stamp:
 	dh_testdir
 	dh_autotools-dev_updateconfig
 	dh_autoreconf
+	test -e export || mkdir export && cp -r * export || true
+	cd export && ./configure \
+		--prefix=/usr \
+		--disable-epoll \
+		--disable-kqueue \
+		--disable-devpoll \
+		--disable-threads \
+		--disable-linux-caps \
+		--without-openssl \
+		--without-libxml2 \
+		--enable-ipv6 \
+		--enable-shared \
+		--enable-exportlib \
+		--with-libtool \
+		--with-gssapi=no \
+		--with-export-libdir=\$${prefix}/lib \
+		--with-export-includedir=\$${prefix}/include/bind-export
 	./configure --prefix=/usr \
 		--mandir=\$${prefix}/share/man \
 		--infodir=\$${prefix}/share/info \
@@ -64,6 +81,7 @@ configure-stamp:
 build: build-stamp
 build-stamp: configure-stamp
 	dh_testdir
+	$(MAKE) -C export
 	LD_LIBRARY_PATH=$$(pwd)/lib/isc/.libs:$$(pwd)/lib/isccc/.libs:$$(pwd)/isccfg/.libs:$${LD_LIBRARY_PATH} $(MAKE)
 	touch $@
 
@@ -85,6 +103,7 @@ clean:
 	rm -f debian/substvars lib/bind/include/isc/platform.h
 	rm -f contrib/dlz/bin/dlzbdb/Makefile contrib/dlz/drivers/rules
 	rm -f doc/arm/Bv9ARM.pdf
+	rm -rf export
 	dh_autoreconf_clean
 	dh_autotools-dev_restoreconfig
 	dh_clean
@@ -105,6 +124,7 @@ install: build
 	dh_testroot
 	dh_clean -k
 	dh_installdirs
+	$(MAKE) -C export install DESTDIR=`pwd`/debian/bind9
 	$(MAKE) install DESTDIR=`pwd`/debian/bind9
 	rm -f debian/bind9/usr/lib/*.la
 	install -c -o bin -g bin -m 444 debian/db.0 ${ETCBIND}/db.0
@@ -181,7 +201,7 @@ binary-arch: build install
 	dh_fixperms -a
 	dh_makeshlibs -a
 	dh_installdeb -a
-	dh_shlibdeps -l"debian/libbind9-90/usr/lib:debian/libbind-dev/usr/lib:debian/libdns100/usr/lib:debian/libisc95/usr/lib:debian/libisccc90/usr/lib:debian/libisccfg90/usr/lib:debian/liblwres90/usr/lib:/usr/lib/libfakeroot" -a
+	dh_shlibdeps -a
 	for i in $$(sed -n '/^Package:/s/^.* //p' debian/control); do cat debian/vars.in >> debian/$$i.substvars; done
 	cat debian/vars.in >> debian/substvars
 	dh_gencontrol -a
