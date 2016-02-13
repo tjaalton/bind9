@@ -38,7 +38,7 @@ CWARNINGS =
 APIOBJS =	app_api.@O@ mem_api.@O@ socket_api.@O@ \
 		task_api.@O@ timer_api.@O@
 
-ISCDRIVEROBJS =	mem.@O@ task.@O@ timer.@O@ lib.@O@ \
+ISCDRIVEROBJS =	mem.@O@ unix/socket.@O@ task.@O@ timer.@O@ lib.@O@ \
 		heap.@O@	#timer module depends on this
 
 UNIXOBJS =	@ISC_ISCIPV6_O@ \
@@ -103,6 +103,10 @@ SRCS =		@ISC_EXTRA_SRCS@ \
 
 LIBS =		@LIBS@
 
+# Note: the order of SUBDIRS is important.
+# Attempt to disable parallel processing.
+.NOTPARALLEL:
+.NO_PARALLEL:
 SUBDIRS =	include unix nls @ISC_THREAD_DIR@
 TARGETS =	timestamp
 

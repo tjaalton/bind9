@@ -1,3 +1,10 @@
+bind9 (1:9.9.5.dfsg-4.3) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * Mark critical section as not parallel in the makefile.  Closes: #762766
+
+ -- Michael Gilbert <mgilbert@debian.org>  Mon, 13 Oct 2014 04:37:55 +0000
+
 bind9 (1:9.9.5.dfsg-4.2) unstable; urgency=low
 
   * Non-maintainer upload.
