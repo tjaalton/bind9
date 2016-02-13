@@ -1,3 +1,10 @@
+bind9 (1:9.9.5.dfsg-7) unstable; urgency=medium
+
+  * Fix CVE-2014-8500: limit recursion in order to avoid memory consuption
+    issues that can lead to denial-of-service (closes: #772610).
+
+ -- Michael Gilbert <mgilbert@debian.org>  Sun, 14 Dec 2014 05:05:48 +0000
+
 bind9 (1:9.9.5.dfsg-6) unstable; urgency=medium
 
   * Include dlz_dlopen.h in libbind-dev (closes: #769117).
