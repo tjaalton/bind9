@@ -1,3 +1,10 @@
+bind9 (1:9.9.5.dfsg-11) unstable; urgency=high
+
+  * Fix CVE-2015-5477: maliciously crafted TKEY query can cause named to exit
+    (closes: #793903).
+
+ -- Michael Gilbert <mgilbert@debian.org>  Wed, 29 Jul 2015 23:46:48 +0000
+
 bind9 (1:9.9.5.dfsg-10) unstable; urgency=high
 
   * Fix CVE-2015-4620: DNSSEC validation of a malicously crafted zone can
