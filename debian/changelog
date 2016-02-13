@@ -1,3 +1,13 @@
+bind9 (1:9.9.5.dfsg-4.2) unstable; urgency=low
+
+  * Non-maintainer upload.
+  * Fix intermittent parallel build failure.  Closes: #762766
+  * Set -fno-delete-null-pointer-checks.  Closes: #750760
+  * Use separate packages for the udebs.  Closes: #762762
+  * Don't install configuration files to /usr.  Closes: #762948
+
+ -- Michael Gilbert <mgilbert@debian.org>  Mon, 06 Oct 2014 01:23:57 +0000
+
 bind9 (1:9.9.5.dfsg-4.1) unstable; urgency=low
 
   * Non-maintainer upload.

@@ -182,15 +182,6 @@ Description: Development files for the exported BIND libraries
  .
  This package delivers development files for the exported BIND libraries.
 
-Package: libbind-export-udeb
-Section: debian-installer
-Architecture: any
-Priority: extra
-Depends: ${shlibs:Depends}
-XC-Package-Type: udeb
-Description: Exported BIND libraries for debian-installer
- libbind-export-udeb is a minimal bind package used by the debian-installer.
-
 Package: libdns-export100
 Section: libs
 Architecture: any
@@ -199,6 +190,13 @@ Description: Exported DNS Shared Library
  ${Description}
  .
  This package delivers the exported libdns shared library.
+
+Package: libdns-export100-udeb
+Section: debian-installer
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Package-Type: udeb
+Description: Exported DNS library for debian-installer
 
 Package: libisc-export95
 Section: libs
@@ -209,6 +207,13 @@ Description: Exported ISC Shared Library
  .
  This package delivers the exported libisc shared library.
 
+Package: libisc-export95-udeb
+Section: debian-installer
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Package-Type: udeb
+Description: Exported ISC library for debian-installer
+
 Package: libisccfg-export90
 Section: libs
 Architecture: any
@@ -218,6 +223,13 @@ Description: Exported ISC CFG Shared Library
  .
  This package delivers the exported libisccfg shared library.
 
+Package: libisccfg-export90-udeb
+Section: debian-installer
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Package-Type: udeb
+Description: Exported ISC CFG library for debian-installer
+
 Package: libirs-export91
 Section: libs
 Architecture: any
@@ -226,3 +238,10 @@ Description: Exported IRS Shared Library
  ${Description}
  .
  This package delivers the exported libirs shared library.
+
+Package: libirs-export91-udeb
+Section: debian-installer
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Package-Type: udeb
+Description: Exported IRS library for debian-installer

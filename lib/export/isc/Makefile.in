@@ -38,7 +38,7 @@ CWARNINGS =
 APIOBJS =	app_api.@O@ mem_api.@O@ socket_api.@O@ \
 		task_api.@O@ timer_api.@O@
 
-ISCDRIVEROBJS =	mem.@O@ unix/socket.@O@ task.@O@ timer.@O@ lib.@O@ \
+ISCDRIVEROBJS =	mem.@O@ task.@O@ timer.@O@ lib.@O@ \
 		heap.@O@	#timer module depends on this
 
 UNIXOBJS =	@ISC_ISCIPV6_O@ \
