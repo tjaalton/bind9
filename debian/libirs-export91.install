@@ -1,1 +1,1 @@
-usr/lib/libirs-export.so.*
+lib/*/libirs-export.so.*

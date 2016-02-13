@@ -1,3 +1,11 @@
+bind9 (1:9.9.5.dfsg-5) unstable; urgency=medium
+
+  * Avoid libnsl dependency on non-linux architectures.  Closes: #766430
+  * Install export libraries to /lib instead of /usr/lib.  Closes: #766544
+  * Add myself to the maintainer team with approval from LaMont and Bdale.
+
+ -- Michael Gilbert <mgilbert@debian.org>  Thu, 30 Oct 2014 02:42:17 +0000
+
 bind9 (1:9.9.5.dfsg-4.3) unstable; urgency=medium
 
   * Non-maintainer upload.

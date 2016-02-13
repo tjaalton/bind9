@@ -54,7 +54,7 @@ configure-stamp:
 		--enable-exportlib \
 		--with-libtool \
 		--with-gssapi=no \
-		--with-export-libdir=\$${prefix}/lib \
+		--with-export-libdir=\$${prefix}/lib/$(DEB_HOST_MULTIARCH) \
 		--with-export-includedir=\$${prefix}/include/bind-export
 	./configure --prefix=/usr \
 		--mandir=\$${prefix}/share/man \
@@ -127,7 +127,13 @@ install: build
 	$(MAKE) -C export install DESTDIR=`pwd`/debian/bind9
 	$(MAKE) install DESTDIR=`pwd`/debian/bind9
 	rm -rf debian/bind9/usr/etc
-	rm -f debian/bind9/usr/lib/*.la
+	find debian/bind9 -name \*.la -execdir rm -f {} \;
+	mkdir -p debian/bind9/lib/$(DEB_HOST_MULTIARCH)
+	mv debian/bind9/usr/lib/$(DEB_HOST_MULTIARCH)/*-export.so.* debian/bind9/lib/$(DEB_HOST_MULTIARCH)
+	cd debian/bind9/usr/lib/$(DEB_HOST_MULTIARCH) && for link in *.so; do \
+	    file=$$(readlink $$link); \
+	    ln -sf ../../../lib/$(DEB_HOST_MULTIARCH)/$$file $$link; \
+	    done
 	install -c -o bin -g bin -m 444 debian/db.0 ${ETCBIND}/db.0
 	install -c -o bin -g bin -m 444 debian/db.0 ${ETCBIND}/db.255
 	install -c -o bin -g bin -m 444 debian/db.empty ${ETCBIND}
