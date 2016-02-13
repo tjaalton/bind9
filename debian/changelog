@@ -1,3 +1,10 @@
+bind9 (1:9.9.5.dfsg-10) unstable; urgency=high
+
+  * Fix CVE-2015-4620: DNSSEC validation of a malicously crafted zone can
+    cause the resolver to crash (closes: #791715).
+
+ -- Michael Gilbert <mgilbert@debian.org>  Thu, 09 Jul 2015 00:43:38 +0000
+
 bind9 (1:9.9.5.dfsg-9) unstable; urgency=high
 
   * Fix CVE-2015-1349: named crash due to managed key rollover, primarily only
