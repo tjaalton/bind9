@@ -1,3 +1,10 @@
+bind9 (1:9.9.5.dfsg-9) unstable; urgency=high
+
+  * Fix CVE-2015-1349: named crash due to managed key rollover, primarily only
+    affecting setups using DNSSEC (closes: #778733).
+
+ -- Michael Gilbert <mgilbert@debian.org>  Thu, 19 Feb 2015 03:42:21 +0000
+
 bind9 (1:9.9.5.dfsg-8) unstable; urgency=medium
 
   * Launch rndc command in the background in networking scripts to avoid a
