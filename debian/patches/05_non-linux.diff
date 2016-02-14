@@ -1,9 +1,9 @@
 Author: Julien Cristau <jcristau@falla.debian.org>, others
 Date:   Thu Apr 24 10:45:02 2014 -0600
 
-    FTBFS on kfreebsd.
+    FTBFS on kfreebsd, hurd
 
-    Addresses-Debian-Bug: 741285
+    Addresses-Debian-Bug: 741285, 746540
     Signed-off-by: LaMont Jones <lamont@debian.org>
 
 --- a/configure.in

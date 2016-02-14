@@ -1,0 +1,3 @@
+usr/lib/*-export.a
+usr/lib/*-export.so
+usr/include/bind-export
