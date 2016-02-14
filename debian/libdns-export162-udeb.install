@@ -1,1 +1,1 @@
-usr/lib/libdns-export*.so.*
+lib/*/libdns-export.so.*

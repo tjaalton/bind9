@@ -1,1 +1,1 @@
-usr/lib/libisccfg-export.so.*
+lib/*/libisccfg-export.so.*

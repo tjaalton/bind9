@@ -17,3 +17,11 @@ Date:   Thu Apr 24 10:45:02 2014 -0600
  			AC_DEFINE(HAVE_LINUXTHREADS)
  			;;
  		#
+@@ -2393,7 +2393,6 @@
+ 		;;
+ 	*)
+ 		AC_CHECK_LIB(socket, socket)
+-		AC_CHECK_LIB(nsl, inet_addr)
+ 		;;
+ esac
+ 

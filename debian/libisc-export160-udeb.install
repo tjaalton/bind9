@@ -1,1 +1,1 @@
-usr/lib/libisc-export*.so.*
+lib/*/libisc-export.so.*
