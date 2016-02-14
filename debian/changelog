@@ -4,6 +4,33 @@ bind9 (1:9.10.3.dfsg.P2-0.2) sid; urgency=medium
 
  -- LaMont Jones <lamont@debian.org>  Thu, 31 Dec 2015 18:41:31 -0700
 
+bind9 (1:9.9.5.dfsg-12) unstable; urgency=high
+
+  * Fix CVE-2015-5722: maliciously crafted DNSSEC key can cause named to crash.
+
+ -- Michael Gilbert <mgilbert@debian.org>  Thu, 03 Sep 2015 01:16:32 +0000
+
+bind9 (1:9.9.5.dfsg-11) unstable; urgency=high
+
+  * Fix CVE-2015-5477: maliciously crafted TKEY query can cause named to exit
+    (closes: #793903).
+
+ -- Michael Gilbert <mgilbert@debian.org>  Wed, 29 Jul 2015 23:46:48 +0000
+
+bind9 (1:9.9.5.dfsg-10) unstable; urgency=high
+
+  * Fix CVE-2015-4620: DNSSEC validation of a malicously crafted zone can
+    cause the resolver to crash (closes: #791715).
+
+ -- Michael Gilbert <mgilbert@debian.org>  Thu, 09 Jul 2015 00:43:38 +0000
+
+bind9 (1:9.9.5.dfsg-9) unstable; urgency=high
+
+  * Fix CVE-2015-1349: named crash due to managed key rollover, primarily only
+    affecting setups using DNSSEC (closes: #778733).
+
+ -- Michael Gilbert <mgilbert@debian.org>  Thu, 19 Feb 2015 03:42:21 +0000
+
 bind9 (1:9.9.5.dfsg-8) unstable; urgency=medium
 
   * Launch rndc command in the background in networking scripts to avoid a
