@@ -31,7 +31,7 @@ NUMJOBS = $(patsubst parallel=%,%,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
 export MAKEFLAGS += -j$(NUMJOBS)
 endif
 
-export CFLAGS += -fno-strict-aliasing -DDIG_SIGCHASE $(DEBUG) $(OPT)
+export CFLAGS += -fno-strict-aliasing -fno-delete-null-pointer-checks -DDIG_SIGCHASE $(DEBUG) $(OPT)
 
 ifeq ($(DEB_HOST_ARCH_OS),kfreebsd)
 EXTRA_FEATURES=--disable-linux-caps --disable-threads
@@ -129,6 +129,7 @@ install: build
 	dh_installdirs
 	$(MAKE) -C export install DESTDIR=`pwd`/debian/bind9
 	$(MAKE) install DESTDIR=`pwd`/debian/bind9
+	rm -rf debian/bind9/usr/etc
 	rm -f debian/bind9/usr/lib/*.la
 	install -c -o bin -g bin -m 444 debian/db.0 ${ETCBIND}/db.0
 	install -c -o bin -g bin -m 444 debian/db.0 ${ETCBIND}/db.255
@@ -203,6 +204,10 @@ binary-arch: build install
 	dh_compress -a
 	dh_fixperms -a
 	dh_makeshlibs -a
+	dh_makeshlibs -plibirs-export141 --add-udeb=libirs-export91-udeb
+	dh_makeshlibs -plibisc-export160 --add-udeb=libisc-export95-udeb
+	dh_makeshlibs -plibdns-export162 --add-udeb=libdns-export100-udeb
+	dh_makeshlibs -plibisccfg-export140 --add-udeb=libisccfg-export90-udeb
 	dh_installdeb -a
 	dh_shlibdeps -a
 	for i in $$(sed -n '/^Package:/s/^.* //p' debian/control); do cat debian/vars.in >> debian/$$i.substvars; done
