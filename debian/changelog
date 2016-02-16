@@ -1,4 +1,4 @@
-bind9 (1:9.10.3.dfsg.P2-1~1) sid; urgency=medium
+bind9 (1:9.10.3.dfsg.P2-1~2) experimental; urgency=medium
 
   * New upstream, no need for export packages with 9.10
   * Fix sonames
