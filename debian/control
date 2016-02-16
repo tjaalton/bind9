@@ -185,78 +185,28 @@ Description: Lightweight Resolver Daemon
  down, caching-only name server that answers queries using the BIND 9
  lightweight resolver protocol rather than the DNS protocol.
 
-Package: libbind-export-dev
-Section: libdevel
-Architecture: any
-Conflicts: libbind-dev
-Depends: ${misc:Depends}, libdns-export162 (=${binary:Version}), libisccfg-export140 (=${binary:Version}), libisc-export160 (=${binary:Version}), libirs-export141 (=${binary:Version})
-Description: Development files for the exported BIND libraries
- ${Description}
- .
- This package delivers development files for the exported BIND libraries.
-
-Package: libdns-export162
-Section: libs
-Architecture: any
-Pre-Depends: ${misc:Pre-Depends}
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Exported DNS Shared Library
- ${Description}
- .
- This package delivers the exported libdns shared library.
-
-Package: libdns-export162-udeb
+Package: libdns162-udeb
 Section: debian-installer
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Package-Type: udeb
 Description: Exported DNS library for debian-installer
 
-Package: libisc-export160
-Section: libs
-Architecture: any
-Pre-Depends: ${misc:Pre-Depends}
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Exported ISC Shared Library 
- ${Description}
- .
- This package delivers the exported libisc shared library.
-
-Package: libisc-export160-udeb
+Package: libisc160-udeb
 Section: debian-installer
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Package-Type: udeb
 Description: Exported ISC library for debian-installer
 
-Package: libisccfg-export140
-Section: libs
-Architecture: any
-Pre-Depends: ${misc:Pre-Depends}
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Exported ISC CFG Shared Library
- ${Description}
- .
- This package delivers the exported libisccfg shared library.
-
-Package: libisccfg-export140-udeb
+Package: libisccfg140-udeb
 Section: debian-installer
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Package-Type: udeb
 Description: Exported ISC CFG library for debian-installer
 
-Package: libirs-export141
-Section: libs
-Architecture: any
-Pre-Depends: ${misc:Pre-Depends}
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Exported IRS Shared Library
- ${Description}
- .
- This package delivers the exported libirs shared library.
-
-Package: libirs-export141-udeb
+Package: libirs141-udeb
 Section: debian-installer
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
