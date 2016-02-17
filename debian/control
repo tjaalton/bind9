@@ -58,6 +58,7 @@ Description: Version of 'host' bundled with BIND 9.X
 Package: libbind-dev
 Section: libdevel
 Architecture: any
+Multi-Arch: same
 Conflicts: bind-dev
 Replaces: bind-dev
 Depends: ${misc:Depends}, libdns162 (=${binary:Version}), libisccfg140 (=${binary:Version}), libisc160 (=${binary:Version}), liblwres141 (=${binary:Version}), libbind9-140 (=${binary:Version})
@@ -71,6 +72,7 @@ Package: libbind9-140
 Section: libs
 Priority: standard
 Architecture: any
+Multi-Arch: same
 Conflicts: libbind0, libbind9-41
 Replaces: libbind0
 Depends: ${shlibs:Depends}, ${misc:Depends}, libdns162, libisccfg140, libisc160
@@ -84,6 +86,7 @@ Package: libdns162
 Section: libs
 Priority: standard
 Architecture: any
+Multi-Arch: same
 Conflicts: libbind0, libbind9-41
 Replaces: libbind0
 Depends: ${shlibs:Depends}, ${misc:Depends}, libisc160
@@ -97,6 +100,7 @@ Package: libirs141
 Section: libs
 Priority: standard
 Architecture: any
+Multi-Arch: same
 Conflicts: libbind0, libbind9-41
 Replaces: libbind0
 Depends: ${shlibs:Depends}, ${misc:Depends}, libisc160
@@ -110,6 +114,7 @@ Package: libisc160
 Section: libs
 Priority: standard
 Architecture: any
+Multi-Arch: same
 Conflicts: libbind0, libbind9-41
 Replaces: libbind0
 Depends: ${shlibs:Depends}, ${misc:Depends}
@@ -123,6 +128,7 @@ Package: liblwres141
 Section: libs
 Priority: standard
 Architecture: any
+Multi-Arch: same
 Replaces: libbind0
 Conflicts: libbind0
 Depends: ${shlibs:Depends}, ${misc:Depends}
@@ -135,6 +141,7 @@ Description: Lightweight Resolver Library used by BIND
 Package: libisccc140
 Section: libs
 Architecture: any
+Multi-Arch: same
 Conflicts: libbind0, libbind9-41
 Replaces: libbind0
 Depends: ${shlibs:Depends}, ${misc:Depends}, libisc160
@@ -147,6 +154,7 @@ Description: Command Channel Library used by BIND
 Package: libisccfg140
 Section: libs
 Architecture: any
+Multi-Arch: same
 Conflicts: libbind0, libbind9-41
 Replaces: libbind0
 Depends: ${shlibs:Depends}, ${misc:Depends}, libdns162, libisccc140, libisc160
@@ -188,6 +196,7 @@ Description: Lightweight Resolver Daemon
 Package: libdns162-udeb
 Section: debian-installer
 Architecture: any
+Multi-Arch: same
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Package-Type: udeb
 Description: Exported DNS library for debian-installer
@@ -195,6 +204,7 @@ Description: Exported DNS library for debian-installer
 Package: libisc160-udeb
 Section: debian-installer
 Architecture: any
+Multi-Arch: same
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Package-Type: udeb
 Description: Exported ISC library for debian-installer
@@ -202,6 +212,7 @@ Description: Exported ISC library for debian-installer
 Package: libisccfg140-udeb
 Section: debian-installer
 Architecture: any
+Multi-Arch: same
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Package-Type: udeb
 Description: Exported ISC CFG library for debian-installer
@@ -209,6 +220,7 @@ Description: Exported ISC CFG library for debian-installer
 Package: libirs141-udeb
 Section: debian-installer
 Architecture: any
+Multi-Arch: same
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Package-Type: udeb
 Description: Exported IRS library for debian-installer

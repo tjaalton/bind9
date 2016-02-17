@@ -1,5 +1,6 @@
 02_version.diff
 05_non-linux.diff
+07_multiarch.diff
 10_min-cache-ttl.diff
 20_random_1.diff
 25_library_paths.diff

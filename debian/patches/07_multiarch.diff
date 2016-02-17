@@ -1,0 +1,21 @@
+Index: bind9/isc-config.sh.in
+===================================================================
+--- bind9.orig/isc-config.sh.in	2016-02-17 09:00:05.621005508 -0700
++++ bind9/isc-config.sh.in	2016-02-17 09:02:09.713203148 -0700
+@@ -21,7 +21,6 @@
+ exec_prefix=@exec_prefix@
+ exec_prefix_set=
+ includedir=@includedir@
+-libdir=@libdir@
+ 
+ usage()
+ {
+@@ -140,7 +139,7 @@
+ 	if test x"${exec_prefix_set}" = x"true"; then
+ 		libs="-L${exec_prefix}/lib"
+ 	else
+-		libs="-L${libdir}"
++		libs=
+ 	fi
+ 	if test x"$libirs" = x"true" ; then
+ 		libs="$libs -lirs"

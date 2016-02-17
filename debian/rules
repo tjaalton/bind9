@@ -9,6 +9,11 @@ include /usr/share/dpkg/buildflags.mk
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
+COMMA = ,
+ifneq (,$(filter parallel=%,$(subst $(COMMA), ,$(DEB_BUILD_OPTIONS))))
+  NJOBS := -j $(subst parallel=,,$(filter parallel=%,$(subst $(COMMA), ,$(DEB_BUILD_OPTIONS))))
+endif
+
 ifndef DEB_HOST_ARCH
 DEB_BUILD_ARCH := $(shell dpkg --print-architecture)
 endif
@@ -26,11 +31,6 @@ else
 OPT += -O2
 endif
 
-ifneq (,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
-NUMJOBS = $(patsubst parallel=%,%,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
-export MAKEFLAGS += -j$(NUMJOBS)
-endif
-
 export CFLAGS += -fno-strict-aliasing -fno-delete-null-pointer-checks -DDIG_SIGCHASE $(DEBUG) $(OPT)
 
 ifeq ($(DEB_HOST_ARCH_OS),kfreebsd)
@@ -45,6 +45,7 @@ configure-stamp:
 	test -e export || mkdir export && cp -r * export || true
 	./configure --prefix=/usr \
 		--mandir=\$${prefix}/share/man \
+		--libdir=\$${prefix}/lib/$(DEB_HOST_MULTIARCH) \
 		--infodir=\$${prefix}/share/info \
 		--sysconfdir=/etc/bind \
 		--localstatedir=/var \
@@ -68,7 +69,7 @@ configure-stamp:
 build: build-stamp
 build-stamp: configure-stamp
 	dh_testdir
-	LD_LIBRARY_PATH=$$(pwd)/lib/isc/.libs:$$(pwd)/lib/isccc/.libs:$$(pwd)/isccfg/.libs:$${LD_LIBRARY_PATH} $(MAKE)
+	LD_LIBRARY_PATH=$$(pwd)/lib/isc/.libs:$$(pwd)/lib/isccc/.libs:$$(pwd)/isccfg/.libs:$${LD_LIBRARY_PATH} $(MAKE) $(NJOBS)
 	touch $@
 
 autofiles:
@@ -113,11 +114,11 @@ install: build
 	rm -rf debian/bind9/usr/etc
 	find debian/bind9 -name \*.la -execdir rm -f {} \;
 	mkdir -p debian/bind9/lib/$(DEB_HOST_MULTIARCH)
-	cp -p debian/bind9/usr/lib/*.so.*.* debian/bind9/lib/$(DEB_HOST_MULTIARCH)
+	cp -p debian/bind9/usr/lib/*/*.so.*.* debian/bind9/lib/$(DEB_HOST_MULTIARCH)
 	cd debian/bind9/lib/$(DEB_HOST_MULTIARCH) && for link in *.so.*.*; do \
 	    ln -sf $$link $${link%.[0-9]*.[0-9]*}; \
 	done
-	cd debian/bind9/usr/lib && for link in *.so; do \
+	cd debian/bind9/usr/lib/$(DEB_HOST_MULTIARCH) && for link in *.so; do \
 	    file=$$(readlink $$link); \
 	    ln -sf ../../../lib/$(DEB_HOST_MULTIARCH)/$$file $$link; \
 	    done
