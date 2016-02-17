@@ -13,8 +13,10 @@ Date:   Fri Mar 1 08:19:55 2013 -0700
     Addresses-Debian-Bug: 696661
     Signed-off-by: LaMont Jones <lamont@debian.org>
 
---- a/bin/named/main.c
-+++ b/bin/named/main.c
+Index: bind9/bin/named/main.c
+===================================================================
+--- bind9.orig/bin/named/main.c	2016-02-17 11:40:32.224775927 -0700
++++ bind9/bin/named/main.c	2016-02-17 11:43:51.890515632 -0700
 @@ -764,14 +764,6 @@
  			      ISC_LOG_INFO, "using up to %u sockets", socks);
  	}
@@ -30,15 +32,10 @@ Date:   Fri Mar 1 08:19:55 2013 -0700
  	result = isc_hash_create(ns_g_mctx, ns_g_entropy, DNS_NAME_MAXWIRE);
  	if (result != ISC_R_SUCCESS) {
  		UNEXPECTED_ERROR(__FILE__, __LINE__,
-@@ -941,6 +933,21 @@
+@@ -941,6 +933,16 @@
  	}
  #endif
  
-+	result = isc_entropy_create(ns_g_mctx, &ns_g_entropy);
-+	if (result != ISC_R_SUCCESS)
-+		ns_main_earlyfatal("isc_entropy_create() failed: %s",
-+				   isc_result_totext(result));
-+
 +	/*
 +	 * DST may load additional libraries, which must be done before
 +	 * chroot
@@ -52,7 +49,7 @@ Date:   Fri Mar 1 08:19:55 2013 -0700
  #ifdef ISC_PLATFORM_USETHREADS
  	/*
  	 * Check for the number of cpu's before ns_os_chroot().
-@@ -1117,6 +1124,12 @@
+@@ -1117,6 +1119,12 @@
  
  	ns_builtin_deinit();
  
