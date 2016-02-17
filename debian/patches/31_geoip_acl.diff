@@ -16,8 +16,10 @@ Date:   Mon Jun 22 11:05:33 2009 -0600
     Addresses-Debian-Bug: 395191
     Signed-off-by: LaMont Jones <lamont@debian.org>
  
---- a/config.h.in
-+++ b/config.h.in
+Index: bind9/config.h.in
+===================================================================
+--- bind9.orig/config.h.in	2016-02-17 05:27:40.026952068 -0700
++++ bind9/config.h.in	2016-02-17 05:27:40.022952196 -0700
 @@ -192,6 +192,9 @@
     MSVC and with C++ compilers. */
  #undef FLEXIBLE_ARRAY_MEMBER
@@ -38,8 +40,10 @@ Date:   Mon Jun 22 11:05:33 2009 -0600
  /* Define to 1 if you can safely include both <sys/time.h> and <time.h>. */
  #undef TIME_WITH_SYS_TIME
  
---- a/configure.in
-+++ b/configure.in
+Index: bind9/configure.in
+===================================================================
+--- bind9.orig/configure.in	2016-02-17 05:27:40.026952068 -0700
++++ bind9/configure.in	2016-02-17 05:27:40.022952196 -0700
 @@ -1779,6 +1779,74 @@
  esac
  
@@ -115,8 +119,23 @@ Date:   Mon Jun 22 11:05:33 2009 -0600
  # This would include the system openssl path (and linker options to use
  # it as needed) if it is found.
  #
---- a/lib/dns/acl.c
-+++ b/lib/dns/acl.c
+Index: bind9/lib/dns/Makefile.in
+===================================================================
+--- bind9.orig/lib/dns/Makefile.in	2016-02-17 05:27:40.026952068 -0700
++++ bind9/lib/dns/Makefile.in	2016-02-17 05:27:40.022952196 -0700
+@@ -43,7 +43,7 @@
+ 
+ ISCDEPLIBS =	../../lib/isc/libisc.@A@
+ 
+-LIBS =		@LIBS@ -L../../lib/isc -lcrypto
++LIBS =		@LIBS@ -L../../lib/isc -lcrypto @GEOIP_LIBS@
+ 
+ # Alphabetically
+ 
+Index: bind9/lib/dns/acl.c
+===================================================================
+--- bind9.orig/lib/dns/acl.c	2016-02-17 05:27:40.026952068 -0700
++++ bind9/lib/dns/acl.c	2016-02-17 05:27:40.022952196 -0700
 @@ -21,10 +21,15 @@
  
  #include <config.h>
@@ -216,8 +235,10 @@ Date:   Mon Jun 22 11:05:33 2009 -0600
  	case dns_aclelementtype_keyname:
  		if (reqsigner != NULL &&
  		    dns_name_equal(reqsigner, &e->keyname)) {
---- a/lib/dns/include/dns/acl.h
-+++ b/lib/dns/include/dns/acl.h
+Index: bind9/lib/dns/include/dns/acl.h
+===================================================================
+--- bind9.orig/lib/dns/include/dns/acl.h	2016-02-17 05:27:40.026952068 -0700
++++ bind9/lib/dns/include/dns/acl.h	2016-02-17 05:27:40.022952196 -0700
 @@ -65,6 +65,10 @@
  	dns_aclelementtype_any
  } dns_aclelementtype_t;
@@ -239,8 +260,10 @@ Date:   Mon Jun 22 11:05:33 2009 -0600
  };
  
  struct dns_acl {
---- a/lib/isccfg/aclconf.c
-+++ b/lib/isccfg/aclconf.c
+Index: bind9/lib/isccfg/aclconf.c
+===================================================================
+--- bind9.orig/lib/isccfg/aclconf.c	2016-02-17 05:27:40.026952068 -0700
++++ bind9/lib/isccfg/aclconf.c	2016-02-17 05:27:40.022952196 -0700
 @@ -273,6 +273,9 @@
  		} else if (cfg_obj_isstring(ce)) {
  			const char *name = cfg_obj_asstring(ce);

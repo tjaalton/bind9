@@ -165,15 +165,6 @@ Date:   Fri Nov 8 07:16:57 2013 -0700
  		dns_cache_detach(&nsc->cache);
 --- a/lib/dns/Makefile.in
 +++ b/lib/dns/Makefile.in
-@@ -43,7 +43,7 @@
- 
- ISCDEPLIBS =	../../lib/isc/libisc.@A@
- 
--LIBS =		@LIBS@ -L../../lib/isc -lcrypto
-+LIBS =		@LIBS@ -L../../lib/isc -lcrypto @GEOIP_LIBS@
- 
- # Alphabetically
- 
 @@ -66,6 +66,7 @@
  		cache.@O@ callbacks.@O@ clientinfo.@O@ compress.@O@ \
  		db.@O@ dbiterator.@O@ dbtable.@O@ diff.@O@ dispatch.@O@ \
