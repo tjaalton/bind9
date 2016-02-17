@@ -1,8 +1,23 @@
-bind9 (1:9.10.3.dfsg.P2-2) experimental; urgency=medium
+bind9 (1:9.10.3.dfsg.P2-3) experimental; urgency=medium
+
+  [Marc Deslauriers]
+
+  * SECURITY UPDATE: denial of service via string formatting operations. 
+    CVE-2015-8704
+
+  [Matthias Klose]
+
+  * Add multiarch support.  Closes: #802584
+  * Standars cleanup.
+
+  [LaMont Jones]
 
   * Properly finish converting to 3.0 (quilt) format.
+  * Drop geoip_acl patch temporarily while we evaluate the upstream geoip
+    changes.
+  * Prechroot init appears to have been taken upstream.
 
- -- LaMont Jones <lamont@debian.org>  Wed, 17 Feb 2016 03:57:22 +0000
+ -- LaMont Jones <lamont@debian.org>  Wed, 17 Feb 2016 10:34:24 -0700
 
 bind9 (1:9.10.3.dfsg.P2-1) experimental; urgency=medium
 
