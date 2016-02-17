@@ -66,6 +66,8 @@ configure-stamp:
 
 	touch $@
 
+build-arch: build
+build-indep: build
 build: build-stamp
 build-stamp: configure-stamp
 	dh_testdir
@@ -108,7 +110,7 @@ ETCAPP=debian/bind9/etc/apparmor.d
 install: build
 	dh_testdir
 	dh_testroot
-	dh_clean -k
+	dh_prep
 	dh_installdirs
 	$(MAKE) install DESTDIR=`pwd`/debian/bind9
 	rm -rf debian/bind9/usr/etc
