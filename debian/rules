@@ -183,6 +183,7 @@ binary-arch: build install
 	dh_installchangelogs -a # CHANGES # upstream changelog only in bind9-doc
 	dh_install --sourcedir=debian/bind9 -a
 	(cd debian/bind9/ && rm -rf $$(cat ../*.install) )
+	rm -rf debian/bind9/lib/$(DEB_HOST_MULTIARCH)
 	rm -f debian/bind9/usr/share/man/man1/query-loc.1
 	# install apport hook on Ubuntu
 	if dpkg-vendor --is ubuntu; then \
