@@ -1,3 +1,23 @@
+bind9 (1:9.10.3.dfsg.P2-4) experimental; urgency=medium
+
+  [Matthias Klose]
+
+  * Fix .so symlinks.
+  * libbind-dev: Depend on libirs141.
+  * For the udeb's, use a separate build with a reduced feature set, drop the
+    name difference, and do both builds in a separate directory.
+
+  [Filip Pytloun]
+
+  * Add apparmor rules needed by freeipa-server.  Closes: #814314
+
+  [LaMont Jones]
+
+  * Do not deliver libraries (left in /lib) as part of bind9.  LP: #1547052
+  * clean up library path for libirs.
+
+ -- LaMont Jones <lamont@debian.org>  Fri, 19 Feb 2016 14:26:08 -0700
+
 bind9 (1:9.10.3.dfsg.P2-3ubuntu3) xenial; urgency=medium
 
   * For the udeb's, use a separate build with a reduced feature set.
