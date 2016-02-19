@@ -5,6 +5,8 @@ usr/lib/*/libbind9.a
 usr/lib/*/libbind9.so
 usr/lib/*/libdns.a
 usr/lib/*/libdns.so
+usr/lib/*/libirs.a
+usr/lib/*/libirs.so
 usr/lib/*/libisc.a
 usr/lib/*/libisc.so
 usr/lib/*/liblwres.a

@@ -1,3 +1,11 @@
+bind9 (1:9.10.3.dfsg.P2-3~ubuntu2) xenial; urgency=medium
+
+  * libbind-dev: Depend on libirs141.
+  * Ship libirs.{a,so} in libbind-dev.
+  * Remove obsolete debian/*.dirs files.
+
+ -- Matthias Klose <doko@ubuntu.com>  Fri, 19 Feb 2016 15:01:16 +0100
+
 bind9 (1:9.10.3.dfsg.P2-3~ubuntu1) xenial; urgency=medium
 
   * Fix .so symlinks.
