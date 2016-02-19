@@ -1,3 +1,11 @@
+bind9 (1:9.10.3.dfsg.P2-3ubuntu3) xenial; urgency=medium
+
+  * For the udeb's, use a separate build with a reduced feature set.
+  * Don't call the reduced build "export"; it was used by isc-dhcp as well.
+  * Do both builds in a separate builddir.
+
+ -- Matthias Klose <doko@ubuntu.com>  Fri, 19 Feb 2016 15:01:16 +0100
+
 bind9 (1:9.10.3.dfsg.P2-3~ubuntu2) xenial; urgency=medium
 
   * libbind-dev: Depend on libirs141.

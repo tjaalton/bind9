@@ -153,6 +153,7 @@ Description: Command Channel Library used by BIND
 
 Package: libisccfg140
 Section: libs
+Priority: standard
 Architecture: any
 Multi-Arch: same
 Conflicts: libbind0, libbind9-41

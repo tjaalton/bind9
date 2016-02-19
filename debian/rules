@@ -4,6 +4,10 @@
 
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 DPKG_EXPORT_BUILDFLAGS = 1
+
+export DEB_CPPFLAGS_MAINT_APPEND = -DDIG_SIGCHASE
+export DEB_CFLAGS_MAINT_APPEND = -fno-strict-aliasing -fno-delete-null-pointer-checks
+
 include /usr/share/dpkg/buildflags.mk
 
 # Uncomment this to turn on verbose mode.
@@ -14,36 +18,28 @@ ifneq (,$(filter parallel=%,$(subst $(COMMA), ,$(DEB_BUILD_OPTIONS))))
   NJOBS := -j $(subst parallel=,,$(filter parallel=%,$(subst $(COMMA), ,$(DEB_BUILD_OPTIONS))))
 endif
 
-ifndef DEB_HOST_ARCH
-DEB_BUILD_ARCH := $(shell dpkg --print-architecture)
-endif
+DEB_BUILD_ARCH		?= $(shell dpkg-architecture -qDEB_BUILD_ARCH)
+DEB_HOST_ARCH		?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
+DEB_HOST_MULTIARCH	?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
+
 export arch = $(DEB_HOST_ARCH)
-
-DEB_HOST_MULTIARCH := $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
-
-ifneq (,$(findstring debug,$(DEB_BUILD_OPTIONS)))
-DEBUG += -g
-endif
-
-ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
-OPT += 
-else
-OPT += -O2
-endif
-
-export CFLAGS += -fno-strict-aliasing -fno-delete-null-pointer-checks -DDIG_SIGCHASE $(DEBUG) $(OPT)
 
 ifeq ($(DEB_HOST_ARCH_OS),kfreebsd)
 EXTRA_FEATURES=--disable-linux-caps --disable-threads
 endif
 
-configure: configure-stamp
-configure-stamp:
+stamps/prepare:
 	dh_testdir
 	dh_autotools-dev_updateconfig
 	dh_autoreconf
-	test -e export || mkdir export && cp -r * export || true
-	./configure --prefix=/usr \
+	@mkdir -p stamps
+	touch $@
+
+stamps/configure: stamps/prepare
+	dh_testdir
+	rm -rf build
+	mkdir -p build
+	cd build && ../configure --prefix=/usr \
 		--mandir=\$${prefix}/share/man \
 		--libdir=\$${prefix}/lib/$(DEB_HOST_MULTIARCH) \
 		--infodir=\$${prefix}/share/info \
@@ -66,12 +62,41 @@ configure-stamp:
 
 	touch $@
 
+stamps/configure-udeb: stamps/prepare
+	dh_testdir
+	rm -rf build-udeb
+	mkdir -p build-udeb
+	cd build-udeb && ../configure --prefix=/usr \
+		--prefix=/usr \
+		--disable-epoll \
+		--disable-kqueue \
+		--disable-devpoll \
+		--disable-threads \
+		--disable-linux-caps \
+		--without-openssl \
+		--without-libxml2 \
+		--enable-ipv6 \
+		--enable-shared \
+		--enable-exportlib \
+		--with-libtool \
+		--with-gssapi=no \
+		--with-export-libdir=\$${prefix}/lib/$(DEB_HOST_MULTIARCH) \
+		--with-export-includedir=\$${prefix}/include/bind-export
+
+	touch $@
+
 build-arch: build
 build-indep: build
-build: build-stamp
-build-stamp: configure-stamp
+build: stamps/build
+stamps/build: stamps/configure stamps/configure-udeb
 	dh_testdir
-	LD_LIBRARY_PATH=$$(pwd)/lib/isc/.libs:$$(pwd)/lib/isccc/.libs:$$(pwd)/isccfg/.libs:$${LD_LIBRARY_PATH} $(MAKE) $(NJOBS)
+	LD_LIBRARY_PATH=$(CURDIR)/build/lib/isc/.libs:$(CURDIR)/build/lib/isccc/.libs:$(CURDIR)/build/isccfg/.libs:$${LD_LIBRARY_PATH} \
+	  $(MAKE) -C build $(NJOBS)
+	touch $@
+
+stamps/build-udeb: stamps/configure-udeb
+	dh_testdir
+	$(MAKE) -C build-udeb $(NJOBS)
 	touch $@
 
 autofiles:
@@ -86,11 +111,8 @@ autofiles:
 clean:
 	dh_testdir
 	dh_testroot
-	-$(MAKE) distclean
-	find . -name \*.o -exec rm {} \;
-	rm -f build-stamp configure-stamp
-	rm -f debian/substvars lib/bind/include/isc/platform.h
-	rm -f contrib/dlz/bin/dlzbdb/Makefile contrib/dlz/drivers/rules
+	rm -rf build build-udeb stamps debian/tmp-udeb
+	rm -f debian/substvars
 	rm -f doc/arm/Bv9ARM.pdf
 	dh_autoreconf_clean
 	dh_autotools-dev_restoreconfig
@@ -112,14 +134,11 @@ install: build
 	dh_testroot
 	dh_prep
 	dh_installdirs
-	$(MAKE) install DESTDIR=`pwd`/debian/bind9
+
+	: # regular install
+	$(MAKE) -C build install DESTDIR=$(CURDIR)/debian/bind9
 	rm -rf debian/bind9/usr/etc
 	find debian/bind9 -name \*.la -execdir rm -f {} \;
-	mkdir -p debian/bind9/lib/$(DEB_HOST_MULTIARCH)
-	cp -p debian/bind9/usr/lib/*/*.so.*.* debian/bind9/lib/$(DEB_HOST_MULTIARCH)
-	cd debian/bind9/lib/$(DEB_HOST_MULTIARCH) && for link in *.so.*.*; do \
-	    ln -sf $$link $${link%.[0-9]*.[0-9]*}; \
-	done
 	install -c -o bin -g bin -m 444 debian/db.0 ${ETCBIND}/db.0
 	install -c -o bin -g bin -m 444 debian/db.0 ${ETCBIND}/db.255
 	install -c -o bin -g bin -m 444 debian/db.empty ${ETCBIND}
@@ -142,6 +161,15 @@ install: build
 	install debian/ip-up.d debian/bind9/etc/network/if-up.d/bind9
 	install debian/ip-down.d debian/bind9/etc/network/if-down.d/bind9
 	install -m644 debian/bind9.ufw.profile debian/bind9/etc/ufw/applications.d/bind9
+
+	: # udeb install
+	$(MAKE) -C build-udeb install DESTDIR=$(CURDIR)/debian/tmp-udeb
+	mkdir -p debian/bind9/lib/$(DEB_HOST_MULTIARCH)
+	for lib in dns irs isc isccfg; do \
+	  cp -a debian/tmp-udeb/usr/lib/lib$${lib}*.so.* \
+	    debian/bind9/lib/$(DEB_HOST_MULTIARCH)/.; \
+	done
+	rm -f debian/bind9/lib/$(DEB_HOST_MULTIARCH)/libisccc.*
 
 # Build architecture-independent files here.
 binary-indep: build install
