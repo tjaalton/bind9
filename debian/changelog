@@ -1,14 +1,20 @@
+bind9 (1:9.10.3.dfsg.P2-3~ubuntu1) xenial; urgency=medium
+
+  * Fix .so symlinks.
+
+ -- Matthias Klose <doko@ubuntu.com>  Thu, 18 Feb 2016 13:55:19 +0100
+
 bind9 (1:9.10.3.dfsg.P2-3) experimental; urgency=medium
 
   [Marc Deslauriers]
 
-  * SECURITY UPDATE: denial of service via string formatting operations. 
+  * SECURITY UPDATE: denial of service via string formatting operations.
     CVE-2015-8704
 
   [Matthias Klose]
 
-  * Add multiarch support.  Closes: #802584
-  * Standars cleanup.
+  * Add multiarch support.  Closes: #802584.
+  * Standards cleanup.
 
   [LaMont Jones]
 
