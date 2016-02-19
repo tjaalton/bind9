@@ -8,8 +8,10 @@ Date:   Thu Nov 8 15:16:39 2007 -0700
 
     Signed-off-by: LaMont Jones <lamont@debian.org>
 
---- a/lib/dns/Makefile.in
-+++ b/lib/dns/Makefile.in
+Index: bind9/lib/dns/Makefile.in
+===================================================================
+--- bind9.orig/lib/dns/Makefile.in	2016-02-19 11:03:34.053698304 -0700
++++ bind9/lib/dns/Makefile.in	2016-02-19 11:03:34.049698440 -0700
 @@ -43,7 +43,7 @@
  
  ISCDEPLIBS =	../../lib/isc/libisc.@A@
@@ -35,8 +37,10 @@ Date:   Thu Nov 8 15:16:39 2007 -0700
  
  newrr::
  	rm -f code.h include/dns/enumtype.h include/dns/enumclass.h
---- a/lib/isc/Makefile.in
-+++ b/lib/isc/Makefile.in
+Index: bind9/lib/isc/Makefile.in
+===================================================================
+--- bind9.orig/lib/isc/Makefile.in	2016-02-19 11:03:34.053698304 -0700
++++ bind9/lib/isc/Makefile.in	2016-02-19 11:03:34.049698440 -0700
 @@ -122,12 +122,14 @@
  		${CC} ${ALL_CFLAGS} ${LDFLAGS} -o libisc.la -rpath ${libdir} \
  		-version-info ${LIBINTERFACE}:${LIBREVISION}:${LIBAGE} \
@@ -57,8 +61,10 @@ Date:   Thu Nov 8 15:16:39 2007 -0700
  	rm -f libisc.@A@ libisc-nosymtbl.@A@ libisc.la \
  	libisc-nosymtbl.la timestamp
 +	rm -f libisc.so libisc-nosymtbl.so
---- a/lib/isccc/Makefile.in
-+++ b/lib/isccc/Makefile.in
+Index: bind9/lib/isccc/Makefile.in
+===================================================================
+--- bind9.orig/lib/isccc/Makefile.in	2016-02-19 11:03:34.053698304 -0700
++++ bind9/lib/isccc/Makefile.in	2016-02-19 11:03:34.049698440 -0700
 @@ -36,7 +36,7 @@
  ISCDEPLIBS =	../../lib/isc/libisc.@A@
  ISCCCDEPLIBS =	libisccc.@A@
@@ -81,8 +87,10 @@ Date:   Thu Nov 8 15:16:39 2007 -0700
  clean distclean::
  	rm -f libisccc.@A@ timestamp
 +	rm -f libisccc.so
---- a/lib/isccfg/Makefile.in
-+++ b/lib/isccfg/Makefile.in
+Index: bind9/lib/isccfg/Makefile.in
+===================================================================
+--- bind9.orig/lib/isccfg/Makefile.in	2016-02-19 11:03:34.053698304 -0700
++++ bind9/lib/isccfg/Makefile.in	2016-02-19 11:03:34.053698304 -0700
 @@ -38,7 +38,7 @@
  ISCDEPLIBS =	../../lib/isc/libisc.@A@
  ISCCFGDEPLIBS =	libisccfg.@A@
@@ -92,3 +100,29 @@ Date:   Thu Nov 8 15:16:39 2007 -0700
  
  SUBDIRS =	include
  
+Index: bind9/lib/irs/Makefile.in
+===================================================================
+--- bind9.orig/lib/irs/Makefile.in	2016-02-19 11:03:34.053698304 -0700
++++ bind9/lib/irs/Makefile.in	2016-02-19 11:03:34.053698304 -0700
+@@ -42,7 +42,7 @@
+ 		gai_strerror.c getaddrinfo.c getnameinfo.c \
+ 		resconf.c
+ 
+-LIBS =		@LIBS@
++LIBS =		@LIBS@ -L../../lib/isc -L../../lib/dns -L../../lib/isccfg -lcrypto -lisc -ldns -lisccfg
+ 
+ SUBDIRS =	include
+ TARGETS =	timestamp
+@@ -66,6 +66,7 @@
+ 		${CC} ${ALL_CFLAGS} ${LDFLAGS} -o libirs.la -rpath ${libdir} \
+ 		-version-info ${LIBINTERFACE}:${LIBREVISION}:${LIBAGE} \
+ 		${OBJS} version.@O@ ${LIBS}
++	ln -sf .libs/libirs.so .
+ 
+ timestamp: libirs.@A@
+ 	touch timestamp
+@@ -78,3 +79,4 @@
+ 
+ clean distclean::
+ 	rm -f libirs.@A@ libirs.la timestamp
++	rm -f libdns.so
