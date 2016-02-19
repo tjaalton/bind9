@@ -60,7 +60,7 @@ Section: libdevel
 Architecture: any
 Multi-Arch: same
 Conflicts: bind-dev
-Replaces: bind-dev, bind9 (<< 1:9.10.3.dfsg.P2-3~ubuntu2)
+Replaces: bind-dev, bind9 (<< 1:9.10.3.dfsg.P2-4)
 Depends: ${misc:Depends}, libdns162 (=${binary:Version}), libisccfg140 (=${binary:Version}), libisc160 (=${binary:Version}), liblwres141 (=${binary:Version}), libbind9-140 (=${binary:Version}) , libirs141 (=${binary:Version})
 Description: Static Libraries and Headers used by BIND
  This package delivers archive-style libraries, header files, and API man
