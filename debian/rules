@@ -34,6 +34,13 @@ stamps/prepare:
 	    mkdir autoreconf-bck; \
 	    cp -pr config.h.in configure libtool.m4 ltmain.sh autoreconf-bck; \
 	fi
+	cp -r bin/named bin/named-pkcs11
+	cp -r bin/dnssec bin/dnssec-pkcs11
+	cp -r lib/isc lib/isc-pkcs11
+	cp -r lib/dns lib/dns-pkcs11
+	patch -p1 < debian/patches/extra-add_native_pkcs11.diff
+	# disable GOST, can't use openssl with native pkcs11 anyway
+	sed -i 's/HAVE_OPENSSL_GOST/GOSTBUSTERS/' lib/dns-pkcs11/*.[ch]
 	dh_autotools-dev_updateconfig
 	dh_autoreconf
 	@mkdir -p stamps
@@ -62,6 +69,8 @@ stamps/configure: stamps/prepare
 		--enable-ipv6 \
 		--enable-rrl \
 		--enable-filter-aaaa \
+		--enable-native-pkcs11 \
+		--with-pkcs11=\$${prefix}/lib/$(DEB_HOST_MULTIARCH)/softhsm/libsofthsm2.so \
 		$(EXTRA_FEATURES)
 
 	touch $@
@@ -89,6 +98,9 @@ stamps/configure-udeb: stamps/prepare
 		--includedir=/usr/include/bind-export
 	sh debian/apply-export-patch
 
+	# no need to build these targets here
+	sed -i 's/dnssec-pkcs11//;s/named-pkcs11//' build-udeb/bin/Makefile
+	sed -i 's/dns-pkcs11//;s/isc-pkcs11//' build-udeb/lib/Makefile
 	touch $@
 
 build-arch: build
@@ -117,6 +129,7 @@ autofiles:
 clean:
 	dh_testdir
 	dh_testroot
+	rm -rf bin/dnssec-pkcs11 bin/named-pkcs11 lib/isc-pkcs11 lib/dns-pkcs11
 	rm -rf build build-udeb stamps debian/tmp-udeb
 	rm -f debian/substvars
 	rm -f doc/arm/Bv9ARM.pdf
@@ -204,6 +217,7 @@ binary-arch: build install
 	dh_installexamples -a
 	dh_installmenu -a
 	dh_systemd_enable -pbind9 --no-enable --name=bind9-resolvconf bind9-resolvconf.service
+	dh_systemd_enable -pbind9 --no-enable --name=bind9-pkcs11 bind9-pkcs11.service
 	dh_systemd_enable -pbind9 bind9.service
 	dh_systemd_enable -plwresd lwresd.service
 	dh_installinit -a --no-start -- defaults 15 85

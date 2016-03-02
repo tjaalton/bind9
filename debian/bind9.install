@@ -8,6 +8,7 @@ usr/sbin/genrandom
 usr/sbin/isc-hmac-fixup
 usr/sbin/named
 usr/sbin/named-journalprint
+usr/sbin/named-pkcs11
 usr/sbin/named-rrchecker
 usr/sbin/nsec3hash
 usr/sbin/tsig-keygen
