@@ -30,6 +30,8 @@ endif
 
 stamps/prepare:
 	dh_testdir
+	mkdir autoreconf-bck
+	cp -pr config.h.in configure libtool.m4 ltmain.sh autoreconf-bck
 	dh_autotools-dev_updateconfig
 	dh_autoreconf
 	@mkdir -p stamps
@@ -117,6 +119,7 @@ clean:
 	dh_autoreconf_clean
 	dh_autotools-dev_restoreconfig
 	dh_clean
+	mv autoreconf-bck/* .; rmdir autoreconf-bck
 
 newtemplate:
 	debconf-updatepo
