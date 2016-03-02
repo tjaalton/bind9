@@ -35,8 +35,9 @@
   # dnscvsutil package
   /var/lib/dnscvsutil/compiled/** rw,
 
-  /proc/net/if_inet6 r,
-  /proc/*/net/if_inet6 r,
+  @{PROC}/net/if_inet6 r,
+  @{PROC}/*/net/if_inet6 r,
+  @{PROC}/sys/net/ipv4/ip_local_port_range r,
   /usr/sbin/named mr,
   /{,var/}run/named/named.pid w,
   /{,var/}run/named/session.key w,
