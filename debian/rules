@@ -34,7 +34,6 @@ stamps/prepare:
 	    mkdir autoreconf-bck; \
 	    cp -pr config.h.in configure libtool.m4 ltmain.sh autoreconf-bck; \
 	fi
-	cp -pr config.h.in configure libtool.m4 ltmain.sh autoreconf-bck
 	dh_autotools-dev_updateconfig
 	dh_autoreconf
 	@mkdir -p stamps
