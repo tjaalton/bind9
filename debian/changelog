@@ -1,3 +1,23 @@
+bind9 (1:9.10.3.dfsg.P2-5) experimental; urgency=medium
+
+  [Timo Aaltonen]
+
+  * Sync 30_dynamic_db.diff from Fedora.
+  * rules: Backup some files which dh_autoreconf_clean would remove, restore
+    on clean.
+
+  [Jamie Strandboge]
+
+  * apparmor: use @{PROC} instead of /proc, allow read on
+    sys.net.ipv4.ip_local_port_range.  LP: #1552441
+
+  [LaMont Jones]
+
+  * Return nanosecond-precise time for files, so that we more-correctly know
+    when we can skip loading a zonefile.  (Bug introduced 9.9.3b2)
+
+ -- LaMont Jones <lamont@debian.org>  Thu, 03 Mar 2016 18:17:06 -0700
+
 bind9 (1:9.10.3.dfsg.P2-4) experimental; urgency=medium
 
   [Matthias Klose]
