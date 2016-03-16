@@ -1,6 +1,4 @@
 usr/include
-../tmp-udeb/usr/include/dns/dlz_dlopen.h usr/include/dns
-
 usr/lib/*/libbind9.a
 usr/lib/*/libbind9.so
 usr/lib/*/libdns.a

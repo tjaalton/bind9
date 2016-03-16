@@ -71,7 +71,6 @@ stamps/configure-udeb: stamps/prepare
 	rm -rf build-udeb
 	mkdir -p build-udeb
 	cd build-udeb && ../configure --prefix=/usr \
-		--prefix=/usr \
 		--disable-epoll \
 		--disable-kqueue \
 		--disable-devpoll \
@@ -81,11 +80,11 @@ stamps/configure-udeb: stamps/prepare
 		--without-libxml2 \
 		--enable-ipv6 \
 		--enable-shared \
-		--enable-exportlib \
 		--with-libtool \
 		--with-gssapi=no \
-		--with-export-libdir=\$${prefix}/lib/$(DEB_HOST_MULTIARCH) \
-		--with-export-includedir=\$${prefix}/include/bind-export
+		--libdir=/lib/$(DEB_HOST_MULTIARCH) \
+		--includedir=/usr/include/bind-export
+	sh debian/apply-export-patch
 
 	touch $@
 
@@ -171,12 +170,12 @@ install: build
 
 	: # udeb install
 	$(MAKE) -C build-udeb install DESTDIR=$(CURDIR)/debian/tmp-udeb
-	mkdir -p debian/bind9/lib/$(DEB_HOST_MULTIARCH)
-	for lib in dns irs isc isccfg; do \
-	  cp -a debian/tmp-udeb/usr/lib/lib$${lib}*.so.* \
-	    debian/bind9/lib/$(DEB_HOST_MULTIARCH)/.; \
-	done
-	rm -f debian/bind9/lib/$(DEB_HOST_MULTIARCH)/libisccc.*
+	#mkdir -p debian/tmp-udeb/lib/$(DEB_HOST_MULTIARCH)
+	#for lib in dns irs isc isccfg; do \
+	#  mv debian/tmp-udeb/usr/lib/lib$${lib}*.so.* \
+	#    debian/tmp-udeb/lib/$(DEB_HOST_MULTIARCH)/.; \
+	#done
+	rm -f debian/tmp-udeb/lib/$(DEB_HOST_MULTIARCH)/libisccc.*
 
 # Build architecture-independent files here.
 binary-indep: build install
@@ -217,6 +216,10 @@ binary-arch: build install
 	dh_installinfo -a
 	dh_installchangelogs -a # CHANGES # upstream changelog only in bind9-doc
 	dh_install --sourcedir=debian/bind9 -a
+	for dir in debian/lib*export*/lib; do \
+	    mkdir $$dir/$(DEB_HOST_MULTIARCH) && \
+	    mv $$dir/lib* $$dir/$(DEB_HOST_MULTIARCH); \
+	done
 	(cd debian/bind9/ && rm -rf $$(cat ../*.install) )
 	rm -rf debian/bind9/lib/$(DEB_HOST_MULTIARCH)
 	rm -f debian/bind9/usr/share/man/man1/query-loc.1
@@ -229,10 +232,10 @@ binary-arch: build install
 	dh_compress -a
 	dh_fixperms -a
 	dh_makeshlibs -a
-	dh_makeshlibs -plibirs141 --add-udeb=libirs141-udeb
-	dh_makeshlibs -plibisc160 --add-udeb=libisc160-udeb
-	dh_makeshlibs -plibdns162 --add-udeb=libdns162-udeb
-	dh_makeshlibs -plibisccfg140 --add-udeb=libisccfg140-udeb
+	dh_makeshlibs -plibirs-export141 --add-udeb=libirs-export91-udeb
+	dh_makeshlibs -plibisc-export160 --add-udeb=libisc-export95-udeb
+	dh_makeshlibs -plibdns-export162 --add-udeb=libdns-export100-udeb
+	dh_makeshlibs -plibisccfg-export140 --add-udeb=libisccfg-export90-udeb
 	dh_installdeb -a
 	dh_shlibdeps -a
 	for i in $$(sed -n '/^Package:/s/^.* //p' debian/control); do cat debian/vars.in >> debian/$$i.substvars; done

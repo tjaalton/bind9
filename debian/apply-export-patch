@@ -1,0 +1,15 @@
+#!/bin/sh
+
+# This pile of horror converts the makefiles into expecting the -export
+# version of the libraries.
+
+set -e
+cd build-udeb
+
+for lib in dns irs isc isccc isccfg lwres; do
+    sed -i "s/lib${lib}\./lib${lib}-export./g" lib/${lib}/Makefile
+done
+
+patch -p0 < ../debian/export.diff
+
+sed -i 's/\(lib[a-z0-9]*\).la/\1-export.la/g'  $(find . -name Makefile)

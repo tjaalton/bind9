@@ -1,0 +1,3 @@
+../tmp-udeb/lib/*/*.a usr/lib/
+../tmp-udeb/lib/*/*.so lib/
+../tmp-udeb/usr/include/bind-export usr/include
