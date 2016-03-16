@@ -170,12 +170,6 @@ install: build
 
 	: # udeb install
 	$(MAKE) -C build-udeb install DESTDIR=$(CURDIR)/debian/tmp-udeb
-	#mkdir -p debian/tmp-udeb/lib/$(DEB_HOST_MULTIARCH)
-	#for lib in dns irs isc isccfg; do \
-	#  mv debian/tmp-udeb/usr/lib/lib$${lib}*.so.* \
-	#    debian/tmp-udeb/lib/$(DEB_HOST_MULTIARCH)/.; \
-	#done
-	rm -f debian/tmp-udeb/lib/$(DEB_HOST_MULTIARCH)/libisccc.*
 
 # Build architecture-independent files here.
 binary-indep: build install
