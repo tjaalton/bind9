@@ -1,7 +1,8 @@
-bind9 (1:9.10.3.dfsg.P2-6) experimental; urgency=medium
+bind9 (1:9.10.3.dfsg.P2-7) experimental; urgency=medium
 
   * Fix my bad merge of autoreconf workaround.
   * Re-implement -export libraries.  LP: #1556175
+  * Deliver libisccc-export library.
 
  -- LaMont Jones <lamont@debian.org>  Wed, 16 Mar 2016 15:14:48 -0600
 
