@@ -1,3 +1,9 @@
+bind9 (1:9.10.3.dfsg.P2-8~1) experimental; urgency=medium
+
+  * Do not build -export libs for libbind90 and liblwres
+
+ -- LaMont Jones <lamont@debian.org>  Thu, 17 Mar 2016 01:55:16 -0600
+
 bind9 (1:9.10.3.dfsg.P2-7) experimental; urgency=medium
 
   * Fix my bad merge of autoreconf workaround.
