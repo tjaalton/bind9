@@ -1,6 +1,13 @@
-bind9 (1:9.10.3.dfsg.P2-8~1) experimental; urgency=medium
+bind9 (1:9.10.3.dfsg.P2-8) experimental; urgency=medium
 
-  * Do not build -export libs for libbind90 and liblwres
+  [LaMont Jones]
+
+  * Do not build -export libs for libbind90 and liblwres.  Relates in part
+    to, and is the last fix to LP: #1551351
+
+  [ Stefan Bader ]
+
+  * Do not modify signal handlers for external apps. LP: #1556175
 
  -- LaMont Jones <lamont@debian.org>  Thu, 17 Mar 2016 01:55:16 -0600
 
