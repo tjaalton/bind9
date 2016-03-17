@@ -1,55 +1,3 @@
-diff -ur lib/bind9/Makefile lib/bind9/Makefile
---- lib/bind9/Makefile	2016-03-16 19:44:03.636863999 +0000
-+++ lib/bind9/Makefile	2016-03-16 20:03:28.064863999 +0000
-@@ -90,13 +90,13 @@
- CDEFINES =
- CWARNINGS =
- 
--ISCLIBS =	../../lib/isc/libisc.la
--ISCCFGLIBS =    ../../lib/isccfg/libisccfg.la
--DNSLIBS =    ../../lib/dns/libdns.la
--
--ISCDEPLIBS =	../../lib/isc/libisc.la
--ISCCFGDEPLIBS =	../../lib/isccfg/libisccfg.la
--DNSDEPLIBS =    ../../lib/dns/libdns.la
-+ISCLIBS =	../../lib/isc/libisc-export.la
-+ISCCFGLIBS =    ../../lib/isccfg/libisccfg-export.la
-+DNSLIBS =    ../../lib/dns/libdns-export.la
-+
-+ISCDEPLIBS =	../../lib/isc/libisc-export.la
-+ISCCFGDEPLIBS =	../../lib/isccfg/libisccfg-export.la
-+DNSDEPLIBS =    ../../lib/dns/libdns-export.la
- 
- LIBS =		-ldl 
- 
-@@ -482,21 +482,22 @@
- 	${AR} ${ARFLAGS} $@ ${OBJS}
- 	${RANLIB} $@
- 
--libbind9.la: ${OBJS} ${ISCCFGDEPLIBS} ${ISCDEPLIBS} ${DNSDEPLIBS}
-+libbind9-export.la: ${OBJS} ${ISCCFGDEPLIBS} ${ISCDEPLIBS} ${DNSDEPLIBS}
- 	${LIBTOOL_MODE_LINK} \
--		${CC} ${ALL_CFLAGS} ${LDFLAGS} -o libbind9.la -rpath ${libdir} \
-+		${CC} ${ALL_CFLAGS} ${LDFLAGS} -o libbind9-export.la -rpath ${libdir} \
- 		-version-info ${LIBINTERFACE}:${LIBREVISION}:${LIBAGE} \
- 		${OBJS} ${DNSLIBS} ${ISCCFGLIBS} ${ISCLIBS}  \
- 		${LIBS}
-+	ln -sf .libs/libbind9-export.so .
- 
--timestamp: libbind9.la
-+timestamp: libbind9-export.la
- 	touch timestamp
- 
- installdirs:
- 	$(SHELL) ${top_srcdir}/mkinstalldirs ${DESTDIR}${libdir}
- 
- install:: timestamp installdirs
--	${LIBTOOL_MODE_INSTALL} ${INSTALL_LIBRARY} libbind9.la ${DESTDIR}${libdir}
-+	${LIBTOOL_MODE_INSTALL} ${INSTALL_LIBRARY} libbind9-export.la ${DESTDIR}${libdir}
- 
- clean distclean::
--	rm -f libbind9.la timestamp
-+	rm -f libbind9-export.la timestamp
 diff -ur lib/dns/Makefile lib/dns/Makefile
 --- lib/dns/Makefile	2016-03-16 19:44:06.100863999 +0000
 +++ lib/dns/Makefile	2016-03-16 20:03:45.980863999 +0000
@@ -120,17 +68,6 @@ diff -ur lib/isccfg/Makefile lib/isccfg/Makefile
 +	ln -sf .libs/libisccfg-export.so .
  
  timestamp: libisccfg-export.la
- 	touch timestamp
-diff -ur lib/lwres/Makefile lib/lwres/Makefile
---- lib/lwres/Makefile	2016-03-16 19:44:06.112863999 +0000
-+++ lib/lwres/Makefile	2016-03-16 20:05:03.628863999 +0000
-@@ -487,6 +487,7 @@
- 		${CC} ${ALL_CFLAGS} ${LDFLAGS} -o liblwres-export.la -rpath ${libdir} \
- 		-version-info ${LIBINTERFACE}:${LIBREVISION}:${LIBAGE} \
- 		${OBJS} version.lo ${LIBS}
-+	ln -sf .libs/liblwres-export.so .
- 
- timestamp: liblwres-export.la
  	touch timestamp
 diff -ur lib/samples/Makefile lib/samples/Makefile
 --- lib/samples/Makefile	2016-03-16 19:44:04.832863999 +0000

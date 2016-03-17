@@ -12,4 +12,6 @@ done
 
 patch -p0 < ../debian/export.diff
 
-sed -i 's/\(lib[a-z0-9]*\).la/\1-export.la/g'  $(find . -name Makefile)
+for lib in dns irs isc isccc isccfg lwres; do
+    sed -i 's/\(lib'${lib}'\).la/\1-export.la/g'  $(find . -name Makefile)
+done
