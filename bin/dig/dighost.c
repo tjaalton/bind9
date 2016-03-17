@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2015  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2004-2016  Internet Systems Consortium, Inc. ("ISC")
  * Copyright (C) 2000-2003  Internet Software Consortium.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
@@ -3458,6 +3458,7 @@ process_opt(dig_lookup_t *l, dns_message_t *msg) {
 	isc_buffer_t optbuf;
 	isc_uint16_t optcode, optlen;
 	dns_rdataset_t *opt = msg->opt;
+	isc_boolean_t seen_cookie = ISC_FALSE;
 
 	result = dns_rdataset_first(opt);
 	if (result == ISC_R_SUCCESS) {
@@ -3470,7 +3471,15 @@ process_opt(dig_lookup_t *l, dns_message_t *msg) {
 			optlen = isc_buffer_getuint16(&optbuf);
 			switch (optcode) {
 			case DNS_OPT_COOKIE:
+				/*
+				 * Only process the first cookie option.
+				 */
+				if (seen_cookie) {
+					isc_buffer_forward(&optbuf, optlen);
+					break;
+				}
 				process_sit(l, msg, &optbuf, optlen);
+				seen_cookie = ISC_TRUE;
 				break;
 			default:
 				isc_buffer_forward(&optbuf, optlen);
