@@ -1,3 +1,9 @@
+bind9 (1:9.10.3.dfsg.P4-1ubuntu1) xenial; urgency=medium
+
+  * Fix udeb dependencies.
+
+ -- Matthias Klose <doko@ubuntu.com>  Fri, 18 Mar 2016 12:47:02 +0100
+
 bind9 (1:9.10.3.dfsg.P4-1) experimental; urgency=medium
 
   [ ISC ]
