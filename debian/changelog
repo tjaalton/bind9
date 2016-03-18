@@ -1,3 +1,13 @@
+bind9 (1:9.10.3.dfsg.P4-2) experimental; urgency=medium
+
+  * updated precise_time patch
+  * add RT#s to some patches
+  * Merge ubuntu changes
+  * Fix debian/rules to properly remove files from bind9 that are delivered
+    elsewhere.  LP: #1559090
+
+ -- LaMont Jones <lamont@canonical.com>  Fri, 18 Mar 2016 10:58:07 -0600
+
 bind9 (1:9.10.3.dfsg.P4-1ubuntu2) xenial; urgency=medium
 
   * Bump debhelper to v9 to use dh-exec.
