@@ -1,11 +1,19 @@
+Author: LaMont Jones <lamont@canonical.com>
+Description: Return the nanoseconds portion of file timestamps.  Available
+ from Linux since 2.6.
+Forwarded: yes RT#41968
+
 --- a/lib/isc/unix/file.c
 +++ b/lib/isc/unix/file.c
-@@ -153,7 +153,7 @@
+@@ -153,7 +153,11 @@
  		 * XXXDCL some operating systems provide nanoseconds, too,
  		 * such as BSD/OS via st_mtimespec.
  		 */
--		isc_time_set(modtime, stats.st_mtime, 0);
++#ifdef st_mtime
 +		isc_time_set(modtime, stats.st_mtime, stats.st_mtim.tv_nsec);
++#else
+ 		isc_time_set(modtime, stats.st_mtime, 0);
++#endif
  
  	return (result);
  }
