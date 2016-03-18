@@ -216,7 +216,7 @@ binary-arch: build install
 	  dh_link -plibbind-export-dev /lib/$(DEB_HOST_MULTIARCH)/$$lib \
 	    /usr/lib/$(DEB_HOST_MULTIARCH)/$$dev; \
 	done
-	(cd debian/bind9/ && rm -rf $$(grep -v '^#' ../*.install) )
+	(cd debian/bind9/ && rm -rf $$(sed -n '/^[^.#]/p' debian/*.install | sed 's/ .*//')
 	rm -rf debian/bind9/usr/lib/$(DEB_HOST_MULTIARCH)
 	rm -f debian/bind9/usr/share/man/man1/query-loc.1
 	# install apport hook on Ubuntu
