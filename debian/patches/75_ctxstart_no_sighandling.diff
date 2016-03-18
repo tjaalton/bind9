@@ -2,7 +2,7 @@ Description: Do not modify signal handling for external isc apps
  Not sure this is a un-fix but it looks like before the change there was
  no modification of signal handlers when being called via appmethods
  ctxstart.
-Forwarded: no
+Forwarded: yes RT#41964
 Author: Stefan Bader <stefan.bader@canonical.com>
 
 Index: bind9-9.10.3.dfsg.P2/lib/isc/unix/app.c

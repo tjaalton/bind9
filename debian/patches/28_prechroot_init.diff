@@ -1,5 +1,6 @@
 Author: Ben Hutchings <ben@decadent.org.uk>
 Date:   Fri Mar 1 08:19:55 2013 -0700
+Forwarded: yes RT#41966
 
     Initialise OpenSSL before calling chroot()
 

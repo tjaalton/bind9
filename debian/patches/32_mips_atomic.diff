@@ -1,5 +1,6 @@
 Author: Thiemo Seufer <ths@networkno.de>
 Date:   Thu Nov 8 15:11:48 2007 -0700
+Forwarded: yes RT#41965
 
     mips:atomic.h: improve implementation of atomic ops, fix mips{el,64}
 
