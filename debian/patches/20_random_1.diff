@@ -13,6 +13,8 @@ Date:   Mon Mar 10 11:38:41 2008 -0600
     works around this behavior.  Using a short TTL is a good idea, for fault
     tollerance.
 
+    random_1 breaks DNSSEC in horrible ways.
+
     Signed-off-by: LaMont Jones <lamont@ubuntu.com>
 
 --- a/bin/named/server.c
