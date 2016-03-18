@@ -133,6 +133,7 @@ msgstats:
 msg-email:
 	@podebconf-report-po
 
+INSTDIR=debian/tmp
 ETCBIND=debian/bind9/etc/bind
 ETCAPP=debian/bind9/etc/apparmor.d
 install: build
@@ -142,9 +143,9 @@ install: build
 	dh_installdirs
 
 	: # regular install
-	$(MAKE) -C build install DESTDIR=$(CURDIR)/debian/bind9
-	rm -rf debian/bind9/usr/etc
-	find debian/bind9 -name \*.la -execdir rm -f {} \;
+	$(MAKE) -C build install DESTDIR=$(CURDIR)/${INSTDIR}
+	rm -rf ${INSTDIR}/usr/etc
+	find ${INSTDIR} -name \*.la -execdir rm -f {} \;
 	install -c -o bin -g bin -m 444 debian/db.0 ${ETCBIND}/db.0
 	install -c -o bin -g bin -m 444 debian/db.0 ${ETCBIND}/db.255
 	install -c -o bin -g bin -m 444 debian/db.empty ${ETCBIND}
@@ -157,16 +158,17 @@ install: build
 	install -c -o bin -g bin -m 440 debian/named.conf.default-zones ${ETCBIND}
 	install -c -o bin -g bin -m 440 bind.keys ${ETCBIND}
 	install -c -o bin -g bin -m 440 debian/named.conf.options debian/bind9/usr/share/bind9/
-	cp doc/arm/*.html debian/bind9-doc/usr/share/doc/bind9-doc/arm
 	install -m 644 -o root -g root debian/apparmor-profile ${ETCAPP}/usr.sbin.named
 	install -m 644 -o root -g root debian/apparmor-profile.local ${ETCAPP}/local/usr.sbin.named
-	rmdir debian/bind9/var/run/named debian/lwresd/var/run/named || true
+	rmdir ${INSTDIR}/var/run/named debian/lwresd/var/run/named || true
 
 	install debian/ip-up.d debian/bind9/etc/ppp/ip-up.d/bind9
 	install debian/ip-down.d debian/bind9/etc/ppp/ip-down.d/bind9
 	install debian/ip-up.d debian/bind9/etc/network/if-up.d/bind9
 	install debian/ip-down.d debian/bind9/etc/network/if-down.d/bind9
 	install -m644 debian/bind9.ufw.profile debian/bind9/etc/ufw/applications.d/bind9
+
+	cp doc/arm/*.html debian/bind9-doc/usr/share/doc/bind9-doc/arm
 
 	: # udeb install
 	$(MAKE) -C build-udeb install DESTDIR=$(CURDIR)/debian/tmp-udeb
@@ -204,21 +206,18 @@ binary-arch: build install
 	dh_systemd_enable -plwresd lwresd.service
 	dh_installinit -a --no-start -- defaults 15 85
 	# Ship the extra service file for resolvconf integration manually.
-	if [ -d debian/bind9/lib/systemd/system ]; then cp debian/bind9-resolvconf.service debian/bind9/lib/systemd/system; fi
+	if [ -d ${INSTDIR}/lib/systemd/system ]; then cp debian/bind9-resolvconf.service ${INSTDIR}/lib/systemd/system; fi
 	dh_installcron -a
 	dh_installdebconf -pbind9
 	dh_installinfo -a
 	dh_installchangelogs -a # CHANGES # upstream changelog only in bind9-doc
-	dh_install --sourcedir=debian/bind9 -a
+	dh_install --sourcedir=debian/tmp -a --fail-missing
 	for lib in `find debian/tmp-udeb/lib/$(DEB_HOST_MULTIARCH)/ -type l -name 'lib*-export.so.*'`; do \
 	  lib=$$(basename $$lib); \
 	  dev=$$(echo $$lib | sed 's/\.so\..*/.so/'); \
 	  dh_link -plibbind-export-dev /lib/$(DEB_HOST_MULTIARCH)/$$lib \
 	    /usr/lib/$(DEB_HOST_MULTIARCH)/$$dev; \
 	done
-	(cd debian/bind9/ && rm -rf $$(sed -n '/^[^.#]/p' debian/*.install | sed 's/ .*//')
-	rm -rf debian/bind9/usr/lib/$(DEB_HOST_MULTIARCH)
-	rm -f debian/bind9/usr/share/man/man1/query-loc.1
 	# install apport hook on Ubuntu
 	if dpkg-vendor --is ubuntu; then \
 	    install -m 644 -D debian/bind9.apport debian/bind9/usr/share/apport/package-hooks/bind9.py; \
