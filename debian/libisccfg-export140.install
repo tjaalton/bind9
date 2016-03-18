@@ -1,1 +1,2 @@
-../tmp-udeb/lib/*/libisccfg-export.so.* lib/
+#! /usr/bin/dh-exec
+../tmp-udeb/lib/*/libisccfg-export.so.* lib/${DEB_HOST_MULTIARCH}

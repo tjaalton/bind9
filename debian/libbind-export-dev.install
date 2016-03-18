@@ -1,3 +1,4 @@
-../tmp-udeb/lib/*/*.a usr/lib/
-../tmp-udeb/lib/*/*.so lib/
+#! /usr/bin/dh-exec
+../tmp-udeb/lib/*/*.a usr/lib/${DEB_HOST_MULTIARCH}
+../tmp-udeb/lib/*/*.so usr/lib/${DEB_HOST_MULTIARCH}
 ../tmp-udeb/usr/include/bind-export usr/include
