@@ -210,12 +210,14 @@ binary-arch: build install
 	dh_installinfo -a
 	dh_installchangelogs -a # CHANGES # upstream changelog only in bind9-doc
 	dh_install --sourcedir=debian/bind9 -a
-	for dir in debian/lib*export*/lib; do \
-	    mkdir $$dir/$(DEB_HOST_MULTIARCH) && \
-	    mv $$dir/lib* $$dir/$(DEB_HOST_MULTIARCH); \
+	for lib in `find debian/tmp-udeb/lib/$(DEB_HOST_MULTIARCH)/ -type l -name 'lib*-export.so.*'`; do \
+	  lib=$$(basename $$lib); \
+	  dev=$$(echo $$lib | sed 's/\.so\..*/.so/'); \
+	  dh_link -plibbind-export-dev /lib/$(DEB_HOST_MULTIARCH)/$$lib \
+	    /usr/lib/$(DEB_HOST_MULTIARCH)/$$dev; \
 	done
-	(cd debian/bind9/ && rm -rf $$(cat ../*.install) )
-	rm -rf debian/bind9/lib/$(DEB_HOST_MULTIARCH)
+	(cd debian/bind9/ && rm -rf $$(grep -v '^#' ../*.install) )
+	rm -rf debian/bind9/usr/lib/$(DEB_HOST_MULTIARCH)
 	rm -f debian/bind9/usr/share/man/man1/query-loc.1
 	# install apport hook on Ubuntu
 	if dpkg-vendor --is ubuntu; then \
@@ -229,6 +231,7 @@ binary-arch: build install
 	dh_makeshlibs -plibirs-export141 --add-udeb=libirs-export141-udeb
 	dh_makeshlibs -plibisc-export160 --add-udeb=libisc-export160-udeb
 	dh_makeshlibs -plibdns-export162 --add-udeb=libdns-export162-udeb
+	dh_makeshlibs -plibisccc-export140 --add-udeb=libisccc-export140-udeb
 	dh_makeshlibs -plibisccfg-export140 --add-udeb=libisccfg-export140-udeb
 	dh_installdeb -a
 	dh_shlibdeps -a

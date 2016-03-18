@@ -1,3 +1,11 @@
+bind9 (1:9.10.3.dfsg.P4-1ubuntu2) xenial; urgency=medium
+
+  * Bump debhelper to v9 to use dh-exec.
+  * libbind-export-dev: Fix the libbind.so symlink.
+  * Move static libs to the multiarch libdir again.
+
+ -- Matthias Klose <doko@ubuntu.com>  Fri, 18 Mar 2016 13:30:03 +0100
+
 bind9 (1:9.10.3.dfsg.P4-1ubuntu1) xenial; urgency=medium
 
   * Fix udeb dependencies.
