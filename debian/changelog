@@ -1,3 +1,10 @@
+bind9 (1:9.10.3.dfsg.P4-3) experimental; urgency=medium
+
+  * Fix vcs links
+  * build in debian/tmp, use bind9.install
+
+ -- LaMont Jones <lamont@debian.org>  Fri, 18 Mar 2016 14:46:30 -0600
+
 bind9 (1:9.10.3.dfsg.P4-2) experimental; urgency=medium
 
   * updated precise_time patch
