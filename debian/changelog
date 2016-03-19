@@ -1,3 +1,10 @@
+bind9 (1:9.10.3.dfsg.P4-4) experimental; urgency=medium
+
+  * use multiarch path in udebs
+  * Updated root cache file.  Closes: #806954
+
+ -- LaMont Jones <lamont@debian.org>  Fri, 18 Mar 2016 20:50:49 -0600
+
 bind9 (1:9.10.3.dfsg.P4-3) experimental; urgency=medium
 
   * Fix vcs links
