@@ -16,7 +16,7 @@
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
 NAME=lwresd
 DAEMON=/usr/sbin/lwresd
-PIDFILE=/var/run/lwresd/lwresd.pid
+PIDFILE=/run/lwresd/lwresd.pid
 
 # Don't modify this line, change or create /etc/default/lwresd.
 OPTIONS=""
@@ -29,7 +29,7 @@ case "$1" in
     start)
 	modprobe capability >/dev/null 2>&1 || true
 
-	# dirs under /var/run can go away on reboots.
+	# dirs under /run can go away on reboots.
 	mkdir -p ${PIDFILE%/*}
 	chmod 775 ${PIDFILE%/*}
 	chown root:bind ${PIDFILE%/*} >/dev/null 2>&1 || true
