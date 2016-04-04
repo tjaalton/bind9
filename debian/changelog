@@ -1,3 +1,10 @@
+bind9 (1:9.10.3.dfsg.P4-6) unstable; urgency=medium
+
+  * Upload 9.10 to unstable.  Closes: #781739
+  * Add -DNO_VERSION_DATE to CFLAGS.  Closes: #783885
+
+ -- Michael Gilbert <mgilbert@debian.org>  Mon, 04 Apr 2016 00:39:57 +0000
+
 bind9 (1:9.10.3.dfsg.P4-5) experimental; urgency=medium
 
   * Drop dead code in bind9.preinst.
