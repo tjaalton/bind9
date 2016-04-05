@@ -1,3 +1,9 @@
+bind9 (1:9.10.3.dfsg.P4-7) unstable; urgency=medium
+
+  * Fix libisccc-export dependencies.  Closes: #820043
+
+ -- Michael Gilbert <mgilbert@debian.org>  Tue, 05 Apr 2016 02:53:22 +0000
+
 bind9 (1:9.10.3.dfsg.P4-6) unstable; urgency=medium
 
   * Upload 9.10 to unstable.  Closes: #781739
