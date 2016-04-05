@@ -314,7 +314,7 @@ Architecture: any
 Multi-Arch: same
 Conflicts: libbind0, libbind9-41
 Replaces: libbind0
-Depends: ${shlibs:Depends}, ${misc:Depends}, libisc160
+Depends: ${shlibs:Depends}, ${misc:Depends}, libisc-export160
 Description: Command Channel Library used by BIND
  ${Description}
  .
@@ -327,7 +327,7 @@ Architecture: any
 Multi-Arch: same
 Conflicts: libbind0, libbind9-41
 Replaces: libbind0
-Depends: ${shlibs:Depends}, ${misc:Depends}, libisc160
+Depends: ${shlibs:Depends}, ${misc:Depends}, libisc-export160-udeb
 Package-Type: udeb
 Description: Command Channel Library used by BIND
  ${Description}
