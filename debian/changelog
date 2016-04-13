@@ -1,3 +1,16 @@
+bind9 (1:9.10.3.dfsg.P4-8) unstable; urgency=medium
+
+  [Timo Aaltonen]
+
+  * Fix bind9-resolvconf.service installation.
+  * Add support for native pkcs11.  LP: #1565392
+
+  [Samuel Thibault]
+
+  * Detect in6_pktinfo on hurd-i386.  Closes: #820404
+
+ -- LaMont Jones <lamont@debian.org>  Wed, 13 Apr 2016 13:19:37 -0600
+
 bind9 (1:9.10.3.dfsg.P4-7) unstable; urgency=medium
 
   * Fix libisccc-export dependencies.  Closes: #820043
