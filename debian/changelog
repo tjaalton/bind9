@@ -1,3 +1,11 @@
+bind9 (1:9.10.3.dfsg.P4-9) unstable; urgency=medium
+
+  * Fix bad patch from when we switched to quilt.  Closes: #820847  LP:
+    #1552801, #1549788, #1553460
+  * freshen patch to remove fuzz.
+
+ -- LaMont Jones <lamont@debian.org>  Tue, 26 Apr 2016 15:17:58 -0600
+
 bind9 (1:9.10.3.dfsg.P4-8) unstable; urgency=medium
 
   [Timo Aaltonen]
