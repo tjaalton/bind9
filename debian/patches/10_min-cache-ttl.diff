@@ -153,7 +153,7 @@ Date:   Fri Mar 20 15:01:03 2009 -0600
  				      isc_boolean_t optout,
  				      isc_boolean_t secure,
  				      dns_rdataset_t *ardataset,
-@@ -4889,7 +4891,7 @@
+@@ -4888,7 +4890,7 @@
  			ttl = 0;
  
  		result = ncache_adderesult(fctx->rmessage, fctx->cache, node,
@@ -162,7 +162,7 @@ Date:   Fri Mar 20 15:01:03 2009 -0600
  					   vevent->secure, ardataset, &eresult);
  		if (result != ISC_R_SUCCESS)
  			goto noanswer_response;
-@@ -5352,6 +5354,12 @@
+@@ -5351,6 +5353,12 @@
  			rdataset->ttl = res->view->maxcachettl;
  
  		/*
@@ -175,7 +175,7 @@ Date:   Fri Mar 20 15:01:03 2009 -0600
  		 * Mark the rdataset as being prefetch eligible.
  		 */
  		if (rdataset->ttl > fctx->res->view->prefetch_eligible)
-@@ -5704,7 +5712,7 @@
+@@ -5703,7 +5711,7 @@
   */
  static isc_result_t
  ncache_adderesult(dns_message_t *message, dns_db_t *cache, dns_dbnode_t *node,
@@ -184,7 +184,7 @@ Date:   Fri Mar 20 15:01:03 2009 -0600
  		  isc_boolean_t optout, isc_boolean_t secure,
  		  dns_rdataset_t *ardataset, isc_result_t *eresultp)
  {
-@@ -5717,10 +5725,10 @@
+@@ -5716,10 +5724,10 @@
  	}
  	if (secure)
  		result = dns_ncache_addoptout(message, cache, node, covers,
@@ -197,7 +197,7 @@ Date:   Fri Mar 20 15:01:03 2009 -0600
  	if (result == DNS_R_UNCHANGED || result == ISC_R_SUCCESS) {
  		/*
  		 * If the cache now contains a negative entry and we
-@@ -5889,7 +5897,7 @@
+@@ -5888,7 +5896,7 @@
  		ttl = 0;
  
  	result = ncache_adderesult(fctx->rmessage, fctx->cache, node,
