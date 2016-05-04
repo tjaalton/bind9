@@ -20,8 +20,8 @@ Build-Depends: debhelper (>= 9),
   dh-autoreconf
 Build-Conflicts: libdb4.2-dev
 Standards-Version: 3.9.7
-XS-Vcs-Browser: http://anonscm.debian.org/cgit/users/lamont/bind9.git/
-XS-Vcs-Git: git://anonscm.debian.org/git/users/lamont/bind9.git/
+XS-Vcs-Browser: http://anonscm.debian.org/git/pkg-bind/pkg-bind.git
+XS-Vcs-Git: git://anonscm.debian.org/git/pkg-bind/pkg-bind.git
 
 Package: bind9
 Architecture: any
