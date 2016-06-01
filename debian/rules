@@ -5,8 +5,7 @@
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 DPKG_EXPORT_BUILDFLAGS = 1
 
-export DEB_CPPFLAGS_MAINT_APPEND = -DDIG_SIGCHASE
-export DEB_CFLAGS_MAINT_APPEND = -fno-strict-aliasing -fno-delete-null-pointer-checks -DNO_VERSION_DATE
+export DEB_CFLAGS_MAINT_APPEND = -fno-strict-aliasing -fno-delete-null-pointer-checks -DNO_VERSION_DATE -DDIG_SIGCHASE
 
 include /usr/share/dpkg/buildflags.mk
 
