@@ -1,20 +1,12 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <!--
- - Copyright (C) 2004-2015 Internet Systems Consortium, Inc. ("ISC")
- - Copyright (C) 2000-2003 Internet Software Consortium.
+ - Copyright (C) 2000-2015 Internet Systems Consortium, Inc. ("ISC")
  - 
- - Permission to use, copy, modify, and/or distribute this software for any
- - purpose with or without fee is hereby granted, provided that the above
- - copyright notice and this permission notice appear in all copies.
- - 
- - THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- - REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- - AND FITNESS. IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- - INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- - LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- - OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- - PERFORMANCE OF THIS SOFTWARE.
+ - This Source Code Form is subject to the terms of the Mozilla Public
+ - License, v. 2.0. If a copy of the MPL was not distributed with this
+ - file, You can obtain one at http://mozilla.org/MPL/2.0/.
 -->
-<html>
+<html lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
 <title>BIND 9 Administrator Reference Manual</title>
@@ -40,9 +32,8 @@
 <div>
 <div><h1 class="title">
 <a name="id-1"></a>BIND 9 Administrator Reference Manual</h1></div>
-<div><p class="releaseinfo">BIND Version 9.10.4-P2</p></div>
-<div><p class="copyright">Copyright © 2004-2015 Internet Systems Consortium, Inc. ("ISC")</p></div>
-<div><p class="copyright">Copyright © 2000-2003 Internet Software Consortium.</p></div>
+<div><p class="releaseinfo">BIND Version 9.11.0</p></div>
+<div><p class="copyright">Copyright © 2000-2015 Internet Systems Consortium, Inc. ("ISC")</p></div>
 </div>
 <hr>
 </div>
@@ -146,10 +137,21 @@
 <dt><span class="section"><a href="Bv9ARM.ch04.html#id-1.5.13.6">Configuring DLZ</a></span></dt>
 <dt><span class="section"><a href="Bv9ARM.ch04.html#id-1.5.13.7">Sample DLZ Driver</a></span></dt>
 </dl></dd>
+<dt><span class="section"><a href="Bv9ARM.ch04.html#dyndb-info">DynDB (Dynamic Database)</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="Bv9ARM.ch04.html#id-1.5.14.5">Configuring DynDB</a></span></dt>
+<dt><span class="section"><a href="Bv9ARM.ch04.html#id-1.5.14.6">Sample DynDB Module</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="Bv9ARM.ch04.html#catz-info">Catalog Zones</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="Bv9ARM.ch04.html#id-1.5.15.4">Principle of Operation</a></span></dt>
+<dt><span class="section"><a href="Bv9ARM.ch04.html#id-1.5.15.5">Configuring Catalog Zones</a></span></dt>
+<dt><span class="section"><a href="Bv9ARM.ch04.html#id-1.5.15.6">Catalog Zone format</a></span></dt>
+</dl></dd>
 <dt><span class="section"><a href="Bv9ARM.ch04.html#ipv6">IPv6 Support in <acronym class="acronym">BIND</acronym> 9</a></span></dt>
 <dd><dl>
-<dt><span class="section"><a href="Bv9ARM.ch04.html#id-1.5.14.6">Address Lookups Using AAAA Records</a></span></dt>
-<dt><span class="section"><a href="Bv9ARM.ch04.html#id-1.5.14.7">Address to Name Lookups Using Nibble Format</a></span></dt>
+<dt><span class="section"><a href="Bv9ARM.ch04.html#id-1.5.16.6">Address Lookups Using AAAA Records</a></span></dt>
+<dt><span class="section"><a href="Bv9ARM.ch04.html#id-1.5.16.7">Address to Name Lookups Using Nibble Format</a></span></dt>
 </dl></dd>
 </dl></dd>
 <dt><span class="chapter"><a href="Bv9ARM.ch05.html">5. The <acronym class="acronym">BIND</acronym> 9 Lightweight Resolver</a></span></dt>
@@ -239,14 +241,14 @@
 </dl></dd>
 <dt><span class="appendix"><a href="Bv9ARM.ch09.html">A. Release Notes</a></span></dt>
 <dd><dl>
-<dt><span class="section"><a href="Bv9ARM.ch09.html#id-1.10.2">Release Notes for BIND Version 9.10.4-P2</a></span></dt>
+<dt><span class="section"><a href="Bv9ARM.ch09.html#id-1.10.2">Release Notes for BIND Version 9.11.0</a></span></dt>
 <dd><dl>
 <dt><span class="section"><a href="Bv9ARM.ch09.html#relnotes_intro">Introduction</a></span></dt>
 <dt><span class="section"><a href="Bv9ARM.ch09.html#relnotes_download">Download</a></span></dt>
+<dt><span class="section"><a href="Bv9ARM.ch09.html#relnotes_license">License Change</a></span></dt>
 <dt><span class="section"><a href="Bv9ARM.ch09.html#relnotes_security">Security Fixes</a></span></dt>
 <dt><span class="section"><a href="Bv9ARM.ch09.html#relnotes_features">New Features</a></span></dt>
 <dt><span class="section"><a href="Bv9ARM.ch09.html#relnotes_changes">Feature Changes</a></span></dt>
-<dt><span class="section"><a href="Bv9ARM.ch09.html#relnotes_port">Porting Changes</a></span></dt>
 <dt><span class="section"><a href="Bv9ARM.ch09.html#relnotes_bugs">Bug Fixes</a></span></dt>
 <dt><span class="section"><a href="Bv9ARM.ch09.html#end_of_life">End of Life</a></span></dt>
 <dt><span class="section"><a href="Bv9ARM.ch09.html#relnotes_thanks">Thank You</a></span></dt>
@@ -282,10 +284,16 @@
 <span class="refentrytitle"><a href="man.dig.html">dig</a></span><span class="refpurpose"> &#8212; DNS lookup utility</span>
 </dt>
 <dt>
+<span class="refentrytitle"><a href="man.mdig.html"><span class="application">mdig</span></a></span><span class="refpurpose"> &#8212; DNS pipelined lookup utility</span>
+</dt>
+<dt>
 <span class="refentrytitle"><a href="man.host.html">host</a></span><span class="refpurpose"> &#8212; DNS lookup utility</span>
 </dt>
 <dt>
 <span class="refentrytitle"><a href="man.delv.html">delv</a></span><span class="refpurpose"> &#8212; DNS lookup and validation utility</span>
+</dt>
+<dt>
+<span class="refentrytitle"><a href="man.nslookup.html">nslookup</a></span><span class="refpurpose"> &#8212; query Internet name servers interactively</span>
 </dt>
 <dt>
 <span class="refentrytitle"><a href="man.dnssec-checkds.html"><span class="application">dnssec-checkds</span></a></span><span class="refpurpose"> &#8212; DNSSEC delegation consistency checking tool</span>
@@ -306,6 +314,9 @@
 <span class="refentrytitle"><a href="man.dnssec-keygen.html"><span class="application">dnssec-keygen</span></a></span><span class="refpurpose"> &#8212; DNSSEC key generation tool</span>
 </dt>
 <dt>
+<span class="refentrytitle"><a href="man.dnssec-keymgr.html"><span class="application">dnssec-keymgr</span></a></span><span class="refpurpose"> &#8212; Ensures correct DNSKEY coverage for a zone based on a defined policy</span>
+</dt>
+<dt>
 <span class="refentrytitle"><a href="man.dnssec-revoke.html"><span class="application">dnssec-revoke</span></a></span><span class="refpurpose"> &#8212; set the REVOKED bit on a DNSSEC key</span>
 </dt>
 <dt>
@@ -318,22 +329,27 @@
 <span class="refentrytitle"><a href="man.dnssec-verify.html"><span class="application">dnssec-verify</span></a></span><span class="refpurpose"> &#8212; DNSSEC zone verification tool</span>
 </dt>
 <dt>
+<span class="refentrytitle"><a href="man.lwresd.html"><span class="application">lwresd</span></a></span><span class="refpurpose"> &#8212; lightweight resolver daemon</span>
+</dt>
+<dt>
+<span class="refentrytitle"><a href="man.named.html"><span class="application">named</span></a></span><span class="refpurpose"> &#8212; Internet domain name server</span>
+</dt>
+<dt>
+<span class="refentrytitle"><a href="man.named.conf.html"><code class="filename">named.conf</code></a></span><span class="refpurpose"> &#8212; configuration file for <span class="command"><strong>named</strong></span></span>
+</dt>
+<dt>
 <span class="refentrytitle"><a href="man.named-checkconf.html"><span class="application">named-checkconf</span></a></span><span class="refpurpose"> &#8212; named configuration file syntax checking tool</span>
 </dt>
 <dt>
 <span class="refentrytitle"><a href="man.named-checkzone.html"><span class="application">named-checkzone</span></a></span><span class="refpurpose"> &#8212; zone file validity checking or converting tool</span>
 </dt>
 <dt>
-<span class="refentrytitle"><a href="man.named.html"><span class="application">named</span></a></span><span class="refpurpose"> &#8212; Internet domain name server</span>
-</dt>
-<dt>
-<span class="refentrytitle"><a href="man.named.conf.html"><code class="filename">named.conf</code></a></span><span class="refpurpose"> &#8212; configuration file for named</span>
-</dt>
-<dt>
-<span class="refentrytitle"><a href="man.lwresd.html"><span class="application">lwresd</span></a></span><span class="refpurpose"> &#8212; lightweight resolver daemon</span>
-</dt>
-<dt>
 <span class="refentrytitle"><a href="man.named-journalprint.html"><span class="application">named-journalprint</span></a></span><span class="refpurpose"> &#8212; print zone journal in human-readable form</span>
+</dt>
+<dt>
+<span class="refentrytitle"><a href="man.named-nzd2nzf.html"><span class="application">named-nzd2nzf</span></a></span><span class="refpurpose"> &#8212; 
+      Convert an NZD database to NZF text format
+    </span>
 </dt>
 <dt>
 <span class="refentrytitle"><a href="man.named-rrchecker.html"><span class="application">named-rrchecker</span></a></span><span class="refpurpose"> &#8212; syntax checker for individual DNS resource records</span>
@@ -357,6 +373,9 @@
 <span class="refentrytitle"><a href="man.arpaname.html"><span class="application">arpaname</span></a></span><span class="refpurpose"> &#8212; translate IP addresses to the corresponding ARPA names</span>
 </dt>
 <dt>
+<span class="refentrytitle"><a href="man.dnstap-read.html"><span class="application">dnstap-read</span></a></span><span class="refpurpose"> &#8212; print dnstap data in human-readable form</span>
+</dt>
+<dt>
 <span class="refentrytitle"><a href="man.genrandom.html"><span class="application">genrandom</span></a></span><span class="refpurpose"> &#8212; generate a file containing random data</span>
 </dt>
 <dt>
@@ -364,6 +383,18 @@
 </dt>
 <dt>
 <span class="refentrytitle"><a href="man.nsec3hash.html"><span class="application">nsec3hash</span></a></span><span class="refpurpose"> &#8212; generate NSEC3 hash</span>
+</dt>
+<dt>
+<span class="refentrytitle"><a href="man.pkcs11-destroy.html"><span class="application">pkcs11-destroy</span></a></span><span class="refpurpose"> &#8212; destroy PKCS#11 objects</span>
+</dt>
+<dt>
+<span class="refentrytitle"><a href="man.pkcs11-list.html"><span class="application">pkcs11-list</span></a></span><span class="refpurpose"> &#8212; list PKCS#11 objects</span>
+</dt>
+<dt>
+<span class="refentrytitle"><a href="man.pkcs11-keygen.html"><span class="application">pkcs11-keygen</span></a></span><span class="refpurpose"> &#8212; generate keys on a PKCS#11 device</span>
+</dt>
+<dt>
+<span class="refentrytitle"><a href="man.pkcs11-tokens.html"><span class="application">pkcs11-tokens</span></a></span><span class="refpurpose"> &#8212; list PKCS#11 available tokens</span>
 </dt>
 </dl></dd>
 </dl>
@@ -385,6 +416,6 @@
 </tr>
 </table>
 </div>
-<p xmlns:db="http://docbook.org/ns/docbook" style="text-align: center;">BIND 9.10.4-P2</p>
+<p xmlns:db="http://docbook.org/ns/docbook" style="text-align: center;">BIND 9.11.0</p>
 </body>
 </html>

@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2009, 2011-2015  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 2000-2003  Internet Software Consortium.
+ * Copyright (C) 2000-2009, 2011-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 #ifndef DIG_H
@@ -112,6 +103,7 @@ struct dig_lookup {
 		aaonly,
 		adflag,
 		cdflag,
+		zflag,
 		trace, /*% dig +trace */
 		trace_root, /*% initial query for either +trace or +nssearch */
 		tcp_mode,
@@ -130,11 +122,14 @@ struct dig_lookup {
 		besteffort,
 		dnssec,
 		expire,
-#ifdef ISC_PLATFORM_USESIT
-		sit,
-#endif
+		sendcookie,
+		seenbadcookie,
+		badcookie,
 		nsid,   /*% Name Server ID (RFC 5001) */
-		ednsneg;
+		header_only,
+		ednsneg,
+		mapped,
+		print_unknown_format;
 #ifdef DIG_SIGCHASE
 isc_boolean_t	sigchase;
 #if DIG_SIGCHASE_TD
@@ -189,11 +184,10 @@ isc_boolean_t	sigchase;
 	isc_uint32_t msgcounter;
 	dns_fixedname_t fdomain;
 	isc_sockaddr_t *ecs_addr;
-#ifdef ISC_PLATFORM_USESIT
-	char *sitvalue;
-#endif
+	char *cookie;
 	dns_ednsopt_t *ednsopts;
 	unsigned int ednsoptscnt;
+	isc_dscp_t dscp;
 	unsigned int ednsflags;
 	dns_opcode_t opcode;
 };
@@ -294,6 +288,7 @@ extern isc_boolean_t keep_open;
 extern char *progname;
 extern int tries;
 extern int fatalexit;
+extern isc_boolean_t verbose;
 #ifdef WITH_IDN
 extern int idnoptions;
 #endif
@@ -302,7 +297,7 @@ extern int idnoptions;
  * Routines in dighost.c.
  */
 isc_result_t
-get_address(char *host, in_port_t port, isc_sockaddr_t *sockaddr);
+get_address(char *host, in_port_t myport, isc_sockaddr_t *sockaddr);
 
 int
 getaddresses(dig_lookup_t *lookup, const char *host, isc_result_t *resultp);
@@ -343,7 +338,7 @@ void
 setup_libs(void);
 
 void
-setup_system(void);
+setup_system(isc_boolean_t ipv4only, isc_boolean_t ipv6only);
 
 isc_result_t
 parse_uint(isc_uint32_t *uip, const char *value, isc_uint32_t max,
@@ -436,6 +431,9 @@ chase_sig(dns_message_t *msg);
 #endif
 
 void save_opt(dig_lookup_t *lookup, char *code, char *value);
+
+void setup_file_key(void);
+void setup_text_key(void);
 
 ISC_LANG_ENDDECLS
 

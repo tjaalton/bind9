@@ -1,17 +1,9 @@
 /*
- * Copyright (C) 2007-2012, 2014, 2015  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2007-2012, 2014-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /*! \file */
@@ -29,6 +21,8 @@
 #include <isc/print.h>
 #include <isc/string.h>
 #include <isc/util.h>
+
+#include <pk11/site.h>
 
 #include <dns/dnssec.h>
 #include <dns/fixedname.h>
@@ -104,10 +98,14 @@ usage(void) {
 	fprintf(stderr, "    -V: print version information\n");
 	fprintf(stderr, "Date options:\n");
 	fprintf(stderr, "    -P date/[+-]offset: set key publication date\n");
+	fprintf(stderr, "    -P sync date/[+-]offset: set CDS and CDNSKEY "
+			"publication date\n");
 	fprintf(stderr, "    -A date/[+-]offset: set key activation date\n");
 	fprintf(stderr, "    -R date/[+-]offset: set key revocation date\n");
 	fprintf(stderr, "    -I date/[+-]offset: set key inactivation date\n");
 	fprintf(stderr, "    -D date/[+-]offset: set key deletion date\n");
+	fprintf(stderr, "    -D sync date/[+-]offset: set CDS and CDNSKEY "
+			"deletion date\n");
 	fprintf(stderr, "    -G: generate key only; do not set -P or -A\n");
 	fprintf(stderr, "    -C: generate a backward-compatible key, omitting"
 			" all dates\n");
@@ -171,6 +169,9 @@ main(int argc, char **argv) {
 	isc_boolean_t   avoid_collisions = ISC_TRUE;
 	isc_boolean_t	exact;
 	unsigned char	c;
+	isc_stdtime_t	syncadd = 0, syncdel = 0;
+	isc_boolean_t	unsetsyncadd = ISC_FALSE, setsyncadd = ISC_FALSE;
+	isc_boolean_t	unsetsyncdel = ISC_FALSE, setsyncdel = ISC_FALSE;
 
 	if (argc == 1)
 		usage();
@@ -255,6 +256,19 @@ main(int argc, char **argv) {
 			genonly = ISC_TRUE;
 			break;
 		case 'P':
+			/* -Psync ? */
+			if (isoptarg("sync", argv, usage)) {
+				if (unsetsyncadd || setsyncadd)
+					fatal("-P sync specified more than "
+					      "once");
+
+				syncadd = strtotime(isc_commandline_argument,
+						   now, now, &setsyncadd);
+				unsetsyncadd = !setsyncadd;
+				break;
+			}
+			/* -Pdnskey ? */
+			(void)isoptarg("dnskey", argv, usage);
 			if (setpub || unsetpub)
 				fatal("-P specified more than once");
 
@@ -287,6 +301,19 @@ main(int argc, char **argv) {
 			unsetinact = !setinact;
 			break;
 		case 'D':
+			/* -Dsync ? */
+			if (isoptarg("sync", argv, usage)) {
+				if (unsetsyncdel || setsyncdel)
+					fatal("-D sync specified more than "
+					      "once");
+
+				syncdel = strtotime(isc_commandline_argument,
+						   now, now, &setsyncdel);
+				unsetsyncdel = !setsyncdel;
+				break;
+			}
+			/* -Ddnskey ? */
+			(void)isoptarg("dnskey", argv, usage);
 			if (setdel || unsetdel)
 				fatal("-D specified more than once");
 
@@ -379,10 +406,20 @@ main(int argc, char **argv) {
 		}
 
 		if (strcasecmp(algname, "RSA") == 0) {
+#ifndef PK11_MD5_DISABLE
 			fprintf(stderr, "The use of RSA (RSAMD5) is not "
 					"recommended.\nIf you still wish to "
 					"use RSA (RSAMD5) please specify "
 					"\"-a RSAMD5\"\n");
+#else
+			fprintf(stderr,
+				"The use of RSA (RSAMD5) was disabled\n");
+			if (freeit != NULL)
+				free(freeit);
+			return (1);
+		} else if (strcasecmp(algname, "RSAMD5") == 0) {
+			fprintf(stderr, "The use of RSAMD5 was disabled\n");
+#endif
 			if (freeit != NULL)
 				free(freeit);
 			return (1);
@@ -478,6 +515,11 @@ main(int argc, char **argv) {
 		name = dst_key_name(prevkey);
 		alg = dst_key_alg(prevkey);
 		flags = dst_key_flags(prevkey);
+
+#ifdef PK11_MD5_DISABLE
+		if (alg == DST_ALG_RSAMD5)
+			fatal("Key %s uses disabled RSAMD5", predecessor);
+#endif
 
 		dst_key_format(prevkey, keystr, sizeof(keystr));
 		dst_key_getprivateformat(prevkey, &major, &minor);
@@ -621,10 +663,16 @@ main(int argc, char **argv) {
 
 		if (setdel)
 			dst_key_settime(key, DST_TIME_DELETE, delete);
+	if (setsyncadd)
+		dst_key_settime(key, DST_TIME_SYNCPUBLISH, syncadd);
+	if (setsyncdel)
+		dst_key_settime(key, DST_TIME_SYNCDELETE, syncdel);
+
 	} else {
 		if (setpub || setact || setrev || setinact ||
 		    setdel || unsetpub || unsetact ||
-		    unsetrev || unsetinact || unsetdel || genonly)
+		    unsetrev || unsetinact || unsetdel || genonly ||
+		    setsyncadd || setsyncdel)
 			fatal("cannot use -C together with "
 			      "-P, -A, -R, -I, -D, or -G options");
 		/*

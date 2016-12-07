@@ -1,17 +1,8 @@
-.\" Copyright (C) 2004-2011, 2013-2016 Internet Systems Consortium, Inc. ("ISC")
-.\" Copyright (C) 2000-2003 Internet Software Consortium.
+.\" Copyright (C) 2000-2011, 2013-2016 Internet Systems Consortium, Inc. ("ISC")
 .\" 
-.\" Permission to use, copy, modify, and/or distribute this software for any
-.\" purpose with or without fee is hereby granted, provided that the above
-.\" copyright notice and this permission notice appear in all copies.
-.\" 
-.\" THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
-.\" REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-.\" AND FITNESS. IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
-.\" INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-.\" LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
-.\" OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-.\" PERFORMANCE OF THIS SOFTWARE.
+.\" This Source Code Form is subject to the terms of the Mozilla Public
+.\" License, v. 2.0. If a copy of the MPL was not distributed with this
+.\" file, You can obtain one at http://mozilla.org/MPL/2.0/.
 .\"
 .hy 0
 .ad l
@@ -207,7 +198,7 @@ Enable memory usage debugging\&.
 .PP
 \-p \fIport\fR
 .RS 4
-Send the query to a non\-standard port on the server, instead of the defaut port 53\&. This option would be used to test a name server that has been configured to listen for queries on a non\-standard port number\&.
+Send the query to a non\-standard port on the server, instead of the default port 53\&. This option would be used to test a name server that has been configured to listen for queries on a non\-standard port number\&.
 .RE
 .PP
 \-q \fIname\fR
@@ -270,7 +261,9 @@ hmac\-sha384, or
 hmac\-sha512\&. If
 \fIhmac\fR
 is not specified, the default is
-hmac\-md5\&.
+hmac\-md5
+or if MD5 was disabled
+hmac\-sha256\&.
 .sp
 NOTE: You should use the
 \fB\-k\fR
@@ -331,6 +324,11 @@ Display [do not display] the answer section of a reply\&. The default is to disp
 Display [do not display] the authority section of a reply\&. The default is to display it\&.
 .RE
 .PP
+\fB+[no]badcookie\fR
+.RS 4
+Retry lookup with the new server cookie if a BADCOOKIE response is received\&.
+.RE
+.PP
 \fB+[no]besteffort\fR
 .RS 4
 Attempt to display the contents of messages which are malformed\&. The default is to not display malformed answers\&.
@@ -365,6 +363,15 @@ and the query options that have been applied\&. This comment is printed by defau
 Toggle the display of comment lines in the output\&. The default is to print comments\&.
 .RE
 .PP
+\fB+[no]cookie\fR\fB[=####]\fR
+.RS 4
+Send a COOKIE EDNS option, with optional value\&. Replaying a COOKIE from a previous response will allow the server to identify a previous client\&. The default is
+\fB+cookie\fR\&.
+.sp
+\fB+cookie\fR
+is also set when +trace is set to better emulate the default queries from a nameserver\&.
+.RE
+.PP
 \fB+[no]crypto\fR
 .RS 4
 Toggle the display of cryptographic fields in DNSSEC records\&. The contents of these field are unnecessary to debug most DNSSEC validation failures and removing them makes it easier to see the common failures\&. The default is to display the fields\&. When omitted they are replaced by the string "[omitted]" or in the DNSKEY case the key id is displayed as the replacement, e\&.g\&. "[ key id = value ]"\&.
@@ -392,6 +399,11 @@ directive in
 option were given\&.
 .RE
 .PP
+\fB+dscp=value\fR
+.RS 4
+Set the DSCP code point to be used when sending the query\&. Valid DSCP code points are in the range [0\&.\&.63]\&. By default no code point is explicitly set\&.
+.RE
+.PP
 \fB+[no]edns[=#]\fR
 .RS 4
 Specify the EDNS version to query with\&. Valid values are 0 to 255\&. Setting the EDNS version will cause a EDNS query to be sent\&.
@@ -417,7 +429,7 @@ and optionally payload of
 \fBvalue\fR
 as a hexadecimal string\&.
 \fB+noednsopt\fR
-clears the EDNS options to to be sent\&.
+clears the EDNS options to be sent\&.
 .RE
 .PP
 \fB+[no]expire\fR
@@ -428,6 +440,11 @@ Send an EDNS Expire option\&.
 \fB+[no]fail\fR
 .RS 4
 Do not try the next server if you receive a SERVFAIL\&. The default is to not try the next server which is the reverse of normal stub resolver behavior\&.
+.RE
+.PP
+\fB+[no]header\-only\fR
+.RS 4
+Send a query with a DNS header without a question section\&. The default is to add a question section\&. The query type and query name are ignored when this is set\&.
 .RE
 .PP
 \fB+[no]identify\fR
@@ -446,6 +463,12 @@ Ignore truncation in UDP responses instead of retrying with TCP\&. By default, T
 .RS 4
 Keep the TCP socket open between queries and reuse it rather than creating a new TCP socket for each lookup\&. The default is
 \fB+nokeepopen\fR\&.
+.RE
+.PP
+\fB+[no]mapped\fR
+.RS 4
+Allow mapped IPv4 over IPv6 addresses to be used\&. The default is
+\fB+mapped\fR\&.
 .RE
 .PP
 \fB+[no]multiline\fR
@@ -563,12 +586,6 @@ Perform [do not perform] a search showing intermediate results\&.
 Chase DNSSEC signature chains\&. Requires dig be compiled with \-DDIG_SIGCHASE\&.
 .RE
 .PP
-\fB+[no]sit\fR\fB[=####]\fR
-.RS 4
-Send a Source Identity Token EDNS option, with optional value\&. Replaying a SIT from a previous response will allow the server to identify a previous client\&. The default is
-\fB+nosit\fR\&. Currently using experimental value 65001 for the option code\&.
-.RE
-.PP
 \fB+split=W\fR
 .RS 4
 Split long hex\- or base64\-formatted fields in resource records into chunks of
@@ -593,7 +610,7 @@ Send (don\*(Aqt send) an EDNS Client Subnet option with the specified IP address
 .sp
 \fBdig +subnet=0\&.0\&.0\&.0/0\fR, or simply
 \fBdig +subnet=0\fR
-for short, sends an EDNS client\-subnet option with an empty address and a source prefix\-length of zero, which signals a resolver that the client\*(Aqs address information must
+for short, sends an EDNS CLIENT\-SUBNET option with an empty address and a source prefix\-length of zero, which signals a resolver that the client\*(Aqs address information must
 \fInot\fR
 be used when resolving this query\&.
 .RE
@@ -605,7 +622,7 @@ ixfr=N
 query is requested, in which case the default is TCP\&. AXFR queries always use TCP\&.
 .RE
 .PP
-\fB+time=T\fR
+\fB+timeout=T\fR
 .RS 4
 Sets the timeout for a query to
 \fIT\fR
@@ -661,11 +678,26 @@ Requires dig be compiled with \-DDIG_SIGCHASE\&.
 Display [do not display] the TTL when printing the record\&.
 .RE
 .PP
+\fB+[no]ttlunits\fR
+.RS 4
+Display [do not display] the TTL in friendly human\-readable time units of "s", "m", "h", "d", and "w", representing seconds, minutes, hours, days and weeks\&. Implies +ttlid\&.
+.RE
+.PP
+\fB+[no]unknownformat\fR
+.RS 4
+Print all RDATA in unknown RR type presentation format (RFC 3597)\&. The default is to print RDATA for known types in the type\*(Aqs presentation format\&.
+.RE
+.PP
 \fB+[no]vc\fR
 .RS 4
 Use [do not use] TCP when querying name servers\&. This alternate syntax to
 \fI+[no]tcp\fR
 is provided for backwards compatibility\&. The "vc" stands for "virtual circuit"\&.
+.RE
+.PP
+\fB+[no]zflag\fR
+.RS 4
+Set [do not set] the last unassigned DNS header flag in a DNS query\&. This flag is off by default\&.
 .RE
 .SH "MULTIPLE QUERIES"
 .PP
@@ -737,7 +769,5 @@ There are probably too many query options\&.
 \fBInternet Systems Consortium, Inc\&.\fR
 .SH "COPYRIGHT"
 .br
-Copyright \(co 2004-2011, 2013-2016 Internet Systems Consortium, Inc. ("ISC")
-.br
-Copyright \(co 2000-2003 Internet Software Consortium.
+Copyright \(co 2000-2011, 2013-2016 Internet Systems Consortium, Inc. ("ISC")
 .br

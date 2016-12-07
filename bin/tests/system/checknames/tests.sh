@@ -1,18 +1,10 @@
 #!/bin/sh
 #
-# Copyright (C) 2004, 2007, 2012-2014  Internet Systems Consortium, Inc. ("ISC")
+# Copyright (C) 2004, 2007, 2012-2016  Internet Systems Consortium, Inc. ("ISC")
 #
-# Permission to use, copy, modify, and/or distribute this software for any
-# purpose with or without fee is hereby granted, provided that the above
-# copyright notice and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-# AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
-# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
-# OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-# PERFORMANCE OF THIS SOFTWARE.
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 # $Id: tests.sh,v 1.5 2007/06/19 23:47:01 tbox Exp $
 
@@ -88,7 +80,8 @@ n=`expr $n + 1`
 echo "I: check that updates to 'check-names fail;' are rejected ($n)"
 ret=0
 not=1
-$NSUPDATE -d <<END> nsupdate.out.test$n 2>&1 || not=0
+$NSUPDATE -d <<END > nsupdate.out.test$n 2>&1 || not=0
+check-names off
 server 10.53.0.1 5300
 update add xxx_xxx.fail.update. 600 A 10.10.10.1
 send
@@ -103,7 +96,8 @@ n=`expr $n + 1`
 
 echo "I: check that updates to 'check-names warn;' succeed and are logged ($n)"
 ret=0
-$NSUPDATE -d <<END> nsupdate.out.test$n  2>&1|| ret=1
+$NSUPDATE -d <<END > nsupdate.out.test$n  2>&1|| ret=1
+check-names off
 server 10.53.0.1 5300
 update add xxx_xxx.warn.update. 600 A 10.10.10.1
 send
@@ -118,7 +112,8 @@ n=`expr $n + 1`
 echo "I: check that updates to 'check-names ignore;' succeed and are not logged ($n)"
 ret=0
 not=1
-$NSUPDATE -d <<END> nsupdate.out.test$n 2>&1 || ret=1
+$NSUPDATE -d <<END > nsupdate.out.test$n 2>&1 || ret=1
+check-names off
 server 10.53.0.1 5300
 update add xxx_xxx.ignore.update. 600 A 10.10.10.1
 send
@@ -134,7 +129,8 @@ n=`expr $n + 1`
 echo "I: check that updates to 'check-names master ignore;' succeed and are not logged ($n)"
 ret=0
 not=1
-$NSUPDATE -d <<END> nsupdate.out.test$n 2>&1 || ret=1
+$NSUPDATE -d <<END > nsupdate.out.test$n 2>&1 || ret=1
+check-names off
 server 10.53.0.4 5300
 update add xxx_xxx.master-ignore.update. 600 A 10.10.10.1
 send
@@ -147,4 +143,5 @@ if [ $ret != 0 ]; then echo "I:failed"; fi
 status=`expr $status + $ret`
 n=`expr $n + 1`
 
-exit $status
+echo "I:exit status: $status"
+[ $status -eq 0 ] || exit 1

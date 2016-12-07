@@ -1,18 +1,9 @@
 <!--
- - Copyright (C) 2004, 2005, 2007, 2013-2015  Internet Systems Consortium, Inc. ("ISC")
- - Copyright (C) 2000, 2001  Internet Software Consortium.
+ - Copyright (C) 2000, 2001, 2004, 2005, 2007, 2013-2016  Internet Systems Consortium, Inc. ("ISC")
  -
- - Permission to use, copy, modify, and/or distribute this software for any
- - purpose with or without fee is hereby granted, provided that the above
- - copyright notice and this permission notice appear in all copies.
- -
- - THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- - REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- - AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- - INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- - LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- - OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- - PERFORMANCE OF THIS SOFTWARE.
+ - This Source Code Form is subject to the terms of the Mozilla Public
+ - License, v. 2.0. If a copy of the MPL was not distributed with this
+ - file, You can obtain one at http://mozilla.org/MPL/2.0/.
 -->
 
 <!-- Converted by db4-upgrade version 1.0 -->
@@ -38,18 +29,16 @@
 
   <docinfo>
     <copyright>
+      <year>2000</year>
+      <year>2001</year>
       <year>2004</year>
       <year>2005</year>
       <year>2007</year>
       <year>2013</year>
       <year>2014</year>
       <year>2015</year>
+      <year>2016</year>
       <holder>Internet Systems Consortium, Inc. ("ISC")</holder>
-    </copyright>
-    <copyright>
-      <year>2000</year>
-      <year>2001</year>
-      <holder>Internet Software Consortium.</holder>
     </copyright>
   </docinfo>
 
@@ -62,6 +51,7 @@
       <arg choice="opt" rep="norepeat"><option>-s <replaceable class="parameter">server</replaceable></option></arg>
       <arg choice="opt" rep="norepeat"><option>-p <replaceable class="parameter">port</replaceable></option></arg>
       <arg choice="opt" rep="norepeat"><option>-q</option></arg>
+      <arg choice="opt" rep="norepeat"><option>-r</option></arg>
       <arg choice="opt" rep="norepeat"><option>-V</option></arg>
       <arg choice="opt" rep="norepeat"><option>-y <replaceable class="parameter">key_id</replaceable></option></arg>
       <arg choice="req" rep="norepeat">command</arg>
@@ -179,6 +169,17 @@
       </varlistentry>
 
       <varlistentry>
+	<term>-r</term>
+	<listitem>
+	  <para>
+	    Instructs <command>rndc</command> to print the result code
+	    returned by <command>named</command> after executing the
+	    requested command (e.g., ISC_R_SUCCESS, ISC_R_FAILURE, etc).
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
 	<term>-V</term>
 	<listitem>
 	  <para>
@@ -240,10 +241,13 @@
 	  </para>
 	  <para>
 	    The configuration is saved in a file called
-	   <filename><replaceable>hash</replaceable>.nzf</filename>,
-	    where <replaceable>hash</replaceable> is a
-	    cryptographic hash generated from the name of
-	    the view.  When <command>named</command> is
+	    <filename><replaceable>name</replaceable>.nzf</filename>,
+	    where <replaceable>name</replaceable> is the
+	    name of the view, or if it contains characters
+	    that are incompatible with use as a file name, a
+	    cryptographic hash generated from the name
+	    of the view.
+	    When <command>named</command> is
 	    restarted, the file will be loaded into the view
 	    configuration, so that zones that were added
 	    can persist after a restart.
@@ -261,7 +265,7 @@
 	    configuration text.)
 	  </para>
 	  <para>
-	    See also <command>rndc delzone</command>.
+	    See also <command>rndc delzone</command> and <command>rndc modzone</command>.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -271,12 +275,9 @@
 	<listitem>
 	  <para>
 	    Delete a zone while the server is running.
-	    Only zones that were originally added via
-	    <command>rndc addzone</command> can be deleted
-	    in this manner.
 	  </para>
 	  <para>
-	    If the <option>-clean</option> is specified,
+	    If the <option>-clean</option> argument is specified,
 	    the zone's master file (and journal file, if any)
 	    will be deleted along with the zone.  Without the
 	    <option>-clean</option> option, zone files must
@@ -286,13 +287,41 @@
 	    of the <command>rndc delzone</command> command.)
 	  </para>
 	  <para>
-	    See also <command>rndc addzone</command>.
+	    If the zone was originally added via
+	    <command>rndc addzone</command>, then it will be
+	    removed permanently. However, if it was originally
+	    configured in <filename>named.conf</filename>, then
+	    that original configuration is still in place; when
+	    the server is restarted or reconfigured, the zone will
+	    come back. To remove it permanently, it must also be
+	    removed from <filename>named.conf</filename>
+	  </para>
+	  <para>
+	    See also <command>rndc addzone</command> and <command>rndc modzone</command>.
 	  </para>
 	</listitem>
       </varlistentry>
 
       <varlistentry>
-	<term><userinput>dumpdb <optional>-all|-cache|-zone|-adb|-bad</optional> <optional><replaceable>view ...</replaceable></optional></userinput></term>
+	<term><userinput>dnstap ( -reopen | -roll <optional><replaceable>number</replaceable></optional> )</userinput></term>
+	<listitem>
+	  <para>
+	    Close and re-open DNSTAP output files.
+	    <command>rndc dnstap -reopen</command> allows the output
+	    file to be renamed externally, so
+	    that <command>named</command> can truncate and re-open it.
+	    <command>rndc dnstap -roll</command> causes the output file
+	    to be rolled automatically, similar to log files; the most
+	    recent output file has ".0" appended to its name; the
+	    previous most recent output file is moved to ".1", and so on.
+	    If <replaceable>number</replaceable> is specified, then the
+	    number of backup log files is limited to that number.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><userinput>dumpdb <optional>-all|-cache|-zone|-adb|-bad|-fail</optional> <optional><replaceable>view ...</replaceable></optional></userinput></term>
 	<listitem>
 	  <para>
 	    Dump the server's caches (default) and/or zones to
@@ -319,9 +348,9 @@
 	<term><userinput>flushname</userinput> <replaceable>name</replaceable> <optional><replaceable>view</replaceable></optional> </term>
 	<listitem>
 	  <para>
-	    Flushes the given name from the server's DNS cache
-	    and, if applicable, from the server's nameserver address
-	    database or bad-server cache.
+	    Flushes the given name from the view's DNS cache
+	    and, if applicable, from the view's nameserver address
+	    database, bad server cache and SERVFAIL cache.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -331,8 +360,8 @@
 	<listitem>
 	  <para>
 	    Flushes the given name, and all of its subdomains,
-	    from the server's DNS cache, the address database,
-	    and the bad server cache.
+	    from the view's DNS cache, address database,
+	    bad server cache, and SERVFAIL cache.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -394,8 +423,55 @@
 	    (See "Dynamic Update Policies" in the Administrator
 	    Reference Manual for more details.)
 	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><userinput>managed-keys <replaceable>(status | refresh | sync)</replaceable> <optional><replaceable>class</replaceable> <optional><replaceable>view</replaceable></optional></optional></userinput></term>
+	<listitem>
 	  <para>
-	    See also <command>rndc loadkeys</command>.
+	    When run with the "status" keyword, print the current
+	    status of the managed-keys database for the specified
+	    view, or for all views if none is specified.  When run
+	    with the "refresh" keyword, force an immediate refresh
+	    of all the managed-keys in the specified view, or all
+	    views.  When run with the "sync" keyword, force an
+	    immediate dump of the managed-keys database to disk (in
+	    the file <filename>managed-keys.bind</filename> or
+	    (<filename><replaceable>viewname</replaceable>.mkeys</filename>).
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><userinput>modzone <replaceable>zone</replaceable> <optional><replaceable>class</replaceable> <optional><replaceable>view</replaceable></optional></optional> <replaceable>configuration</replaceable> </userinput></term>
+	<listitem>
+	  <para>
+	    Modify the configuration of a zone while the server
+	    is running.  This command requires the
+	    <command>allow-new-zones</command> option to be
+	    set to <userinput>yes</userinput>.  As with
+	    <command>addzone</command>, the
+	    <replaceable>configuration</replaceable> string
+	    specified on the command line is the zone
+	    configuration text that would ordinarily be
+	    placed in <filename>named.conf</filename>.
+	  </para>
+	  <para>
+	    If the zone was originally added via
+	    <command>rndc addzone</command>, the configuration
+	    changes will be recorded permanently and will still be
+	    in effect after the server is restarted or reconfigured.
+	    However, if it was originally configured in
+	    <filename>named.conf</filename>, then that original
+	    configuration is still in place; when the server is
+	    restarted or reconfigured, the zone will revert to
+	    its original configuration.  To make the changes
+	    permanent, it must also be modified in
+	    <filename>named.conf</filename>
+	  </para>
+	  <para>
+	    See also <command>rndc addzone</command> and <command>rndc delzone</command>.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -417,6 +493,81 @@
 	  </para>
 	  <para>
 	    See also <command>rndc trace</command>.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><userinput>nta
+	<optional>( -d | -f | -r | -l <replaceable>duration</replaceable>)</optional>
+	<replaceable>domain</replaceable>
+	<optional><replaceable>view</replaceable></optional>
+	</userinput></term>
+	<listitem>
+	  <para>
+	    Sets a DNSSEC negative trust anchor (NTA)
+	    for <option>domain</option>, with a lifetime of
+	    <option>duration</option>.  The default lifetime is
+	    configured in <filename>named.conf</filename> via the
+	    <option>nta-lifetime</option> option, and defaults to
+	    one hour.  The lifetime cannot exceed one week.
+	  </para>
+	  <para>
+	    A negative trust anchor selectively disables
+	    DNSSEC validation for zones that are known to be
+	    failing because of misconfiguration rather than
+	    an attack.  When data to be validated is
+	    at or below an active NTA (and above any other
+	    configured trust anchors), <command>named</command> will
+	    abort the DNSSEC validation process and treat the data as
+	    insecure rather than bogus.  This continues until the
+	    NTA's lifetime is elapsed.
+	  </para>
+	  <para>
+	    NTAs persist across restarts of the <command>named</command> server.
+	    The NTAs for a view are saved in a file called
+	    <filename><replaceable>name</replaceable>.nta</filename>,
+	    where <replaceable>name</replaceable> is the
+	    name of the view, or if it contains characters
+	    that are incompatible with use as a file name, a
+	    cryptographic hash generated from the name
+	    of the view.
+	  </para>
+	  <para>
+	    An existing NTA can be removed by using the
+	    <option>-remove</option> option.
+	  </para>
+	  <para>
+	    An NTA's lifetime can be specified with the
+	    <option>-lifetime</option> option.  TTL-style
+	    suffixes can be used to specify the lifetime in
+	    seconds, minutes, or hours.  If the specified NTA
+	    already exists, its lifetime will be updated to the
+	    new value.  Setting <option>lifetime</option> to zero
+	    is equivalent to <option>-remove</option>.
+	  </para>
+	  <para>
+	    If <option>-dump</option> is used, any other arguments
+	    are ignored, and a list of existing NTAs is printed
+	    (note that this may include NTAs that are expired but
+	    have not yet been cleaned up).
+	  </para>
+	  <para>
+	    Normally, <command>named</command> will periodically
+	    test to see whether data below an NTA can now be
+	    validated (see the <option>nta-recheck</option> option
+	    in the Administrator Reference Manual for details).
+	    If data can be validated, then the NTA is regarded as
+	    no longer necessary, and will be allowed to expire
+	    early.  The <option>-force</option> overrides this
+	    behavior and forces an NTA to persist for its entire
+	    lifetime, regardless of whether data could be
+	    validated if the NTA were not present.
+	  </para>
+	  <para>
+	    All of these options can be shortened, i.e., to
+	    <option>-l</option>, <option>-r</option>, <option>-d</option>,
+	    and <option>-f</option>.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -459,17 +610,17 @@
       </varlistentry>
 
       <varlistentry>
-        <term><userinput>recursing</userinput></term>
-        <listitem>
-          <para>
-            Dump the list of queries <command>named</command> is currently
-            recursing on, and the list of domains to which iterative
-            queries are currently being sent.  (The second list includes
-            the number of fetches currently active for the given domain,
-            and how many have been passed or dropped because of the
-            <option>fetches-per-zone</option> option.)
-          </para>
-        </listitem>
+	<term><userinput>recursing</userinput></term>
+	<listitem>
+	  <para>
+	    Dump the list of queries <command>named</command> is currently
+	    recursing on, and the list of domains to which iterative
+	    queries are currently being sent.  (The second list includes
+	    the number of fetches currently active for the given domain,
+	    and how many have been passed or dropped because of the
+	    <option>fetches-per-zone</option> option.)
+	  </para>
+	</listitem>
       </varlistentry>
 
       <varlistentry>
@@ -529,13 +680,36 @@
       </varlistentry>
 
       <varlistentry>
-	<term><userinput>secroots <optional><replaceable>view ...</replaceable></optional></userinput></term>
+	<term><userinput>secroots <optional>-</optional> <optional><replaceable>view ...</replaceable></optional></userinput></term>
 	<listitem>
 	  <para>
-	    Dump the server's security roots to the secroots
-	    file for the specified views.  If no view is
-	    specified, security roots for all
-	    views are dumped.
+	    Dump the server's security roots and negative trust anchors
+	    for the specified views.  If no view is specified, all views
+	    are dumped.
+	  </para>
+	  <para>
+	    If the first argument is "-", then the output is
+	    returned via the <command>rndc</command> response channel
+	    and printed to the standard output.
+	    Otherwise, it is written to the secroots dump file, which
+	    defaults to <filename>named.secroots</filename>, but can be
+	    overridden via the <option>secroots-file</option> option in
+	    <filename>named.conf</filename>.
+	  </para>
+	  <para>
+	    See also <command>rndc managed-keys</command>.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><userinput>showzone <replaceable>zone</replaceable> <optional><replaceable>class</replaceable> <optional><replaceable>view</replaceable></optional></optional> </userinput></term>
+	<listitem>
+	  <para>
+	    Print the configuration of a running zone.
+	  </para>
+	  <para>
+	    See also <command>rndc zonestatus</command>.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -570,7 +744,7 @@
       </varlistentry>
 
       <varlistentry>
-	<term><userinput>signing <optional>( -list | -clear <replaceable>keyid/algorithm</replaceable> | -clear <literal>all</literal> | -nsec3param ( <replaceable>parameters</replaceable> | <literal>none</literal> ) ) </optional> <replaceable>zone</replaceable> <optional><replaceable>class</replaceable> <optional><replaceable>view</replaceable></optional></optional> </userinput></term>
+	<term><userinput>signing <optional>( -list | -clear <replaceable>keyid/algorithm</replaceable> | -clear <literal>all</literal> | -nsec3param ( <replaceable>parameters</replaceable> | <literal>none</literal> ) | -serial <replaceable>value</replaceable> ) </optional> <replaceable>zone</replaceable> <optional><replaceable>class</replaceable> <optional><replaceable>view</replaceable></optional></optional> </userinput></term>
 	<listitem>
 	  <para>
 	    List, edit, or remove the DNSSEC signing state records
@@ -631,6 +805,13 @@
 	    <command>rndc signing -nsec3param none</command>
 	    removes an existing NSEC3 chain and replaces it
 	    with NSEC.
+	  </para>
+	  <para>
+	    <command>rndc signing -serial value</command> sets
+	    the serial number of the zone to value.  If the value
+	    would cause the serial number to go backwards it will
+	    be rejected.  The primary use is to set the serial on
+	    inline signed zones.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -779,6 +960,9 @@
 	    signed, whether it uses automatic DNSSEC key
 	    management or inline signing, and the scheduled
 	    refresh or expiry times for the zone.
+	  </para>
+	  <para>
+	    See also <command>rndc showzone</command>.
 	  </para>
 	</listitem>
       </varlistentry>

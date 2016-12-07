@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2008, 2011, 2012, 2014  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 2000-2003  Internet Software Consortium.
+ * Copyright (C) 2000-2008, 2011, 2012, 2014, 2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /*! \file */
@@ -239,6 +230,8 @@ lwres_conf_init(lwres_context_t *ctx) {
 	confdata->resdebug = 0;
 	confdata->ndots = 1;
 	confdata->no_tld_query = 0;
+	confdata->attempts = 0;
+	confdata->timeout = 0;
 
 	for (i = 0; i < LWRES_CONFMAXNAMESERVERS; i++)
 		lwres_resetaddr(&confdata->nameservers[i]);
@@ -291,6 +284,8 @@ lwres_conf_clear(lwres_context_t *ctx) {
 	confdata->resdebug = 0;
 	confdata->ndots = 1;
 	confdata->no_tld_query = 0;
+	confdata->attempts = 0;
+	confdata->timeout = 0;
 }
 
 static lwres_result_t
@@ -564,6 +559,8 @@ static lwres_result_t
 lwres_conf_parseoption(lwres_context_t *ctx,  FILE *fp) {
 	int delim;
 	long ndots;
+	long attempts;
+	long timeout;
 	char *p;
 	char word[LWRES_CONFMAXLINELEN];
 	lwres_conf_t *confdata;
@@ -580,6 +577,8 @@ lwres_conf_parseoption(lwres_context_t *ctx,  FILE *fp) {
 			confdata->resdebug = 1;
 		} else if (strcmp("no_tld_query", word) == 0) {
 			confdata->no_tld_query = 1;
+		} else if (strcmp("debug", word) == 0) {
+			confdata->resdebug = 1;
 		} else if (strncmp("ndots:", word, 6) == 0) {
 			ndots = strtol(word + 6, &p, 10);
 			if (*p != '\0') /* Bad string. */
@@ -587,6 +586,18 @@ lwres_conf_parseoption(lwres_context_t *ctx,  FILE *fp) {
 			if (ndots < 0 || ndots > 0xff) /* Out of range. */
 				return (LWRES_R_FAILURE);
 			confdata->ndots = (lwres_uint8_t)ndots;
+		} else if (strncmp("timeout:", word, 8) == 0) {
+			timeout = strtol(word + 8, &p, 10);
+			if (*p != '\0') /* Bad string. */
+				return (LWRES_R_FAILURE);
+			confdata->timeout = (lwres_int32_t)timeout;
+		} else if (strncmp("attempts:", word, 9) == 0) {
+			attempts = strtol(word + 9, &p, 10);
+			if (*p != '\0') /* Bad string. */
+				return (LWRES_R_FAILURE);
+			if (attempts < 0) /* Out of range. */
+				return (LWRES_R_FAILURE);
+			confdata->attempts = (lwres_int32_t)attempts;
 		}
 
 		if (delim == EOF || delim == '\n')
@@ -763,6 +774,12 @@ lwres_conf_print(lwres_context_t *ctx, FILE *fp) {
 
 	if (confdata->no_tld_query)
 		fprintf(fp, "options no_tld_query\n");
+
+	if (confdata->attempts)
+		fprintf(fp, "options attempts:%d\n", confdata->attempts);
+
+	if (confdata->timeout)
+		fprintf(fp, "options timeout:%d\n", confdata->timeout);
 
 	return (LWRES_R_SUCCESS);
 }

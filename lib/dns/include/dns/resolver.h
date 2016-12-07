@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2015  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1999-2001, 2003  Internet Software Consortium.
+ * Copyright (C) 1999-2001, 2003-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 #ifndef DNS_RESOLVER_H
@@ -105,6 +96,7 @@ typedef enum {
 #define DNS_FETCHOPT_WANTNSID		0x080	     /*%< Request NSID */
 #define DNS_FETCHOPT_PREFETCH		0x100	     /*%< Do prefetch */
 #define DNS_FETCHOPT_NOCDFLAG		0x200	     /*%< Don't set CD flag. */
+#define DNS_FETCHOPT_NONTA		0x400	     /*%< Ignore NTA table. */
 
 /* Reserved in use by adb.c		0x00400000 */
 #define	DNS_FETCHOPT_EDNSVERSIONSET	0x00800000
@@ -697,6 +689,14 @@ dns_resolver_getquotaresponse(dns_resolver_t *resolver, dns_quotatype_t which);
 void
 dns_resolver_dumpfetches(dns_resolver_t *resolver,
 			 isc_statsformat_t format, FILE *fp);
+
+
+#ifdef ENABLE_AFL
+/*%
+ * Enable fuzzing of resolver, changes behaviour and eliminates retries
+ */
+void dns_resolver_setfuzzing(void);
+#endif
 
 ISC_LANG_ENDDECLS
 

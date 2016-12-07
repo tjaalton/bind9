@@ -1,19 +1,10 @@
 #!/bin/sh -e
 #
-# Copyright (C) 2004, 2006-2012, 2014-2016  Internet Systems Consortium, Inc. ("ISC")
-# Copyright (C) 2000-2003  Internet Software Consortium.
+# Copyright (C) 2000-2004, 2006-2012, 2014-2016  Internet Systems Consortium, Inc. ("ISC")
 #
-# Permission to use, copy, modify, and/or distribute this software for any
-# purpose with or without fee is hereby granted, provided that the above
-# copyright notice and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-# AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
-# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
-# OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-# PERFORMANCE OF THIS SOFTWARE.
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 SYSTEMTESTTOP=../..
 . $SYSTEMTESTTOP/conf.sh
@@ -26,11 +17,11 @@ zonefile=example.db
 
 ( cd ../ns3 && $SHELL sign.sh )
 
-for subdomain in secure bogus dnskey-unknown dnskey-nsec3-unknown \
-	dynamic keyless nsec3 optout nsec3-unknown optout-unknown \
-	multiple rsasha256 rsasha512 kskonly update-nsec3 auto-nsec \
-	auto-nsec3 secure.below-cname ttlpatch split-dnssec split-smart \
-	expired expiring upper lower managed-future revkey
+for subdomain in secure badds bogus dynamic keyless nsec3 optout \
+	nsec3-unknown optout-unknown multiple rsasha256 rsasha512 \
+	kskonly update-nsec3 auto-nsec auto-nsec3 secure.below-cname \
+	ttlpatch split-dnssec split-smart expired expiring upper lower \
+	dnskey-unknown dnskey-nsec3-unknown managed-future revkey
 do
 	cp ../ns3/dsset-$subdomain.example. .
 done

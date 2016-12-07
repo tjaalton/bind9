@@ -1,21 +1,10 @@
 /*
- * Copyright (C) 2004-2012, 2014  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1999-2003  Internet Software Consortium.
+ * Copyright (C) 1999-2012, 2014-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-
-/* $Id: rdataset.h,v 1.72 2011/06/08 22:13:51 each Exp $ */
 
 #ifndef DNS_RDATASET_H
 #define DNS_RDATASET_H 1
@@ -115,6 +104,9 @@ typedef struct dns_rdatasetmethods {
 					    dns_trust_t trust);
 	void			(*expire)(dns_rdataset_t *rdataset);
 	void			(*clearprefetch)(dns_rdataset_t *rdataset);
+	void			(*setownercase)(dns_rdataset_t *rdataset,
+						const dns_name_t *name);
+	void			(*getownercase)(const dns_rdataset_t *rdataset,							dns_name_t *name);
 } dns_rdatasetmethods_t;
 
 #define DNS_RDATASET_MAGIC	       ISC_MAGIC('D','N','S','R')
@@ -664,6 +656,22 @@ dns_rdataset_clearprefetch(dns_rdataset_t *rdataset);
  * In the cache database, this signals that the rdataset is not
  * eligible to be prefetched when the TTL is close to expiring.
  * It has no function in other databases.
+ */
+
+void
+dns_rdataset_setownercase(dns_rdataset_t *rdataset, const dns_name_t *name);
+/*%<
+ * Store the casing of 'name', the owner name of 'rdataset', into
+ * a bitfield so that the name can be capitalized the same when when
+ * the rdataset is used later. This sets the CASESET attribute.
+ */
+
+void
+dns_rdataset_getownercase(const dns_rdataset_t *rdataset, dns_name_t *name);
+/*%<
+ * If the CASESET attribute is set, retrieve the case bitfield that was
+ * previously stored by dns_rdataset_getownername(), and capitalize 'name'
+ * according to it. If CASESET is not set, do nothing.
  */
 
 void

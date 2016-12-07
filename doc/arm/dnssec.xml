@@ -1,17 +1,9 @@
 <!--
- - Copyright (C) 2010, 2011, 2015  Internet Systems Consortium, Inc. ("ISC")
+ - Copyright (C) 2010, 2011, 2015, 2016  Internet Systems Consortium, Inc. ("ISC")
  -
- - Permission to use, copy, modify, and/or distribute this software for any
- - purpose with or without fee is hereby granted, provided that the above
- - copyright notice and this permission notice appear in all copies.
- -
- - THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- - REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- - AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- - INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- - LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- - OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- - PERFORMANCE OF THIS SOFTWARE.
+ - This Source Code Form is subject to the terms of the Mozilla Public
+ - License, v. 2.0. If a copy of the MPL was not distributed with this
+ - file, You can obtain one at http://mozilla.org/MPL/2.0/.
 -->
 
 <!-- Converted by db4-upgrade version 1.0 -->
@@ -35,12 +27,12 @@
   in the key-directory, as specified in
   <filename>named.conf</filename>:</para>
   <programlisting>
-        zone example.net {
-                type master;
-                update-policy local;
-                file "dynamic/example.net/example.net";
-                key-directory "dynamic/example.net";
-        };
+	zone example.net {
+		type master;
+		update-policy local;
+		file "dynamic/example.net/example.net";
+		key-directory "dynamic/example.net";
+	};
 </programlisting>
   <para>If one KSK and one ZSK DNSKEY key have been generated, this
   configuration will cause all records in the zone to be signed
@@ -52,11 +44,11 @@
   </section>
   <para>To insert the keys via dynamic update:</para>
   <screen>
-        % nsupdate
-        &gt; ttl 3600
-        &gt; update add example.net DNSKEY 256 3 7 AwEAAZn17pUF0KpbPA2c7Gz76Vb18v0teKT3EyAGfBfL8eQ8al35zz3Y I1m/SAQBxIqMfLtIwqWPdgthsu36azGQAX8=
-        &gt; update add example.net DNSKEY 257 3 7 AwEAAd/7odU/64o2LGsifbLtQmtO8dFDtTAZXSX2+X3e/UNlq9IHq3Y0 XtC0Iuawl/qkaKVxXe2lo8Ct+dM6UehyCqk=
-        &gt; send
+	% nsupdate
+	&gt; ttl 3600
+	&gt; update add example.net DNSKEY 256 3 7 AwEAAZn17pUF0KpbPA2c7Gz76Vb18v0teKT3EyAGfBfL8eQ8al35zz3Y I1m/SAQBxIqMfLtIwqWPdgthsu36azGQAX8=
+	&gt; update add example.net DNSKEY 257 3 7 AwEAAd/7odU/64o2LGsifbLtQmtO8dFDtTAZXSX2+X3e/UNlq9IHq3Y0 XtC0Iuawl/qkaKVxXe2lo8Ct+dM6UehyCqk=
+	&gt; send
 </screen>
   <para>While the update request will complete almost immediately,
   the zone will not be completely signed until
@@ -69,12 +61,12 @@
   wish the NSEC3 chain to have the OPTOUT bit set, set it in the
   flags field of the NSEC3PARAM record.</para>
   <screen>
-        % nsupdate
-        &gt; ttl 3600
-        &gt; update add example.net DNSKEY 256 3 7 AwEAAZn17pUF0KpbPA2c7Gz76Vb18v0teKT3EyAGfBfL8eQ8al35zz3Y I1m/SAQBxIqMfLtIwqWPdgthsu36azGQAX8=
-        &gt; update add example.net DNSKEY 257 3 7 AwEAAd/7odU/64o2LGsifbLtQmtO8dFDtTAZXSX2+X3e/UNlq9IHq3Y0 XtC0Iuawl/qkaKVxXe2lo8Ct+dM6UehyCqk=
-        &gt; update add example.net NSEC3PARAM 1 1 100 1234567890
-        &gt; send
+	% nsupdate
+	&gt; ttl 3600
+	&gt; update add example.net DNSKEY 256 3 7 AwEAAZn17pUF0KpbPA2c7Gz76Vb18v0teKT3EyAGfBfL8eQ8al35zz3Y I1m/SAQBxIqMfLtIwqWPdgthsu36azGQAX8=
+	&gt; update add example.net DNSKEY 257 3 7 AwEAAd/7odU/64o2LGsifbLtQmtO8dFDtTAZXSX2+X3e/UNlq9IHq3Y0 XtC0Iuawl/qkaKVxXe2lo8Ct+dM6UehyCqk=
+	&gt; update add example.net NSEC3PARAM 1 1 100 1234567890
+	&gt; send
 </screen>
   <para>Again, this update request will complete almost
   immediately; however, the record won't show up until
@@ -273,7 +265,7 @@
   <section><info><title>Periodic re-signing</title></info>
 
   </section>
-  <para>In any secure zone which supports dynamic updates, named
+  <para>In any secure zone which supports dynamic updates, <command>named</command>
   will periodically re-sign RRsets which have not been re-signed as
   a result of some update action. The signature lifetimes will be
   adjusted so as to spread the re-sign load over time rather than

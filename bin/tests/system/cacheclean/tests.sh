@@ -1,19 +1,10 @@
 #!/bin/sh
 #
-# Copyright (C) 2004, 2007, 2011-2014, 2016  Internet Systems Consortium, Inc. ("ISC")
-# Copyright (C) 2001  Internet Software Consortium.
+# Copyright (C) 2001, 2004, 2007, 2011-2014, 2016  Internet Systems Consortium, Inc. ("ISC")
 #
-# Permission to use, copy, modify, and/or distribute this software for any
-# purpose with or without fee is hereby granted, provided that the above
-# copyright notice and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-# AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
-# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
-# OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-# PERFORMANCE OF THIS SOFTWARE.
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 # $Id: tests.sh,v 1.10 2011/09/01 05:28:14 marka Exp $
 
@@ -91,7 +82,7 @@ grep ";" dig.out.ns2
 $PERL ../digcomp.pl --lc dig.out.ns2 knowngood.dig.out || status=1
 
 echo "I:only one tcp socket was used"
-tcpclients=`grep "client 10.53.0.7#[0-9]*:" ns2/named.run | awk '{print $4}' | sort | uniq -c | wc -l`
+tcpclients=`awk '$3 == "client" && $5 ~ /10.53.0.7#[0-9]*:/ {print $5}' ns2/named.run | sort | uniq -c | wc -l`
 
 test $tcpclients -eq 1 || { status=1; echo "I:failed"; }
 
@@ -217,6 +208,13 @@ awk '/plain success\/timeout/ {getline; getline; if ($2 == "ns.flushtest.example
 if [ $ret != 0 ]; then echo "I:failed"; fi
 status=`expr $status + $ret`
 
+echo "I:check expire option returned from master zone"
+ret=0
+$DIG @10.53.0.1 -p 5300 +expire soa expire-test > dig.out.expire
+grep EXPIRE: dig.out.expire > /dev/null || ret=1
+if [ $ret != 0 ]; then echo "I:failed"; fi
+status=`expr $status + $ret`
+
 echo "I:check expire option returned from slave zone"
 ret=0
 $DIG @10.53.0.2 -p 5300 +expire soa expire-test > dig.out.expire
@@ -225,4 +223,4 @@ if [ $ret != 0 ]; then echo "I:failed"; fi
 status=`expr $status + $ret`
 
 echo "I:exit status: $status"
-exit $status
+[ $status -eq 0 ] || exit 1

@@ -1,20 +1,12 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <!--
- - Copyright (C) 2004-2015 Internet Systems Consortium, Inc. ("ISC")
- - Copyright (C) 2000-2003 Internet Software Consortium.
+ - Copyright (C) 2000-2015 Internet Systems Consortium, Inc. ("ISC")
  - 
- - Permission to use, copy, modify, and/or distribute this software for any
- - purpose with or without fee is hereby granted, provided that the above
- - copyright notice and this permission notice appear in all copies.
- - 
- - THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- - REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- - AND FITNESS. IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- - INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- - LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- - OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- - PERFORMANCE OF THIS SOFTWARE.
+ - This Source Code Form is subject to the terms of the Mozilla Public
+ - License, v. 2.0. If a copy of the MPL was not distributed with this
+ - file, You can obtain one at http://mozilla.org/MPL/2.0/.
 -->
-<html>
+<html lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
 <title>dnssec-dsfromkey</title>
@@ -51,105 +43,105 @@
 <div class="cmdsynopsis"><p><code class="command">dnssec-dsfromkey</code>  [<code class="option">-h</code>] [<code class="option">-V</code>]</p></div>
 </div>
 <div class="refsection">
-<a name="id-1.14.7.7"></a><h2>DESCRIPTION</h2>
+<a name="id-1.14.9.7"></a><h2>DESCRIPTION</h2>
 <p><span class="command"><strong>dnssec-dsfromkey</strong></span>
       outputs the Delegation Signer (DS) resource record (RR), as defined in
       RFC 3658 and RFC 4509, for the given key(s).
     </p>
 </div>
 <div class="refsection">
-<a name="id-1.14.7.8"></a><h2>OPTIONS</h2>
+<a name="id-1.14.9.8"></a><h2>OPTIONS</h2>
 <div class="variablelist"><dl class="variablelist">
 <dt><span class="term">-1</span></dt>
 <dd><p>
-            Use SHA-1 as the digest algorithm (the default is to use
-            both SHA-1 and SHA-256).
-          </p></dd>
+	    Use SHA-1 as the digest algorithm (the default is to use
+	    both SHA-1 and SHA-256).
+	  </p></dd>
 <dt><span class="term">-2</span></dt>
 <dd><p>
-            Use SHA-256 as the digest algorithm.
-          </p></dd>
+	    Use SHA-256 as the digest algorithm.
+	  </p></dd>
 <dt><span class="term">-a <em class="replaceable"><code>algorithm</code></em></span></dt>
 <dd><p>
-            Select the digest algorithm. The value of
-            <code class="option">algorithm</code> must be one of SHA-1 (SHA1),
-            SHA-256 (SHA256), GOST or SHA-384 (SHA384).
-            These values are case insensitive.
-          </p></dd>
+	    Select the digest algorithm. The value of
+	    <code class="option">algorithm</code> must be one of SHA-1 (SHA1),
+	    SHA-256 (SHA256), GOST or SHA-384 (SHA384).
+	    These values are case insensitive.
+	  </p></dd>
 <dt><span class="term">-C</span></dt>
 <dd><p>
-            Generate CDS records rather than DS records.  This is mutually
+	    Generate CDS records rather than DS records.  This is mutually
 	    exclusive with generating lookaside records.
-          </p></dd>
+	  </p></dd>
 <dt><span class="term">-T <em class="replaceable"><code>TTL</code></em></span></dt>
 <dd><p>
-            Specifies the TTL of the DS records.
-          </p></dd>
+	    Specifies the TTL of the DS records.
+	  </p></dd>
 <dt><span class="term">-K <em class="replaceable"><code>directory</code></em></span></dt>
 <dd><p>
-            Look for key files (or, in keyset mode,
-            <code class="filename">keyset-</code> files) in
-            <code class="option">directory</code>.
-          </p></dd>
+	    Look for key files (or, in keyset mode,
+	    <code class="filename">keyset-</code> files) in
+	    <code class="option">directory</code>.
+	  </p></dd>
 <dt><span class="term">-f <em class="replaceable"><code>file</code></em></span></dt>
 <dd>
 <p>
-            Zone file mode: in place of the keyfile name, the argument is
-            the DNS domain name of a zone master file, which can be read
-            from <code class="option">file</code>.  If the zone name is the same as
-            <code class="option">file</code>, then it may be omitted.
-          </p>
+	    Zone file mode: in place of the keyfile name, the argument is
+	    the DNS domain name of a zone master file, which can be read
+	    from <code class="option">file</code>.  If the zone name is the same as
+	    <code class="option">file</code>, then it may be omitted.
+	  </p>
 <p>
-            If <code class="option">file</code> is set to <code class="literal">"-"</code>, then
-            the zone data is read from the standard input.  This makes it
-            possible to use the output of the <span class="command"><strong>dig</strong></span>
-            command as input, as in:
-          </p>
+	    If <code class="option">file</code> is set to <code class="literal">"-"</code>, then
+	    the zone data is read from the standard input.  This makes it
+	    possible to use the output of the <span class="command"><strong>dig</strong></span>
+	    command as input, as in:
+	  </p>
 <p>
-            <strong class="userinput"><code>dig dnskey example.com | dnssec-dsfromkey -f - example.com</code></strong>
-          </p>
+	    <strong class="userinput"><code>dig dnskey example.com | dnssec-dsfromkey -f - example.com</code></strong>
+	  </p>
 </dd>
 <dt><span class="term">-A</span></dt>
 <dd><p>
-            Include ZSK's when generating DS records.  Without this option,
+            Include ZSKs when generating DS records.  Without this option,
             only keys which have the KSK flag set will be converted to DS
             records and printed.  Useful only in zone file mode.
           </p></dd>
 <dt><span class="term">-l <em class="replaceable"><code>domain</code></em></span></dt>
 <dd><p>
-            Generate a DLV set instead of a DS set.  The specified
-            <code class="option">domain</code> is appended to the name for each
-            record in the set.
-            The DNSSEC Lookaside Validation (DLV) RR is described
-            in RFC 4431.  This is mutually exclusive with generating
+	    Generate a DLV set instead of a DS set.  The specified
+	    <code class="option">domain</code> is appended to the name for each
+	    record in the set.
+	    The DNSSEC Lookaside Validation (DLV) RR is described
+	    in RFC 4431.  This is mutually exclusive with generating
 	    CDS records.
-          </p></dd>
+	  </p></dd>
 <dt><span class="term">-s</span></dt>
 <dd><p>
-            Keyset mode: in place of the keyfile name, the argument is
-            the DNS domain name of a keyset file.
-          </p></dd>
+	    Keyset mode: in place of the keyfile name, the argument is
+	    the DNS domain name of a keyset file.
+	  </p></dd>
 <dt><span class="term">-c <em class="replaceable"><code>class</code></em></span></dt>
 <dd><p>
-            Specifies the DNS class (default is IN).  Useful only
-            in keyset or zone file mode.
-          </p></dd>
+	    Specifies the DNS class (default is IN).  Useful only
+	    in keyset or zone file mode.
+	  </p></dd>
 <dt><span class="term">-v <em class="replaceable"><code>level</code></em></span></dt>
 <dd><p>
-            Sets the debugging level.
-          </p></dd>
+	    Sets the debugging level.
+	  </p></dd>
 <dt><span class="term">-h</span></dt>
 <dd><p>
-            Prints usage information.
-          </p></dd>
+	    Prints usage information.
+	  </p></dd>
 <dt><span class="term">-V</span></dt>
 <dd><p>
-            Prints version information.
-          </p></dd>
+	    Prints version information.
+	  </p></dd>
 </dl></div>
 </div>
 <div class="refsection">
-<a name="id-1.14.7.9"></a><h2>EXAMPLE</h2>
+<a name="id-1.14.9.9"></a><h2>EXAMPLE</h2>
 <p>
       To build the SHA-256 DS RR from the
       <strong class="userinput"><code>Kexample.com.+003+26160</code></strong>
@@ -164,7 +156,7 @@
     </p>
 </div>
 <div class="refsection">
-<a name="id-1.14.7.10"></a><h2>FILES</h2>
+<a name="id-1.14.9.10"></a><h2>FILES</h2>
 <p>
       The keyfile can be designed by the key identification
       <code class="filename">Knnnn.+aaa+iiiii</code> or the full file name
@@ -178,13 +170,13 @@
     </p>
 </div>
 <div class="refsection">
-<a name="id-1.14.7.11"></a><h2>CAVEAT</h2>
+<a name="id-1.14.9.11"></a><h2>CAVEAT</h2>
 <p>
       A keyfile error can give a "file not found" even if the file exists.
     </p>
 </div>
 <div class="refsection">
-<a name="id-1.14.7.12"></a><h2>SEE ALSO</h2>
+<a name="id-1.14.9.12"></a><h2>SEE ALSO</h2>
 <p><span class="citerefentry"><span class="refentrytitle">dnssec-keygen</span>(8)</span>,
       <span class="citerefentry"><span class="refentrytitle">dnssec-signzone</span>(8)</span>,
       <em class="citetitle">BIND 9 Administrator Reference Manual</em>,
@@ -213,6 +205,6 @@
 </tr>
 </table>
 </div>
-<p xmlns:db="http://docbook.org/ns/docbook" style="text-align: center;">BIND 9.10.4-P2</p>
+<p xmlns:db="http://docbook.org/ns/docbook" style="text-align: center;">BIND 9.11.0</p>
 </body>
 </html>

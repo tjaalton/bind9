@@ -1,15 +1,15 @@
-Copyright (C) 2004, 2015  Internet Systems Consortium, Inc. ("ISC")
-Copyright (C) 2001  Internet Software Consortium.
-See COPYRIGHT in the source root or http://isc.org/copyright.html for terms.
+Copyright (C) 2001, 2004, 2015, 2016  Internet Systems Consortium, Inc. ("ISC")
 
-$Id: rfc-compliance,v 1.4 2004/03/05 05:04:53 marka Exp $
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 BIND 9 is striving for strict compliance with IETF standards.  We
 believe this release of BIND 9 complies with the following RFCs, with
 the caveats and exceptions listed in the numbered notes below.  Note
 that a number of these RFCs do not have the status of Internet
-standards but are proposed or draft standards, experimental RFCs, 
-or Best Current Practice (BCP) documents.
+standards but are proposed or draft standards, experimental RFCs,
+or Best Current Practice (BCP) documents.  The list is non exhaustive.
 
   RFC1034
   RFC1035 [1] [2]
@@ -86,6 +86,8 @@ or Best Current Practice (BCP) documents.
   RFC7043
   RFC7314
   RFC7477
+  RFC7793
+  RFC7830 [16]
 
 The following DNS related RFC have been obsoleted
 
@@ -102,20 +104,59 @@ The following DNS related RFC have been obsoleted
   RFC3658 (Obsoleted by 4034, 4035)
   RFC3755 (Obsoleted by 4034, 4035)
   RFC3757 (Obsoleted by 4034, 4035)
+  RFC3845 (Obsoleted by 4034, 4035)
 
 [1] Queries to zones that have failed to load return SERVFAIL rather
 than a non-authoritative response.  This is considered a feature.
 
-[2] CLASS ANY queries are not supported.  This is considered a feature.
+[2] CLASS ANY queries are not supported.  This is considered a
+feature.
 
 [3] Wildcard records are not supported in DNSSEC secure zones.
 
-[4] Servers authoritative for secure zones being resolved by BIND 9
-must support EDNS0 (RFC2671), and must return all relevant SIGs and
-NXTs in responses rather than relying on the resolving server to
-perform separate queries for missing SIGs and NXTs.
+[4] Servers authoritative for secure zones being resolved by BIND
+9 must support EDNS0 (RFC2671), and must return all relevant SIGs
+and NXTs in responses rather than relying on the resolving server
+to perform separate queries for missing SIGs and NXTs.
 
-[5] When receiving a query signed with a SIG(0), the server will only
-be able to verify the signature if it has the key in its local
+[5] When receiving a query signed with a SIG(0), the server will
+only be able to verify the signature if it has the key in its local
 authoritative data; it will not do recursion or validation to
 retrieve unknown keys.
+
+[6] Section 4 is ignored.
+
+[7] Requires --with-idn to enable entry of IDN labels within dig,
+host and nslookup at compile time.  ACE labels are supported
+everywhere with or without --with-idn.
+
+[8] Section 5.1 - DNAME records are fully supported.
+
+[9] Minimally Covering NSEC Record are accepted but not generated.
+
+[10] Will interoperate with correctly designed experiments.
+
+[11] Named only uses ports to extend the id space, address are not
+used.
+
+[12] Conditional on the OpenSSL library being linked against
+supporting GOST.
+
+[13] Section 5.5 does not match reality.  Named uses the presence
+of DO=1 to detect if validation may be occuring.  CD has no bearing
+on whether validation is occuring or not.
+
+[14] Conditional on the OpenSSL library being linked against
+supporting ECDSA.
+
+[15] Section 5.9 - Always set CD=1 on queries.  This is *not* done as
+it prevents DNSSEC working correctly through another recursive server.
+
+When talking to a recurive server the best algorithm to do is send
+CD=0 and then send CD=1 iff SERVFAIL is returned in case the recurive
+server has a bad clock and/or bad trust anchor.  Alternatively one
+can send CD=1 then CD=0 on validation failure in case the recursive
+server is under attack or there is stale / bogus authoritative data.
+
+[16] Named doesn't currently encrypt DNS requests so the PAD option
+is accepted but not returned in responses.

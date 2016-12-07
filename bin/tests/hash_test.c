@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2007, 2014, 2015  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 2000, 2001  Internet Software Consortium.
+ * Copyright (C) 2000, 2001, 2004-2007, 2014-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id: hash_test.c,v 1.19 2007/06/19 23:46:59 tbox Exp $ */
@@ -30,6 +21,8 @@
 #include <isc/util.h>
 #include <isc/print.h>
 #include <isc/string.h>
+
+#include <pk11/site.h>
 
 static void
 print_digest(const char *s, const char *hash, unsigned char *d,
@@ -50,8 +43,10 @@ int
 main(int argc, char **argv) {
 	isc_sha1_t sha1;
 	isc_sha224_t sha224;
+#ifndef PK11_MD5_DISABLE
 	isc_md5_t md5;
 	isc_hmacmd5_t hmacmd5;
+#endif
 	isc_hmacsha1_t hmacsha1;
 	isc_hmacsha224_t hmacsha224;
 	isc_hmacsha256_t hmacsha256;
@@ -93,6 +88,7 @@ main(int argc, char **argv) {
 	isc_sha224_final(digest, &sha224);
 	print_digest(s, "sha224", digest, ISC_SHA224_DIGESTLENGTH/4);
 
+#ifndef PK11_MD5_DISABLE
 	s = "abc";
 	isc_md5_init(&md5);
 	memmove(buffer, s, strlen(s));
@@ -130,6 +126,7 @@ main(int argc, char **argv) {
 	isc_hmacmd5_update(&hmacmd5, buffer, strlen(s));
 	isc_hmacmd5_sign(&hmacmd5, digest);
 	print_digest(s, "hmacmd5", digest, 4);
+#endif
 
 	/*
 	 * The 3 HMAC-SHA1 examples from RFC4634.

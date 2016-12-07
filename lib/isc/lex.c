@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004, 2005, 2007, 2013-2015  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1998-2003  Internet Software Consortium.
+ * Copyright (C) 1998-2005, 2007, 2013-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id: lex.c,v 1.86 2007/09/17 09:56:29 shane Exp $ */
@@ -63,6 +54,7 @@ struct isc_lex {
 	unsigned int			comments;
 	isc_boolean_t			comment_ok;
 	isc_boolean_t			last_was_eol;
+	unsigned int			brace_count;
 	unsigned int			paren_count;
 	unsigned int			saved_paren_count;
 	isc_lexspecials_t		specials;
@@ -111,6 +103,7 @@ isc_lex_create(isc_mem_t *mctx, size_t max_token, isc_lex_t **lexp) {
 	lex->comments = 0;
 	lex->comment_ok = ISC_TRUE;
 	lex->last_was_eol = ISC_TRUE;
+	lex->brace_count = 0;
 	lex->paren_count = 0;
 	lex->saved_paren_count = 0;
 	memset(lex->specials, 0, 256);
@@ -312,7 +305,8 @@ typedef enum {
 	lexstate_ccomment,
 	lexstate_ccommentend,
 	lexstate_eatline,
-	lexstate_qstring
+	lexstate_qstring,
+	lexstate_btext
 } lexstate;
 
 #define IWSEOL (ISC_LEXOPT_INITIALWS | ISC_LEXOPT_EOL)
@@ -395,8 +389,15 @@ isc_lex_gettoken(isc_lex_t *lex, unsigned int options, isc_token_t *tokenp) {
 	    source->at_eof)
 	{
 		if ((options & ISC_LEXOPT_DNSMULTILINE) != 0 &&
-		    lex->paren_count != 0) {
+		    lex->paren_count != 0)
+		{
 			lex->paren_count = 0;
+			return (ISC_R_UNBALANCED);
+		}
+		if ((options & ISC_LEXOPT_BTEXT) != 0 &&
+		    lex->brace_count != 0)
+		{
+			lex->brace_count = 0;
 			return (ISC_R_UNBALANCED);
 		}
 		if ((options & ISC_LEXOPT_EOF) != 0) {
@@ -513,6 +514,12 @@ isc_lex_gettoken(isc_lex_t *lex, unsigned int options, isc_token_t *tokenp) {
 					result = ISC_R_UNBALANCED;
 					goto done;
 				}
+				if ((options & ISC_LEXOPT_BTEXT) != 0 &&
+				    lex->brace_count != 0) {
+					lex->brace_count = 0;
+					result = ISC_R_UNBALANCED;
+					goto done;
+				}
 				if ((options & ISC_LEXOPT_EOF) == 0) {
 					result = ISC_R_EOF;
 					goto done;
@@ -545,21 +552,34 @@ isc_lex_gettoken(isc_lex_t *lex, unsigned int options, isc_token_t *tokenp) {
 			} else if (lex->specials[c]) {
 				lex->last_was_eol = ISC_FALSE;
 				if ((c == '(' || c == ')') &&
-				    (options & ISC_LEXOPT_DNSMULTILINE) != 0) {
+				    (options & ISC_LEXOPT_DNSMULTILINE) != 0)
+				{
 					if (c == '(') {
 						if (lex->paren_count == 0)
 							options &= ~IWSEOL;
 						lex->paren_count++;
 					} else {
 						if (lex->paren_count == 0) {
-						    result = ISC_R_UNBALANCED;
-						    goto done;
+							result =
+							      ISC_R_UNBALANCED;
+							goto done;
 						}
 						lex->paren_count--;
 						if (lex->paren_count == 0)
-							options =
-								saved_options;
+							options = saved_options;
 					}
+					continue;
+				} else if (c == '{' &&
+					   (options & ISC_LEXOPT_BTEXT) != 0)
+				{
+					if (lex->brace_count != 0) {
+						result = ISC_R_UNBALANCED;
+						goto done;
+					}
+					lex->brace_count++;
+					options &= ~IWSEOL;
+					state = lexstate_btext;
+					no_comments = ISC_TRUE;
 					continue;
 				}
 				tokenp->type = isc_tokentype_special;
@@ -778,6 +798,55 @@ isc_lex_gettoken(isc_lex_t *lex, unsigned int options, isc_token_t *tokenp) {
 				remaining--;
 			}
 			break;
+		case lexstate_btext:
+			if (c == EOF) {
+				result = ISC_R_UNEXPECTEDEND;
+				goto done;
+			}
+			if (c == '{') {
+				if (escaped) {
+					escaped = ISC_FALSE;
+				} else {
+					lex->brace_count++;
+				}
+			} else if (c == '}') {
+				if (escaped) {
+					escaped = ISC_FALSE;
+				} else {
+					INSIST(lex->brace_count > 0);
+					lex->brace_count--;
+				}
+
+				if (lex->brace_count == 0) {
+					tokenp->type = isc_tokentype_btext;
+					tokenp->value.as_textregion.base =
+						lex->data;
+					tokenp->value.as_textregion.length =
+						(unsigned int) (lex->max_token -
+								remaining);
+					no_comments = ISC_FALSE;
+					done = ISC_TRUE;
+					break;
+				}
+			}
+
+			if (c == '\\' && !escaped)
+				escaped = ISC_TRUE;
+			else
+				escaped = ISC_FALSE;
+
+			if (remaining == 0U) {
+				result = grow_data(lex, &remaining,
+						   &curr, &prev);
+				if (result != ISC_R_SUCCESS)
+					goto done;
+			}
+			INSIST(remaining > 0U);
+			prev = curr;
+			*curr++ = c;
+			*curr = '\0';
+			remaining--;
+			break;
 		default:
 			FATAL_ERROR(__FILE__, __LINE__,
 				    isc_msgcat_get(isc_msgcat, ISC_MSGSET_LEX,
@@ -904,7 +973,6 @@ isc_lex_getlasttokentext(isc_lex_t *lex, isc_token_t *tokenp, isc_region_t *r)
 		    source->ignored;
 }
 
-
 char *
 isc_lex_getsourcename(isc_lex_t *lex) {
 	inputsource *source;
@@ -931,7 +999,6 @@ isc_lex_getsourceline(isc_lex_t *lex) {
 	return (source->line);
 }
 
-
 isc_result_t
 isc_lex_setsourcename(isc_lex_t *lex, const char *name) {
 	inputsource *source;
@@ -941,12 +1008,26 @@ isc_lex_setsourcename(isc_lex_t *lex, const char *name) {
 	source = HEAD(lex->sources);
 
 	if (source == NULL)
-		return(ISC_R_NOTFOUND);
+		return (ISC_R_NOTFOUND);
 	newname = isc_mem_strdup(lex->mctx, name);
 	if (newname == NULL)
 		return (ISC_R_NOMEMORY);
 	isc_mem_free(lex->mctx, source->name);
 	source->name = newname;
+	return (ISC_R_SUCCESS);
+}
+
+isc_result_t
+isc_lex_setsourceline(isc_lex_t *lex, unsigned long line) {
+	inputsource *source;
+
+	REQUIRE(VALID_LEX(lex));
+	source = HEAD(lex->sources);
+
+	if (source == NULL)
+		return (ISC_R_NOTFOUND);
+
+	source->line = line;
 	return (ISC_R_SUCCESS);
 }
 

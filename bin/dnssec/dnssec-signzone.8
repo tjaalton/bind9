@@ -1,17 +1,8 @@
-.\" Copyright (C) 2004-2009, 2011-2015 Internet Systems Consortium, Inc. ("ISC")
-.\" Copyright (C) 2000-2003 Internet Software Consortium.
+.\" Copyright (C) 2000-2009, 2011-2016 Internet Systems Consortium, Inc. ("ISC")
 .\" 
-.\" Permission to use, copy, modify, and/or distribute this software for any
-.\" purpose with or without fee is hereby granted, provided that the above
-.\" copyright notice and this permission notice appear in all copies.
-.\" 
-.\" THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
-.\" REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-.\" AND FITNESS. IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
-.\" INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-.\" LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
-.\" OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-.\" PERFORMANCE OF THIS SOFTWARE.
+.\" This Source Code Form is subject to the terms of the Mozilla Public
+.\" License, v. 2.0. If a copy of the MPL was not distributed with this
+.\" file, You can obtain one at http://mozilla.org/MPL/2.0/.
 .\"
 .hy 0
 .ad l
@@ -48,7 +39,7 @@
 dnssec-signzone \- DNSSEC zone signing tool
 .SH "SYNOPSIS"
 .HP \w'\fBdnssec\-signzone\fR\ 'u
-\fBdnssec\-signzone\fR [\fB\-a\fR] [\fB\-c\ \fR\fB\fIclass\fR\fR] [\fB\-d\ \fR\fB\fIdirectory\fR\fR] [\fB\-D\fR] [\fB\-E\ \fR\fB\fIengine\fR\fR] [\fB\-e\ \fR\fB\fIend\-time\fR\fR] [\fB\-f\ \fR\fB\fIoutput\-file\fR\fR] [\fB\-g\fR] [\fB\-h\fR] [\fB\-K\ \fR\fB\fIdirectory\fR\fR] [\fB\-k\ \fR\fB\fIkey\fR\fR] [\fB\-L\ \fR\fB\fIserial\fR\fR] [\fB\-l\ \fR\fB\fIdomain\fR\fR] [\fB\-M\ \fR\fB\fIdomain\fR\fR] [\fB\-i\ \fR\fB\fIinterval\fR\fR] [\fB\-I\ \fR\fB\fIinput\-format\fR\fR] [\fB\-j\ \fR\fB\fIjitter\fR\fR] [\fB\-N\ \fR\fB\fIsoa\-serial\-format\fR\fR] [\fB\-o\ \fR\fB\fIorigin\fR\fR] [\fB\-O\ \fR\fB\fIoutput\-format\fR\fR] [\fB\-P\fR] [\fB\-p\fR] [\fB\-R\fR] [\fB\-r\ \fR\fB\fIrandomdev\fR\fR] [\fB\-S\fR] [\fB\-s\ \fR\fB\fIstart\-time\fR\fR] [\fB\-T\ \fR\fB\fIttl\fR\fR] [\fB\-t\fR] [\fB\-u\fR] [\fB\-v\ \fR\fB\fIlevel\fR\fR] [\fB\-V\fR] [\fB\-X\ \fR\fB\fIextended\ end\-time\fR\fR] [\fB\-x\fR] [\fB\-z\fR] [\fB\-3\ \fR\fB\fIsalt\fR\fR] [\fB\-H\ \fR\fB\fIiterations\fR\fR] [\fB\-A\fR] {zonefile} [key...]
+\fBdnssec\-signzone\fR [\fB\-a\fR] [\fB\-c\ \fR\fB\fIclass\fR\fR] [\fB\-d\ \fR\fB\fIdirectory\fR\fR] [\fB\-D\fR] [\fB\-E\ \fR\fB\fIengine\fR\fR] [\fB\-e\ \fR\fB\fIend\-time\fR\fR] [\fB\-f\ \fR\fB\fIoutput\-file\fR\fR] [\fB\-g\fR] [\fB\-h\fR] [\fB\-K\ \fR\fB\fIdirectory\fR\fR] [\fB\-k\ \fR\fB\fIkey\fR\fR] [\fB\-L\ \fR\fB\fIserial\fR\fR] [\fB\-l\ \fR\fB\fIdomain\fR\fR] [\fB\-M\ \fR\fB\fIdomain\fR\fR] [\fB\-i\ \fR\fB\fIinterval\fR\fR] [\fB\-I\ \fR\fB\fIinput\-format\fR\fR] [\fB\-j\ \fR\fB\fIjitter\fR\fR] [\fB\-N\ \fR\fB\fIsoa\-serial\-format\fR\fR] [\fB\-o\ \fR\fB\fIorigin\fR\fR] [\fB\-O\ \fR\fB\fIoutput\-format\fR\fR] [\fB\-P\fR] [\fB\-p\fR] [\fB\-Q\fR] [\fB\-R\fR] [\fB\-r\ \fR\fB\fIrandomdev\fR\fR] [\fB\-S\fR] [\fB\-s\ \fR\fB\fIstart\-time\fR\fR] [\fB\-T\ \fR\fB\fIttl\fR\fR] [\fB\-t\fR] [\fB\-u\fR] [\fB\-v\ \fR\fB\fIlevel\fR\fR] [\fB\-V\fR] [\fB\-X\ \fR\fB\fIextended\ end\-time\fR\fR] [\fB\-x\fR] [\fB\-z\fR] [\fB\-3\ \fR\fB\fIsalt\fR\fR] [\fB\-H\ \fR\fB\fIiterations\fR\fR] [\fB\-A\fR] {zonefile} [key...]
 .SH "DESCRIPTION"
 .PP
 \fBdnssec\-signzone\fR
@@ -242,9 +233,9 @@ Specifies the number of threads to use\&. By default, one thread is started for 
 The SOA serial number format of the signed zone\&. Possible formats are
 \fB"keep"\fR
 (default),
-\fB"increment"\fR
-and
-\fB"unixtime"\fR\&.
+\fB"increment"\fR,
+\fB"unixtime"\fR, and
+\fB"date"\fR\&.
 .PP
 \fB"keep"\fR
 .RS 4
@@ -259,6 +250,11 @@ Increment the SOA serial number using RFC 1982 arithmetics\&.
 \fB"unixtime"\fR
 .RS 4
 Set the SOA serial number to the number of seconds since epoch\&.
+.RE
+.PP
+\fB"date"\fR
+.RS 4
+Set the SOA serial number to today\*(Aqs date in YYYYMMDDNN format\&.
 .RE
 .RE
 .PP
@@ -480,7 +476,5 @@ RFC 4641\&.
 \fBInternet Systems Consortium, Inc\&.\fR
 .SH "COPYRIGHT"
 .br
-Copyright \(co 2004-2009, 2011-2015 Internet Systems Consortium, Inc. ("ISC")
-.br
-Copyright \(co 2000-2003 Internet Software Consortium.
+Copyright \(co 2000-2009, 2011-2016 Internet Systems Consortium, Inc. ("ISC")
 .br

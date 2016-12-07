@@ -1,17 +1,9 @@
 /*
- * Copyright (C) 2014, 2015  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2014-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 #include <config.h>
@@ -114,7 +106,8 @@ static isc_boolean_t
 	nocrypto = ISC_FALSE,
 	nottl = ISC_FALSE,
 	multiline = ISC_FALSE,
-	short_form = ISC_FALSE;
+	short_form = ISC_FALSE,
+	print_unknown_format = ISC_FALSE;
 
 static isc_boolean_t
 	resolve_trace = ISC_FALSE,
@@ -130,6 +123,8 @@ static isc_boolean_t
 	no_sigs = ISC_FALSE,
 	root_validation = ISC_TRUE,
 	dlv_validation = ISC_TRUE;
+
+static isc_boolean_t use_tcp = ISC_FALSE;
 
 static char *anchorfile = NULL;
 static char *trust_anchor = NULL;
@@ -182,8 +177,10 @@ usage(void) {
 "                 +[no]comments       (Control display of comment lines)\n"
 "                 +[no]rrcomments     (Control display of per-record "
 				       "comments)\n"
+"                 +[no]unknownformat  (Print RDATA in RFC 3597 \"unknown\" format)\n"
 "                 +[no]short          (Short form answer)\n"
 "                 +[no]split=##       (Split hex/base64 fields into chunks)\n"
+"                 +[no]tcp            (TCP mode)\n"
 "                 +[no]ttl            (Control display of ttls in records)\n"
 "                 +[no]trust          (Control display of trust level)\n"
 "                 +[no]rtrace         (Trace resolver fetches)\n"
@@ -505,6 +502,8 @@ setup_style(dns_master_style_t **stylep) {
 	styleflags |= DNS_STYLEFLAG_REL_OWNER;
 	if (showcomments)
 		styleflags |= DNS_STYLEFLAG_COMMENT;
+	if (print_unknown_format)
+		styleflags |= DNS_STYLEFLAG_UNKNOWNFORMAT;
 	if (rrcomments)
 		styleflags |= DNS_STYLEFLAG_RRCOMMENT;
 	if (nottl)
@@ -774,7 +773,7 @@ setup_dnsseckeys(dns_client_t *client) {
 static isc_result_t
 addserver(dns_client_t *client) {
 	struct addrinfo hints, *res, *cur;
-	int gai_error;
+	int gaierror;
 	struct in_addr in4;
 	struct in6_addr in6;
 	isc_sockaddr_t *sa;
@@ -813,11 +812,11 @@ addserver(dns_client_t *client) {
 			hints.ai_family = AF_UNSPEC;
 		hints.ai_socktype = SOCK_DGRAM;
 		hints.ai_protocol = IPPROTO_UDP;
-		gai_error = getaddrinfo(server, port, &hints, &res);
-		if (gai_error != 0) {
+		gaierror = getaddrinfo(server, port, &hints, &res);
+		if (gaierror != 0) {
 			delv_log(ISC_LOG_ERROR,
 				  "getaddrinfo failed: %s",
-				  gai_strerror(gai_error));
+				  gai_strerror(gaierror));
 			return (ISC_R_FAILURE);
 		}
 
@@ -1129,8 +1128,16 @@ plus_option(char *option) {
 			goto invalid_option;
 		}
 		break;
+	case 'u':
+		FULLCHECK("unknownformat");
+		print_unknown_format = state;
+		break;
 	case 't':
 		switch (cmd[1]) {
+		case 'c': /* tcp */
+			FULLCHECK("tcp");
+			use_tcp = state;
+			break;
 		case 'r': /* trust */
 			FULLCHECK("trust");
 			showtrust = state;
@@ -1624,6 +1631,8 @@ main(int argc, char *argv[]) {
 		resopt |= DNS_CLIENTRESOPT_NOVALIDATE;
 	if (cdflag)
 		resopt &= ~DNS_CLIENTRESOPT_NOCDFLAG;
+	if (use_tcp)
+		resopt |= DNS_CLIENTRESOPT_TCP;
 
 	/* Perform resolution */
 	ISC_LIST_INIT(namelist);

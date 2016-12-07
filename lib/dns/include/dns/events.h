@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2007, 2009-2011  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1999-2002  Internet Software Consortium.
+ * Copyright (C) 1999-2002, 2004-2007, 2009-2011, 2014, 2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id: events.h,v 1.61 2011/10/28 06:20:06 each Exp $ */
@@ -79,6 +70,11 @@
 #define DNS_EVENT_ZONELOAD			(ISC_EVENTCLASS_DNS + 49)
 #define DNS_EVENT_KEYDONE			(ISC_EVENTCLASS_DNS + 50)
 #define DNS_EVENT_SETNSEC3PARAM			(ISC_EVENTCLASS_DNS + 51)
+#define DNS_EVENT_SETSERIAL			(ISC_EVENTCLASS_DNS + 52)
+#define DNS_EVENT_CATZUPDATED			(ISC_EVENTCLASS_DNS + 53)
+#define DNS_EVENT_CATZADDZONE			(ISC_EVENTCLASS_DNS + 54)
+#define DNS_EVENT_CATZMODZONE			(ISC_EVENTCLASS_DNS + 55)
+#define DNS_EVENT_CATZDELZONE			(ISC_EVENTCLASS_DNS + 56)
 
 #define DNS_EVENT_FIRSTEVENT			(ISC_EVENTCLASS_DNS + 0)
 #define DNS_EVENT_LASTEVENT			(ISC_EVENTCLASS_DNS + 65535)

@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004, 2005, 2007-2009, 2011, 2013, 2014  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 2001, 2003  Internet Software Consortium.
+ * Copyright (C) 2001, 2003-2005, 2007-2009, 2011, 2013, 2014, 2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id: rndc-confgen.c,v 1.7 2011/03/12 04:59:46 tbox Exp $ */
@@ -48,6 +39,8 @@
 #include <isc/time.h>
 #include <isc/util.h>
 
+#include <pk11/site.h>
+
 #include <dns/keyvalues.h>
 #include <dns/name.h>
 
@@ -74,6 +67,7 @@ usage(int status) ISC_PLATFORM_NORETURN_POST;
 static void
 usage(int status) {
 
+#ifndef PK11_MD5_DISABLE
 	fprintf(stderr, "\
 Usage:\n\
  %s [-a] [-b bits] [-c keyfile] [-k keyname] [-p port] [-r randomfile] \
@@ -89,6 +83,23 @@ Usage:\n\
   -t chrootdir:	 write a keyfile in chrootdir as well (requires -a)\n\
   -u user:	 set the keyfile owner to \"user\" (requires -a)\n",
 		 progname, keydef);
+#else
+	fprintf(stderr, "\
+Usage:\n\
+ %s [-a] [-b bits] [-c keyfile] [-k keyname] [-p port] [-r randomfile] \
+[-s addr] [-t chrootdir] [-u user]\n\
+  -a:		 generate just the key clause and write it to keyfile (%s)\n\
+  -A alg:	 algorithm (default hmac-sha256)\n\
+  -b bits:	 from 1 through 512, default 256; total length of the secret\n\
+  -c keyfile:	 specify an alternate key file (requires -a)\n\
+  -k keyname:	 the name as it will be used  in named.conf and rndc.conf\n\
+  -p port:	 the port named will listen on and rndc will connect to\n\
+  -r randomfile: source of random data (use \"keyboard\" for key timing)\n\
+  -s addr:	 the address to which rndc should connect\n\
+  -t chrootdir:	 write a keyfile in chrootdir as well (requires -a)\n\
+  -u user:	 set the keyfile owner to \"user\" (requires -a)\n",
+		 progname, keydef);
+#endif
 
 	exit (status);
 }
@@ -124,7 +135,11 @@ main(int argc, char **argv) {
 	progname = program;
 
 	keyname = DEFAULT_KEYNAME;
+#ifndef PK11_MD5_DISABLE
 	alg = DST_ALG_HMACMD5;
+#else
+	alg = DST_ALG_HMACSHA256;
+#endif
 	serveraddr = DEFAULT_SERVER;
 	port = DEFAULT_PORT;
 

@@ -1,17 +1,9 @@
 /*
- * Copyright (C) 2014, 2015  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2014-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id$ */
@@ -25,6 +17,7 @@
 #include <isc/sha1.h>
 #include <isc/sha2.h>
 #include <isc/mem.h>
+#include <isc/safe.h>
 #include <isc/string.h>
 #include <isc/util.h>
 
@@ -35,6 +28,7 @@
 #include "dst_pkcs11.h"
 
 #include <pk11/internal.h>
+#include <pk11/site.h>
 
 /*
  * Limit the size of public exponents.
@@ -83,11 +77,18 @@ pkcs11rsa_createctx_sign(dst_key_t *key, dst_context_t *dctx) {
 	isc_result_t ret;
 	unsigned int i;
 
+#ifndef PK11_MD5_DISABLE
 	REQUIRE(key->key_alg == DST_ALG_RSAMD5 ||
 		key->key_alg == DST_ALG_RSASHA1 ||
 		key->key_alg == DST_ALG_NSEC3RSASHA1 ||
 		key->key_alg == DST_ALG_RSASHA256 ||
 		key->key_alg == DST_ALG_RSASHA512);
+#else
+	REQUIRE(key->key_alg == DST_ALG_RSASHA1 ||
+		key->key_alg == DST_ALG_NSEC3RSASHA1 ||
+		key->key_alg == DST_ALG_RSASHA256 ||
+		key->key_alg == DST_ALG_RSASHA512);
+#endif
 
 	rsa = key->keydata.pkey;
 
@@ -207,9 +208,11 @@ pkcs11rsa_createctx_sign(dst_key_t *key, dst_context_t *dctx) {
     token_key:
 
 	switch (dctx->key->key_alg) {
+#ifndef PK11_MD5_DISABLE
 	case DST_ALG_RSAMD5:
 		mech.mechanism = CKM_MD5_RSA_PKCS;
 		break;
+#endif
 	case DST_ALG_RSASHA1:
 	case DST_ALG_NSEC3RSASHA1:
 		mech.mechanism = CKM_SHA1_RSA_PKCS;
@@ -283,11 +286,18 @@ pkcs11rsa_createctx_verify(dst_key_t *key, unsigned int maxbits,
 	isc_result_t ret;
 	unsigned int i;
 
+#ifndef PK11_MD5_DISABLE
 	REQUIRE(key->key_alg == DST_ALG_RSAMD5 ||
 		key->key_alg == DST_ALG_RSASHA1 ||
 		key->key_alg == DST_ALG_NSEC3RSASHA1 ||
 		key->key_alg == DST_ALG_RSASHA256 ||
 		key->key_alg == DST_ALG_RSASHA512);
+#else
+	REQUIRE(key->key_alg == DST_ALG_RSASHA1 ||
+		key->key_alg == DST_ALG_NSEC3RSASHA1 ||
+		key->key_alg == DST_ALG_RSASHA256 ||
+		key->key_alg == DST_ALG_RSASHA512);
+#endif
 
 	rsa = key->keydata.pkey;
 
@@ -339,9 +349,11 @@ pkcs11rsa_createctx_verify(dst_key_t *key, unsigned int maxbits,
 		 ISC_R_FAILURE);
 
 	switch (dctx->key->key_alg) {
+#ifndef PK11_MD5_DISABLE
 	case DST_ALG_RSAMD5:
 		mech.mechanism = CKM_MD5_RSA_PKCS;
 		break;
+#endif
 	case DST_ALG_RSASHA1:
 	case DST_ALG_NSEC3RSASHA1:
 		mech.mechanism = CKM_SHA1_RSA_PKCS;
@@ -1014,14 +1026,16 @@ pkcs11rsa_tofile(const dst_key_t *key, const char *directory) {
 
 	if (key->engine != NULL) {
 		priv.elements[i].tag = TAG_RSA_ENGINE;
-		priv.elements[i].length = strlen(key->engine) + 1;
+		priv.elements[i].length =
+			(unsigned short)strlen(key->engine) + 1;
 		priv.elements[i].data = (unsigned char *)key->engine;
 		i++;
 	}
 
 	if (key->label != NULL) {
 		priv.elements[i].tag = TAG_RSA_LABEL;
-		priv.elements[i].length = strlen(key->label) + 1;
+		priv.elements[i].length =
+			(unsigned short)strlen(key->label) + 1;
 		priv.elements[i].data = (unsigned char *)key->label;
 		i++;
 	}

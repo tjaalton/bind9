@@ -1,21 +1,10 @@
 /*
- * Copyright (C) 2004-2008, 2010, 2012, 2014  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1998-2002  Internet Software Consortium.
+ * Copyright (C) 1998-2002, 2004-2008, 2010, 2012, 2014, 2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-
-/* $Id: buffer.h,v 1.55 2010/12/20 23:47:21 tbox Exp $ */
 
 #ifndef ISC_BUFFER_H
 #define ISC_BUFFER_H 1
@@ -127,6 +116,13 @@ ISC_LANG_BEGINDECLS
 #define ISC_BUFFER_VALID(b)		ISC_MAGIC_VALID(b, ISC_BUFFER_MAGIC)
 /*@}*/
 
+/*!
+ * Size granularity for dynamically resizeable buffers; when reserving
+ * space in a buffer, we round the allocated buffer length up to the
+ * nearest * multiple of this value.
+ */
+#define ISC_BUFFER_INCR 2048
+
 /*
  * The following macros MUST be used only on valid buffers.  It is the
  * caller's responsibility to ensure this by using the ISC_BUFFER_VALID
@@ -179,6 +175,8 @@ struct isc_buffer {
 	ISC_LINK(isc_buffer_t)	link;
 	/*! private internal elements */
 	isc_mem_t	       *mctx;
+	/* automatically realloc buffer at put* */
+	isc_boolean_t		autore;
 };
 
 /***
@@ -203,6 +201,50 @@ isc_buffer_allocate(isc_mem_t *mctx, isc_buffer_t **dynbuffer,
  *
  * Note:
  *\li	Changing the buffer's length field is not permitted.
+ */
+
+isc_result_t
+isc_buffer_reallocate(isc_buffer_t **dynbuffer, unsigned int length);
+/*!<
+ * \brief Reallocate the buffer to be "length" bytes long. The buffer
+ * pointer may move when you call this function.
+ *
+ * Requires:
+ *\li	"dynbuffer" is not NULL.
+ *
+ *\li	"*dynbuffer" is a valid dynamic buffer.
+ *
+ *\li	'length' > current length of buffer.
+ *
+ * Returns:
+ *\li	ISC_R_SUCCESS		- success
+ *\li	ISC_R_NOMEMORY		- no memory available
+ *
+ * Ensures:
+ *\li	"*dynbuffer" will be valid on return and will contain all the
+ *	original data. However, the buffer pointer may be moved during
+ *	reallocation.
+ */
+
+isc_result_t
+isc_buffer_reserve(isc_buffer_t **dynbuffer, unsigned int size);
+/*!<
+ * \brief Make "size" bytes of space available in the buffer. The buffer
+ * pointer may move when you call this function.
+ *
+ * Requires:
+ *\li	"dynbuffer" is not NULL.
+ *
+ *\li	"*dynbuffer" is a valid dynamic buffer.
+ *
+ * Returns:
+ *\li	ISC_R_SUCCESS		- success
+ *\li	ISC_R_NOMEMORY		- no memory available
+ *
+ * Ensures:
+ *\li	"*dynbuffer" will be valid on return and will contain all the
+ *	original data. However, the buffer pointer may be moved during
+ *	reallocation.
  */
 
 void
@@ -268,6 +310,16 @@ isc__buffer_invalidate(isc_buffer_t *b);
  */
 
 void
+isc_buffer_setautorealloc(isc_buffer_t *b, isc_boolean_t enable);
+/*!<
+ * \brief Enable or disable autoreallocation on 'b'.
+ *
+ * Requires:
+ *\li	'b' is a valid dynamic buffer (b->mctx != NULL).
+ *
+ */
+
+void
 isc__buffer_region(isc_buffer_t *b, isc_region_t *r);
 /*!<
  * \brief Make 'r' refer to the region of 'b'.
@@ -280,7 +332,7 @@ isc__buffer_region(isc_buffer_t *b, isc_region_t *r);
  */
 
 void
-isc__buffer_usedregion(isc_buffer_t *b, isc_region_t *r);
+isc__buffer_usedregion(const isc_buffer_t *b, isc_region_t *r);
 /*!<
  * \brief Make 'r' refer to the used region of 'b'.
  *
@@ -481,7 +533,8 @@ isc__buffer_putuint8(isc_buffer_t *b, isc_uint8_t val);
  * Requires:
  *\li	'b' is a valid buffer.
  *
- *\li	The length of the unused region of 'b' is at least 1.
+ *\li	The length of the unused region of 'b' is at least 1
+ *	or the buffer has autoreallocation enabled.
  *
  * Ensures:
  *\li	The used pointer in 'b' is advanced by 1.
@@ -497,7 +550,8 @@ isc_buffer_getuint16(isc_buffer_t *b);
  *
  *\li	'b' is a valid buffer.
  *
- *\li	The length of the available region of 'b' is at least 2.
+ *\li	The length of the available region of 'b' is at least 2
+ *	or the buffer has autoreallocation enabled.
  *
  * Ensures:
  *
@@ -517,7 +571,8 @@ isc__buffer_putuint16(isc_buffer_t *b, isc_uint16_t val);
  * Requires:
  *\li	'b' is a valid buffer.
  *
- *\li	The length of the unused region of 'b' is at least 2.
+ *\li	The length of the unused region of 'b' is at least 2
+ *	or the buffer has autoreallocation enabled.
  *
  * Ensures:
  *\li	The used pointer in 'b' is advanced by 2.
@@ -553,7 +608,8 @@ isc__buffer_putuint32(isc_buffer_t *b, isc_uint32_t val);
  * Requires:
  *\li	'b' is a valid buffer.
  *
- *\li	The length of the unused region of 'b' is at least 4.
+ *\li	The length of the unused region of 'b' is at least 4
+ *	or the buffer has autoreallocation enabled.
  *
  * Ensures:
  *\li	The used pointer in 'b' is advanced by 4.
@@ -589,7 +645,8 @@ isc__buffer_putuint48(isc_buffer_t *b, isc_uint64_t val);
  * Requires:
  *\li	'b' is a valid buffer.
  *
- *\li	The length of the unused region of 'b' is at least 6.
+ *\li	The length of the unused region of 'b' is at least 6
+ *	or the buffer has autoreallocation enabled.
  *
  * Ensures:
  *\li	The used pointer in 'b' is advanced by 6.
@@ -604,7 +661,8 @@ isc__buffer_putuint24(isc_buffer_t *b, isc_uint32_t val);
  * Requires:
  *\li	'b' is a valid buffer.
  *
- *	The length of the unused region of 'b' is at least 3.
+ *	The length of the unused region of 'b' is at least 3
+ *	or the buffer has autoreallocation enabled.
  *
  * Ensures:
  *\li	The used pointer in 'b' is advanced by 3.
@@ -617,7 +675,8 @@ isc__buffer_putmem(isc_buffer_t *b, const unsigned char *base,
  * \brief Copy 'length' bytes of memory at 'base' into 'b'.
  *
  * Requires:
- *\li	'b' is a valid buffer.
+ *\li	'b' is a valid buffer, and it has at least 'length'
+ *	or the buffer has autoreallocation enabled.
  *
  *\li	'base' points to 'length' bytes of valid memory.
  *
@@ -633,8 +692,21 @@ isc__buffer_putstr(isc_buffer_t *b, const char *source);
  *
  *\li	'source' to be a valid NULL terminated string.
  *
- *\li	strlen(source) <= isc_buffer_available(b)
+ *\li	strlen(source) <= isc_buffer_available(b) || b->mctx != NULL
  */
+
+void
+isc_buffer_putdecint(isc_buffer_t *b, isc_int64_t v);
+/*!<
+ * \brief Put decimal representation of 'v' in b
+ *
+ * Requires:
+ *\li	'b' is a valid buffer.
+ *
+ *\li	strlen(dec(v)) <= isc_buffer_available(b) || b->mctx != NULL
+ */
+
+
 
 isc_result_t
 isc_buffer_copyregion(isc_buffer_t *b, const isc_region_t *r);
@@ -645,6 +717,22 @@ isc_buffer_copyregion(isc_buffer_t *b, const isc_region_t *r);
  *\li	'b' is a valid buffer.
  *
  *\li	'r' is a valid region.
+ *
+ * Returns:
+ *
+ *\li	ISC_R_SUCCESS
+ *\li	ISC_R_NOSPACE			The available region of 'b' is not
+ *					big enough.
+ */
+
+isc_result_t
+isc_buffer_dup(isc_mem_t *mctx, isc_buffer_t **dstp, const isc_buffer_t *src);
+/*!<
+ * \brief Allocate 'dst' and copy used contents  of 'src' into it
+ *
+ * Requires:
+ *\li	'dstp' is not NULL and *dst is NULL
+ *\li	'src' is a valid buffer.
  *
  * Returns:
  *
@@ -689,6 +777,7 @@ ISC_LANG_ENDDECLS
 		(_b)->mctx = NULL; \
 		ISC_LINK_INIT(_b, link); \
 		(_b)->magic = ISC_BUFFER_MAGIC; \
+		(_b)->autore = ISC_FALSE; \
 	} while (0)
 
 #define ISC__BUFFER_INITNULL(_b) ISC__BUFFER_INIT(_b, NULL, 0)

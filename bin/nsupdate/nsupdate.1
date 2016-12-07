@@ -1,17 +1,8 @@
-.\" Copyright (C) 2004-2012, 2014, 2015 Internet Systems Consortium, Inc. ("ISC")
-.\" Copyright (C) 2000-2003 Internet Software Consortium.
+.\" Copyright (C) 2000-2012, 2014-2016 Internet Systems Consortium, Inc. ("ISC")
 .\" 
-.\" Permission to use, copy, modify, and/or distribute this software for any
-.\" purpose with or without fee is hereby granted, provided that the above
-.\" copyright notice and this permission notice appear in all copies.
-.\" 
-.\" THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
-.\" REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-.\" AND FITNESS. IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
-.\" INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-.\" LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
-.\" OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-.\" PERFORMANCE OF THIS SOFTWARE.
+.\" This Source Code Form is subject to the terms of the Mozilla Public
+.\" License, v. 2.0. If a copy of the MPL was not distributed with this
+.\" file, You can obtain one at http://mozilla.org/MPL/2.0/.
 .\"
 .hy 0
 .ad l
@@ -218,7 +209,9 @@ hmac\-sha384, or
 hmac\-sha512\&. If
 \fIhmac\fR
 is not specified, the default is
-hmac\-md5\&.
+hmac\-md5
+or if MD5 was disabled
+hmac\-sha256\&.
 .sp
 NOTE: Use of the
 \fB\-y\fR
@@ -293,7 +286,9 @@ Specifies that all updates are to be TSIG\-signed using the
 pair\&. If
 \fIhmac\fR
 is specified, then it sets the signing algorithm in use; the default is
-hmac\-md5\&. The
+hmac\-md5
+or if MD5 was disabled
+hmac\-sha256\&. The
 \fBkey\fR
 command overrides any key specified on the command line via
 \fB\-y\fR
@@ -305,14 +300,14 @@ or
 .RS 4
 Use GSS\-TSIG to sign the updated\&. This is equivalent to specifying
 \fB\-g\fR
-on the commandline\&.
+on the command line\&.
 .RE
 .PP
 \fBoldgsstsig\fR
 .RS 4
 Use the Windows 2000 version of GSS\-TSIG to sign the updated\&. This is equivalent to specifying
 \fB\-o\fR
-on the commandline\&.
+on the command line\&.
 .RE
 .PP
 \fBrealm\fR {[realm_name]}
@@ -321,6 +316,11 @@ When using GSS\-TSIG use
 \fIrealm_name\fR
 rather than the default realm in
 krb5\&.conf\&. If no realm is specified the saved realm is cleared\&.
+.RE
+.PP
+\fBcheck\-names\fR {[yes_or_no]}
+.RS 4
+Turn on or off check\-names processing on records to be added\&. Check\-names has no effect on prerequisites or records to be deleted\&. By default check\-names processing is on\&. If check\-names processing fails the record will not be added to the UPDATE message\&.
 .RE
 .PP
 \fB[prereq]\fR\fB nxdomain\fR {domain\-name}
@@ -515,7 +515,5 @@ The TSIG key is redundantly stored in two separate files\&. This is a consequenc
 \fBInternet Systems Consortium, Inc\&.\fR
 .SH "COPYRIGHT"
 .br
-Copyright \(co 2004-2012, 2014, 2015 Internet Systems Consortium, Inc. ("ISC")
-.br
-Copyright \(co 2000-2003 Internet Software Consortium.
+Copyright \(co 2000-2012, 2014-2016 Internet Systems Consortium, Inc. ("ISC")
 .br

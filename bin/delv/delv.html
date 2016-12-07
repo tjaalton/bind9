@@ -1,19 +1,12 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <!--
- - Copyright (C) 2014, 2015 Internet Systems Consortium, Inc. ("ISC")
+ - Copyright (C) 2014-2016 Internet Systems Consortium, Inc. ("ISC")
  - 
- - Permission to use, copy, modify, and/or distribute this software for any
- - purpose with or without fee is hereby granted, provided that the above
- - copyright notice and this permission notice appear in all copies.
- - 
- - THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- - REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- - AND FITNESS. IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- - INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- - LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- - OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- - PERFORMANCE OF THIS SOFTWARE.
+ - This Source Code Form is subject to the terms of the Mozilla Public
+ - License, v. 2.0. If a copy of the MPL was not distributed with this
+ - file, You can obtain one at http://mozilla.org/MPL/2.0/.
 -->
-<html>
+<html lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
 <title>delv</title>
@@ -36,7 +29,7 @@
 <a name="id-1.7"></a><h2>DESCRIPTION</h2>
 <p><span class="command"><strong>delv</strong></span>
       (Domain Entity Lookup &amp; Validation) is a tool for sending
-      DNS queries and validating the results, using the the same internal
+      DNS queries and validating the results, using the same internal
       resolver and validator logic as <span class="command"><strong>named</strong></span>.
     </p>
 <p>
@@ -329,7 +322,7 @@
 	    </p>
 <p>
 	      This is equivalent to setting the debug level to 10
-	      for the the "packets" module of the "resolver" logging
+	      for the "packets" module of the "resolver" logging
 	      category. Setting the systemwide debug level to 10 using
 	      the <code class="option">-d</code> option will produce the same output
 	      (but will affect other logging categories as well).
@@ -344,7 +337,7 @@
 	    </p>
 <p>
 	      This is equivalent to setting the debug level to 3
-	      for the the "validator" module of the "dnssec" logging
+	      for the "validator" module of the "dnssec" logging
 	      category. Setting the systemwide debug level to 3 using
 	      the <code class="option">-d</code> option will produce the same output
 	      (but will affect other logging categories as well).
@@ -438,6 +431,18 @@
 	      built-in key.  If specifying a different name, then
 	      <code class="option">-a</code> must be used to specify a file
 	      containing the DLV key.
+	    </p></dd>
+<dt><span class="term"><code class="option">+[no]tcp</code></span></dt>
+<dd><p>
+	      Controls whether to use TCP when sending queries.
+	      The default is to use UDP unless a truncated
+	      response has been received.
+	    </p></dd>
+<dt><span class="term"><code class="option">+[no]unknownformat</code></span></dt>
+<dd><p>
+	      Print all RDATA in unknown RR type presentation format
+	      (RFC 3597). The default is to print RDATA for known types
+	      in the type's presentation format.
 	    </p></dd>
 </dl></div>
 <p>

@@ -1,21 +1,10 @@
 /*
- * Copyright (C) 2004-2007, 2009  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1999-2002  Internet Software Consortium.
+ * Copyright (C) 1999-2002, 2004-2007, 2009, 2015, 2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-
-/* $Id: compress.h,v 1.42 2009/01/17 23:47:43 tbox Exp $ */
 
 #ifndef DNS_COMPRESS_H
 #define DNS_COMPRESS_H 1
@@ -27,14 +16,28 @@
 
 ISC_LANG_BEGINDECLS
 
+/*! \file dns/compress.h
+ * Direct manipulation of the structures is strongly discouraged.
+ *
+ * A name compression context handles compression of multiple DNS names
+ * in relation to a single DNS message. The context can be used to
+ * selectively turn on/off compression for specific names (depending on
+ * the RR type) by using \c dns_compress_setmethods(). Alternately,
+ * compression can be disabled completely using \c
+ * dns_compress_disable().
+ *
+ * \c dns_compress_setmethods() is intended for use by RDATA towire()
+ * implementations, whereas \c dns_compress_disable() is intended to be
+ * used by a nameserver's configuration manager.
+ */
+
 #define DNS_COMPRESS_NONE		0x00	/*%< no compression */
 #define DNS_COMPRESS_GLOBAL14		0x01	/*%< "normal" compression. */
 #define DNS_COMPRESS_ALL		0x01	/*%< all compression. */
 #define DNS_COMPRESS_CASESENSITIVE	0x02	/*%< case sensitive compression. */
+#define DNS_COMPRESS_ENABLED		0x04
 
-/*! \file dns/compress.h
- *	Direct manipulation of the structures is strongly discouraged.
- */
+#define DNS_COMPRESS_READY		0x80000000
 
 #define DNS_COMPRESS_TABLESIZE 64
 #define DNS_COMPRESS_INITIALNODES 16
@@ -77,7 +80,10 @@ struct dns_decompress {
 isc_result_t
 dns_compress_init(dns_compress_t *cctx, int edns, isc_mem_t *mctx);
 /*%<
- *	Initialise the compression context structure pointed to by 'cctx'.
+ *	Initialise the compression context structure pointed to by
+ *	'cctx'. A freshly initialized context has name compression
+ *	enabled, but no methods are set. Please use \c
+ *	dns_compress_setmethods() to set a compression method.
  *
  *	Requires:
  *	\li	'cctx' is a valid dns_compress_t structure.
@@ -121,6 +127,17 @@ dns_compress_getmethods(dns_compress_t *cctx);
  *
  *	Returns:
  *\li		allowed compression bitmap.
+ */
+
+void
+dns_compress_disable(dns_compress_t *cctx);
+/*%<
+ *	Disables all name compression in the context. Once disabled,
+ *	name compression cannot currently be re-enabled.
+ *
+ *	Requires:
+ *\li		'cctx' to be initialized.
+ *
  */
 
 void

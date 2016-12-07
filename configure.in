@@ -1,38 +1,15 @@
-# Copyright (C) 2004-2016  Internet Systems Consortium, Inc. ("ISC")
-# Copyright (C) 1998-2003  Internet Software Consortium.
+# Copyright (C) 1998-2016  Internet Systems Consortium, Inc. ("ISC")
 #
-# Permission to use, copy, modify, and/or distribute this software for any
-# purpose with or without fee is hereby granted, provided that the above
-# copyright notice and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-# AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
-# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
-# OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-# PERFORMANCE OF THIS SOFTWARE.
-
-# Copyright (C) 1998-2003  Internet Software Consortium.
-#
-# Permission to use, copy, modify, and/or distribute this software for any
-# purpose with or without fee is hereby granted, provided that the above
-# copyright notice and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-# AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
-# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
-# OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-# PERFORMANCE OF THIS SOFTWARE.
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 dnl
 AC_DIVERT_PUSH(1)dnl
 esyscmd([sed -e 's/^/# /' -e '/Portions of this code/,$d' COPYRIGHT])dnl
 AC_DIVERT_POP()dnl
 
-AC_INIT(BIND, [9.10], [bind9-bugs@isc.org], [], [https://www.isc.org/downloads/BIND/])
+AC_INIT(BIND, [9.11], [bind9-bugs@isc.org], [], [https://www.isc.org/downloads/BIND/])
 AC_PREREQ(2.59)
 
 AC_CONFIG_HEADER(config.h)
@@ -91,10 +68,18 @@ yes)
 	test "${enable_filter_aaaa+set}" = set || enable_filter_aaaa=yes
 	test "${with_dlz_filesystem+set}" = set || with_dlz_filesystem=yes
 	test "${enable_symtable+set}" = set || enable_symtable=all
-	test "${enable_sit+set}" = set || enable_sit=yes
-	test "${enable_fetchlimit+set}" = set || enable_fetchlimit=yes
 	test "${enable_warn_error+set}" = set || enable_warn_error=yes
 	test "${enable_warn_shadow+set}" = set || enable_warn_shadow=yes
+	test "${with_zlib+set}" = set || with_zlib=yes
+	;;
+esac
+
+# American Fuzzy Lop
+AC_ARG_ENABLE(afl, [  --enable-afl		  enable American Fuzzy Lop test harness [[default=no]]],
+	     [AC_DEFINE([ENABLE_AFL], [1], [Define to enable American Fuzzy Lop test harness])])
+case "$enable_afl" in
+yes)
+	LIBS="$LIBS -lpthread"
 	;;
 esac
 
@@ -223,9 +208,14 @@ AC_ARG_WITH(python,
 [  --with-python=PATH      specify path to python interpreter],
     use_python="$withval", use_python="unspec")
 
-python="python python3 python3.4 python3.3 python3.2 python3.1 python3.0 python2 python2.7 python2.6 python2.5 python2.4"
-testscript='try: import argparse
+python="python python3 python3.5 python3.4 python3.3 python3.2 python3.1 python3.0 python2 python2.7 python2.6 python2.5 python2.4"
+
+testargparse='try: import argparse
 except: exit(1)'
+
+testply='try: from ply import *
+except: exit(1)'
+
 case "$use_python" in
 	no)
 		AC_MSG_CHECKING([for python support])
@@ -241,13 +231,24 @@ case "$use_python" in
 					continue;
 				fi
 				AC_MSG_CHECKING([python module 'argparse'])
-				if ${PYTHON:-false} -c "$testscript"; then
-					AC_MSG_RESULT([found, using $PYTHON])
-					break
+				if ${PYTHON:-false} -c "$testargparse"; then
+					AC_MSG_RESULT([found])
+                                else
+                                        AC_MSG_RESULT([not found])
+                                        unset ac_cv_path_PYTHON
+                                        unset PYTHON
+                                        continue
 				fi
-				AC_MSG_RESULT([not found])
-				unset ac_cv_path_PYTHON
-				unset PYTHON
+
+				AC_MSG_CHECKING([python module 'ply'])
+				if ${PYTHON:-false} -c "$testply"; then
+					AC_MSG_RESULT([found])
+					break
+                                else
+                                        AC_MSG_RESULT([not found])
+                                        unset ac_cv_path_PYTHON
+                                        unset PYTHON
+				fi
 			done
 			if test "X$PYTHON" = "X"
 			then
@@ -272,9 +273,14 @@ case "$use_python" in
 				;;
 			esac
 			AC_MSG_CHECKING([python module 'argparse'])
-			if ${PYTHON:-false} -c "$testscript"; then
+			if ${PYTHON:-false} -c "$testargparse"; then
 				AC_MSG_RESULT([found, using $PYTHON])
-				break
+			else
+				AC_MSG_ERROR([not found])
+			fi
+			AC_MSG_CHECKING([python module 'ply'])
+			if ${PYTHON:-false} -c "$testply"; then
+				AC_MSG_RESULT([found, using $PYTHON])
 			else
 				AC_MSG_ERROR([not found])
 			fi
@@ -286,13 +292,16 @@ esac
 PYTHON_TOOLS=''
 CHECKDS=''
 COVERAGE=''
+KEYMGR=''
 if test "X$PYTHON" != "X"; then
 	PYTHON_TOOLS=python
 	CHECKDS=checkds
 	COVERAGE=coverage
+	KEYMGR=keymgr
 fi
 AC_SUBST(CHECKDS)
 AC_SUBST(COVERAGE)
+AC_SUBST(KEYMGR)
 AC_SUBST(PYTHON_TOOLS)
 
 #
@@ -329,6 +338,8 @@ case "$prefix" in
 		esac
 		;;
 esac
+expanded_sysconfdir=`eval echo $sysconfdir`
+AC_SUBST(expanded_sysconfdir)
 
 #
 # Make sure INSTALL uses an absolute path, else it will be wrong in all
@@ -763,8 +774,8 @@ case "$use_geoip" in
 		AC_CHECK_HEADER(GeoIP.h, [],
 			[AC_MSG_ERROR([GeoIP header file not found])]
 		)
-		AC_SEARCH_LIBS(GeoIP_open, GeoIP, [],
-			[AC_MSG_ERROR([GeoIP library not found])]
+		AC_SEARCH_LIBS(GeoIP_id_by_addr_gl, GeoIP, [],
+			[AC_MSG_ERROR([suitable GeoIP library not found])]
 		)
 		AC_SEARCH_LIBS(fabsf, m, [],
 			[AC_MSG_ERROR([Math library not found])]
@@ -815,8 +826,58 @@ AC_SUBST(GEOIPLINKOBJS)
 
 AC_MSG_CHECKING(for GSSAPI library)
 AC_ARG_WITH(gssapi,
-[  --with-gssapi=PATH      Specify path for system-supplied GSSAPI [[default=yes]]],
+[  --with-gssapi=[[PATH|[/path/]krb5-config]]      Specify path for system-supplied GSSAPI [[default=yes]]],
     use_gssapi="$withval", use_gssapi="yes")
+
+# first try using krb5-config, if that does not work then fall back to "yes" method.
+
+case "$use_gssapi" in
+*/krb5-config|krb5-config)
+    AC_MSG_RESULT(trying $use_gssapi)
+    if test "$use_gssapi" = krb5-config
+    then
+	AC_PATH_PROG(KRB5_CONFIG, $use_gssapi)
+    else
+	KRB5_CONFIG="$use_gssapi"
+    fi
+    gssapi_cflags=`$KRB5_CONFIG --cflags gssapi`
+    gssapi_libs=`$KRB5_CONFIG --libs gssapi`
+    saved_cppflags="$CPPFLAGS"
+    CPPFLAGS="$gssapi_cflags $CPPFLAGS"
+    AC_CHECK_HEADERS(gssapi.h gssapi/gssapi.h,
+	[ISC_PLATFORM_GSSAPIHEADER="#define ISC_PLATFORM_GSSAPIHEADER <$ac_header>"])
+    if test "$ISC_PLATFORM_GSSAPIHEADER" = ""; then
+	AC_MSG_RESULT([krb5-config: gssapi.h not found])
+	CPPFLAGS="$saved_cppflags"
+	use_gssapi="yes"
+    else
+	AC_CHECK_HEADERS(krb5/krb5.h krb5.h,
+	    [ISC_PLATFORM_KRB5HEADER="#define ISC_PLATFORM_KRB5HEADER <$ac_header>"])
+	if test "$ISC_PLATFORM_KRB5HEADER" = ""; then
+	    AC_MSG_RESULT([krb5-config: krb5.h not found])
+	    CPPFLAGS="$saved_cppflags"
+	    use_gssapi="yes"
+	else
+	    CPPFLAGS="$saved_cppflags"
+	    saved_libs="$LIBS"
+	    LIBS=$gssapi_libs
+	    AC_MSG_CHECKING([krb5-config linking as $LIBS])
+	    AC_TRY_LINK( , [gss_acquire_cred();krb5_init_context()],
+		gssapi_linked=yes, gssapi_linked=no)
+	    case $gssapi_linked in
+		yes) AC_MSG_RESULT([krb5-config: linked]);;
+		no)  AC_MSG_RESULT([krb5-config: could not determine proper GSSAPI linkage])
+		    use_gssapi="yes"
+		    ;;
+	    esac
+	    LIBS=$saved_libs
+	fi
+    fi
+    if test "$use_gssapi" = "yes"; then
+	AC_MSG_CHECKING([for GSSAPI library, non krb5-config method])
+    fi
+    ;;
+esac
 
 # gssapi is just the framework, we really require kerberos v5, so
 # look for those headers (the gssapi headers must be there, too)
@@ -860,6 +921,11 @@ case "$use_gssapi" in
 		;;
 	yes)
 		AC_MSG_ERROR([--with-gssapi must specify a path])
+		;;
+	*/krb5-config|krb5-config)
+		USE_GSSAPI='-DGSSAPI'
+		DST_GSSAPI_INC="$gssapi_cflags"
+		DNS_GSSAPI_LIBS="$gssapi_libs"
 		;;
 	*)
 		AC_MSG_RESULT(looking in $use_gssapi/lib)
@@ -1334,73 +1400,44 @@ AC_ARG_WITH(ecdsa, [  --with-ecdsa            Crypto ECDSA],
 AC_ARG_WITH(gost, [  --with-gost             Crypto GOST [yes|no|raw|asn1].],
 	    with_gost="$withval", with_gost="auto")
 AC_ARG_WITH(aes, [  --with-aes              Crypto AES],
-	    with_aes="$withval", with_aes="checksit")
+	    with_aes="$withval", with_aes="checkcc")
 
 #
 # was --enable-openssl-hash specified?
 #
 AC_ARG_ENABLE(openssl-hash,
 	[  --enable-openssl-hash   use OpenSSL for hash functions [[default=no]]],
-	want_openssl_hash="$enableval", want_openssl_hash="checksit")
+	want_openssl_hash="$enableval", want_openssl_hash="checkcc")
 
 #
-# Enable Source Identity Token support
+# Client Cookie algorithm choice
 #
-AC_MSG_CHECKING(for Source Identity Token support)
-AC_ARG_ENABLE(sit,
-	[  --enable-sit            enable source identity token [[default=no]]],
-	enable_sit="$enableval", enable_sit="no")
-HAVE_SIT=
-ISC_PLATFORM_USESIT="#undef ISC_PLATFORM_USESIT"
+AC_ARG_WITH(cc-alg,
+	[  --with-cc-alg=ALG      choose the algorithm for Client Cookie [[aes|sha1|sha256]]],
+	with_cc_alg="$withval", with_cc_alg="auto")
 
-case "$enable_sit" in
-yes)
-	AC_MSG_RESULT(yes)
-	ISC_PLATFORM_USESIT="#define ISC_PLATFORM_USESIT 1"
-	HAVE_SIT=1
-	;;
-no)
-	AC_MSG_RESULT(no)
-	;;
-*)
-	AC_MSG_ERROR("enable-sit requires yes or no")
-	;;
+case $with_cc_alg in
+	*1)
+		with_cc_alg="sha1"
+		;;
+	*2*)
+		with_cc_alg="sha256"
+		;;
+	auto)
+		if test "$with_aes" != "no"
+		then
+			with_aes="yes"
+		fi
+		;;
+	*)
+		with_cc_alg="aes"
+		if test "$with_aes" != "no"
+		then
+			with_aes="yes"
+		fi
+		;;
 esac
-AC_SUBST(ISC_PLATFORM_USESIT)
-AC_SUBST(HAVE_SIT)
-
-#
-# Source Identity Token algorithm choice
-#
-AC_ARG_WITH(sit-alg,
-	[  --with-sit-alg=ALG      choose the algorithm for SIT [[aes|sha1|sha256]]],
-	with_sit_alg="$withval", with_sit_alg="auto")
-
-if test "$enable_sit" = "yes"
-then
-	case $with_sit_alg in
-		*1)
-			with_sit_alg="sha1"
-			;;
-		*2*)
-			with_sit_alg="sha256"
-			;;
-		auto)
-			if test "$with_aes" != "no"
-			then
-				with_aes="yes"
-			fi
-			;;
-		*)
-			with_sit_alg="aes"
-			if test "$with_aes" != "no"
-			then
-				with_aes="yes"
-			fi
-			;;
-	esac
-fi
-if test "with_aes" = "checksit"
+if test "with_aes" = "checkcc"
 then
 	with_aes="no"
 fi
@@ -1408,21 +1445,22 @@ fi
 AC_MSG_CHECKING(for OpenSSL library)
 OPENSSL_WARNING=
 openssldirs="/usr /usr/local /usr/local/ssl /usr/pkg /usr/sfw"
+if test "$want_native_pkcs11" = "yes"
+then
+	use_openssl="native_pkcs11"
+	AC_MSG_RESULT(use of native PKCS11 instead)
+fi
+
 if test "$use_openssl" = "auto"
 then
-	if test "$want_native_pkcs11" = "yes"
-	then
-		use_openssl="native_pkcs11"
-	else
-		for d in $openssldirs
-		do
-			if test -f $d/include/openssl/opensslv.h
-			then
-				use_openssl=$d
-				break
-			fi
-		done
-	fi
+	for d in $openssldirs
+	do
+		if test -f $d/include/openssl/opensslv.h
+		then
+			use_openssl=$d
+			break
+		fi
+	done
 fi
 OPENSSL_ECDSA=""
 OPENSSL_GOST=""
@@ -1829,70 +1867,55 @@ fi
 AC_SUBST(ISC_PLATFORM_WANTAES)
 
 #
-# Choose SIT algorithm
+# Choose Client Cookie algorithm
 #
 
-if test "$enable_sit" = "yes"
+AC_MSG_CHECKING(for the Algorithm for Client Cookie)
+if test "$with_cc_alg" = "auto"
 then
-	AC_MSG_CHECKING(for the Algorithm for SIT)
-	if test "$with_sit_alg" = "auto"
+	if test "$with_aes" = "yes"
 	then
-		if test "$with_aes" = "yes"
-		then
-			with_sit_alg="aes"
-		else
-			with_sit_alg="sha256"
-		fi
+		with_cc_alg="aes"
+	else
+		with_cc_alg="sha256"
 	fi
 fi
-case $with_sit_alg in
+case $with_cc_alg in
 	sha1)
-		if test "$enable_sit" != "yes"
-		then
-			AC_MSG_ERROR("with-sit-alg requires enable-sit");
-		fi
 		AC_MSG_RESULT(sha1)
 		if test "$CRYPTO" = "-DOPENSSL"
 		then
-			if test "$want_openssl_hash" = "checksit"
+			if test "$want_openssl_hash" = "checkcc"
 			then
 				want_openssl_hash="yes"
 			fi
 		fi
-		AC_DEFINE(HMAC_SHA1_SIT, 1,
-			  [Use HMAC-SHA1 for Source Identity Token generation])
+		AC_DEFINE(HMAC_SHA1_CC, 1,
+			  [Use HMAC-SHA1 for Client Cookie generation])
 		;;
 	sha256)
-		if test "$enable_sit" != "yes"
-		then
-			AC_MSG_ERROR("with-sit-alg requires enable-sit");
-		fi
 		AC_MSG_RESULT(sha256)
 		if test "$CRYPTO" = "-DOPENSSL"
 		then
-			if test "$want_openssl_hash" = "checksit"
+			if test "$want_openssl_hash" = "checkcc"
 			then
 				want_openssl_hash="yes"
 			fi
 		fi
-		AC_DEFINE(HMAC_SHA256_SIT, 1,
-			  [Use HMAC-SHA256 for Source Identity Token generation])
+		AC_DEFINE(HMAC_SHA256_CC, 1,
+			  [Use HMAC-SHA256 for Client Cookie generation])
 		;;
 	aes)
-		if test "$enable_sit" != "yes"
-		then
-			AC_MSG_ERROR("with-sit-alg requires enable-sit");
-		fi
 		AC_MSG_RESULT(aes)
 		if test "$with_aes" != "yes"
 		then
-			AC_MSG_ERROR("SIT wants to use unavailable AES");
+			AC_MSG_ERROR("Client Cookie wants to use unavailable AES");
 		fi
-		AC_DEFINE(AES_SIT, 1,
-			  [Use AES for Source Identity Token generation])
+		AC_DEFINE(AES_CC, 1,
+			  [Use AES for Client Cookie generation])
 		;;
 esac
-if test "$want_openssl_hash" = "checksit"
+if test "$want_openssl_hash" = "checkcc"
 then
 	want_openssl_hash="no"
 fi
@@ -2059,6 +2082,7 @@ AC_SUBST(PKCS11_PROVIDER)
 
 PKCS11_ECDSA=""
 PKCS11_GOST=""
+set_pk11_flavor="no"
 AC_MSG_CHECKING(for native PKCS11)
 
 case "$want_native_pkcs11" in
@@ -2091,6 +2115,42 @@ case "$want_native_pkcs11" in
 			AC_MSG_RESULT(disabled)
 			;;
 		esac
+		AC_MSG_CHECKING(for PKCS11 flavor)
+		case "$PKCS11_PROVIDER" in
+			*nfast*)
+				AC_MSG_RESULT(Thales nCipher)
+				# default
+				pk11_flavor="PK11_THALES_FLAVOR"
+				set_pk11_flavor="yes"
+				;;
+			*libsofthsm2*)
+				AC_MSG_RESULT(SoftHSMv2)
+				pk11_flavor="PK11_SOFTHSMV2_FLAVOR"
+				set_pk11_flavor="yes"
+				;;
+			*libsofthsm*)
+				AC_MSG_RESULT(SoftHSM)
+				pk11_flavor="PK11_SOFTHSMV1_FLAVOR"
+				set_pk11_flavor="yes"
+				;;
+			*cryptech*)
+				AC_MSG_RESULT(Cryptech)
+				pk11_flavor="PK11_CRYPTECH_FLAVOR"
+				set_pk11_flavor="yes"
+				;;
+			*Keyper*)
+				AC_MSG_RESULT(AEP Keyper: not yet supported)
+				;;
+			undefined)
+				AC_MSG_RESULT(undefined provider?)
+				;;
+			*)
+				AC_MSG_RESULT(unknown provider: tweaks are in lib/isc/include/pk11/site.h)
+				;;
+		esac
+		if test "$set_pk11_flavor" = "yes" ; then
+			CFLAGS="$CFLAGS -DPK11_FLAVOR=$pk11_flavor"
+		fi
 		;;
 	no|'')
 		AC_MSG_RESULT(disabled)
@@ -2119,6 +2179,73 @@ fi
 if test "$have_clock_gt" = "rt"; then
 	LIBS="-lrt $LIBS"
 fi
+
+#
+# was --with-lmdb specified?
+#
+AC_MSG_CHECKING(for lmdb library)
+AC_ARG_WITH(lmdb,
+[  --with-lmdb[=PATH]        build with LMDB library [yes|no|path]],
+    use_lmdb="$withval", use_lmdb="auto")
+
+have_lmdb=""
+case "$use_lmdb" in
+	no)
+		lmdb_libs=""
+		;;
+	auto|yes)
+		for d in /usr /usr/local /opt/local
+		do
+			if test -f "${d}/include/lmdb.h"
+			then
+				if test ${d} != /usr
+				then
+					lmdb_cflags="-I ${d}/include"
+					LIBS="$LIBS -L${d}/lib"
+				fi
+				have_lmdb="yes"
+			fi
+		done
+		;;
+	*)
+		if test -f "${use_lmdb}/include/lmdb.h"
+		then
+			lmdb_cflags="-I${use_lmdb}/include"
+			LIBS="$LIBS -L${use_lmdb}/lib"
+			have_lmdb="yes"
+		else
+			AC_MSG_ERROR([$use_lmdb/include/lmdb.h not found.])
+		fi
+		;;
+esac
+
+if test "X${have_lmdb}" != "X"
+then
+	AC_MSG_RESULT(yes)
+	AC_SEARCH_LIBS([mdb_env_create], [lmdb], [],
+		       [AC_MSG_ERROR([found lmdb include but not library.])
+			have_lmdb=""])
+elif test "X$use_lmdb" = Xyes
+then
+	AC_MSG_ERROR([include/lmdb.h not found.])
+else
+	AC_MSG_RESULT(no)
+fi
+
+NZD_TOOLS=""
+NZDSRCS=
+NZDTARGETS=
+if test "X${have_lmdb}" != "X"
+then
+	CFLAGS="$CFLAGS $lmdb_cflags"
+	AC_DEFINE(HAVE_LMDB, 1, [Define if lmdb was found])
+	NZD_TOOLS="nzd"
+        NZDSRCS='${NZDSRCS}'
+        NZDTARGETS='${NZDTARGETS}'
+fi
+AC_SUBST(NZD_TOOLS)
+AC_SUBST(NZDSRCS)
+AC_SUBST(NZDTARGETS)
 
 #
 # was --with-libxml2 specified?
@@ -2254,6 +2381,68 @@ then
 	JSONSTATS=1
 fi
 AC_SUBST(JSONSTATS)
+
+#
+# was --with-zlib specified?
+#
+AC_MSG_CHECKING(for zlib library)
+AC_ARG_WITH(zlib,
+[  --with-zlib[=PATH]        build with zlib for HTTP compression [[default=yes]] ],
+    with_zlib="$withval", with_zlib="auto")
+
+have_zlib=""
+case "$with_zlib" in
+	no)
+		zlib_libs=""
+		;;
+	auto|yes)
+		for d in /usr /usr/local /opt/local
+		do
+			if test -f "${d}/include/zlib.h"
+			then
+				if test ${d} != /usr
+				then
+					zlib_cflags="-I ${d}/include"
+					LIBS="$LIBS -L${d}/lib"
+				fi
+				have_zlib="yes"
+			fi
+		done
+		;;
+	*)
+		if test -f "${with_zlib}/zlib.h"
+		then
+			zlib_cflags="-I${with_zlib}/include"
+			LIBS="$LIBS -L${with_zlib}/lib"
+			have_zlib="yes"
+		else
+			AC_MSG_ERROR([$with_zlib/include/zlib.h not found.])
+		fi
+		;;
+esac
+
+if test "X${have_zlib}" != "X"
+then
+	AC_MSG_RESULT(yes)
+	AC_SEARCH_LIBS([deflate], [z], [],
+		       [AC_MSG_ERROR([found zlib include but not library.])
+			have_zlib=""])
+elif test "X$with_zlib" = Xyes
+then
+	AC_MSG_ERROR([include/zlib.h not found.])
+else
+	AC_MSG_RESULT(no)
+fi
+
+ZLIB=
+if test "X${have_zlib}" != "X"
+then
+	CFLAGS="$CFLAGS $zlib_cflags"
+	AC_DEFINE(HAVE_ZLIB, 1, [Define if zlib was found])
+	ZLIB=1
+fi
+AC_SUBST(ZLIB)
+
 
 #
 # In solaris 10, SMF can manage named service
@@ -2956,6 +3145,24 @@ AC_TRY_COMPILE([
 AC_SUBST(ISC_PLATFORM_NEEDPORTT)
 
 #
+# Look for TCP_FASTOPEN
+#
+AC_MSG_CHECKING(for TCP_FASTOPEN socket option)
+AC_EGREP_CPP(has_tfo, [
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/tcp.h>
+#ifdef TCP_FASTOPEN
+int has_tfo() { return (0); }
+#endif
+],
+	[AC_MSG_RESULT(yes)
+	ISC_PLATFORM_HAVETFO="#define ISC_PLATFORM_HAVETFO 1"],
+	[AC_MSG_RESULT(no)
+	ISC_PLATFORM_HAVETFO="#undef ISC_PLATFORM_HAVETFO"])
+AC_SUBST(ISC_PLATFORM_HAVETFO)
+
+#
 # Check for addrinfo
 #
 AC_MSG_CHECKING(for struct addrinfo)
@@ -3480,6 +3687,17 @@ GEN_NEED_OPTARG="-DNEED_OPTARG=1"
 AC_DEFINE(NEED_OPTARG, 1, [Defined if extern char *optarg is not declared.])])
 
 #
+# Check for nanoseconds in file stats
+#
+AC_MSG_CHECKING(st_mtim.tv_nsec)
+AC_TRY_COMPILE([#include <sys/fcntl.h>],[struct stat s; return(s.st_mtim.tv_nsec);],
+	[AC_MSG_RESULT(yes)
+        ISC_PLATFORM_HAVESTATNSEC="#define ISC_PLATFORM_HAVESTATNSEC 1"],
+	[AC_MSG_RESULT(no)
+        ISC_PLATFORM_HAVESTATNSEC="#undef ISC_PLATFORM_HAVESTATNSEC"])
+AC_SUBST(ISC_PLATFORM_HAVESTATNSEC)
+
+#
 # BSD/OS, and perhaps some others, don't define rlim_t.
 #
 AC_MSG_CHECKING(for type rlim_t)
@@ -3664,9 +3882,8 @@ esac
 case $ac_cv_have_if_nametoindex in
 yes)
 	ISC_PLATFORM_HAVEIFNAMETOINDEX="#define ISC_PLATFORM_HAVEIFNAMETOINDEX 1"
-        AC_DEFINE(HAVE_IF_NAMETOINDEX, 1,
-                  [Define to 1 if you have the if_nametoindex function.])
-
+	AC_DEFINE(HAVE_IF_NAMETOINDEX, 1,
+	[Define to 1 if you have the if_nametoindex function.])
 	;;
 *)
 	ISC_PLATFORM_HAVEIFNAMETOINDEX="#undef ISC_PLATFORM_HAVEIFNAMETOINDEX"
@@ -3897,6 +4114,75 @@ if test "$have_builtin_expect" = "yes"; then
 fi
 
 #
+# Check for __builtin_clz
+#
+AC_MSG_CHECKING([compiler support for __builtin_clz])
+AC_TRY_LINK(, [
+        return (__builtin_clz(0xff) == 24 ? 1 : 0);
+], [
+        have_builtin_clz=yes
+        AC_MSG_RESULT(yes)
+], [
+        have_builtin_clz=no
+        AC_MSG_RESULT(no)
+])
+if test "$have_builtin_clz" = "yes"; then
+        AC_DEFINE(HAVE_BUILTIN_CLZ, 1, [Define to 1 if the compiler supports __builtin_clz.])
+fi
+
+#
+# CPU relax (for spin locks)
+#
+if $use_threads
+then
+	case "$host" in
+	[i[3456]86-*])
+		# x86_32
+		AC_MSG_CHECKING([if asm("rep; nop"); works])
+		AC_TRY_COMPILE(,[asm("rep; nop");],
+		[AC_MSG_RESULT(yes)
+		 ISC_PLATFORM_BUSYWAITNOP="#define ISC_PLATFORM_BUSYWAITNOP asm(\"rep; nop\")"],
+		[AC_MSG_RESULT(no)],
+		[AC_MSG_RESULT([cross compile, assume yes])
+		 ISC_PLATFORM_BUSYWAITNOP="#define ISC_PLATFORM_BUSYWAITNOP asm(\"rep; nop\")"])
+		;;
+	x86_64-*|amd64-*)
+		# x86_64
+		AC_MSG_CHECKING([if asm("rep; nop"); works])
+		AC_TRY_COMPILE(,[asm("rep; nop");],
+		[AC_MSG_RESULT(yes)
+		 ISC_PLATFORM_BUSYWAITNOP="#define ISC_PLATFORM_BUSYWAITNOP asm(\"rep; nop\")"],
+		[AC_MSG_RESULT(no)],
+		[AC_MSG_RESULT([cross compile, assume yes])
+		 ISC_PLATFORM_BUSYWAITNOP="#define ISC_PLATFORM_BUSYWAITNOP asm(\"rep; nop\")"])
+		;;
+	ia64-*)
+		# ia64
+		AC_MSG_CHECKING([if asm("hint @pause"); works])
+		AC_TRY_COMPILE(,[asm("hint @pause");],
+		[AC_MSG_RESULT(yes)
+		 ISC_PLATFORM_BUSYWAITNOP="#define ISC_PLATFORM_BUSYWAITNOP asm(\"hint @pause\")"],
+		[AC_MSG_RESULT(no)],
+		[AC_MSG_RESULT([cross compile, assume yes])
+		 ISC_PLATFORM_BUSYWAITNOP="#define ISC_PLATFORM_BUSYWAITNOP asm(\"hint @pause\")"])
+		;;
+	sparc-*)
+		# sparc
+		AC_MSG_CHECKING([if cpu_relax(); or __cpu_relax(); works])
+		AC_CHECK_FUNC(cpu_relax,
+		[AC_MSG_RESULT(yes)
+		 ISC_PLATFORM_BUSYWAITNOP="#define ISC_PLATFORM_BUSYWAITNOP cpu_relax()"],
+		 [AC_CHECK_FUNC(__cpu_relax,
+		  [AC_MSG_RESULT(yes)
+		   ISC_PLATFORM_BUSYWAITNOP="#define ISC_PLATFORM_BUSYWAITNOP __cpu_relax()"],
+		   [AC_MSG_RESULT(no)])])
+		;;
+	esac
+fi
+
+AC_SUBST(ISC_PLATFORM_BUSYWAITNOP)
+
+#
 # Activate "rrset-order fixed" or not?
 #
 AC_ARG_ENABLE(fixed-rrset,
@@ -3951,25 +4237,7 @@ case "$enable_nsdname" in
 esac
 
 #
-# Activate recursive fetch limits
-#
-AC_ARG_ENABLE(fetchlimit,
-	[  --enable-fetchlimit     enable recursive fetch limits [[default=no]]],
-			enable_fetchlimit="$enableval",
-			enable_fetchlimit="no")
-case "$enable_fetchlimit" in
-	yes)
-		AC_DEFINE(ENABLE_FETCHLIMIT, 1,
-			  [Define to enable the "fetches-per-server" and "fetches-per-zone" options.])
-		;;
-	no)
-		;;
-	*)
-		;;
-esac
-
-#
-# Activate "filter-aaaa" or not?
+# Activate "filter-aaaa-on-v4/v6" or not?
 #
 AC_ARG_ENABLE(filter-aaaa,
 	[  --enable-filter-aaaa    enable filtering of AAAA records [[default=no]]],
@@ -3985,6 +4253,78 @@ case "$enable_filter" in
 	*)
 		;;
 esac
+
+#
+# Activate dnstap?
+#
+AC_PATH_PROG(FSTRM_CAPTURE, fstrm_capture)
+AC_ARG_ENABLE(dnstap,
+	[  --enable-dnstap         enable dnstap support (requires fstrm, protobuf-c)],
+                        use_dnstap=$enableval,
+                        use_dnstap=no)
+
+DNSTAP=
+DNSTAPSRCS=
+DNSTAPOBJS=
+DNSTAPTARGETS=
+DNSTAP_PB_C_H=
+if test "x$use_dnstap" != "xno"; then
+	if ! $use_threads; then
+		AC_MSG_ERROR([Dnstap requires threads.])
+	fi
+	AC_PATH_PROG([PROTOC_C], [protoc-c])
+	if test -z "$PROTOC_C"; then
+		AC_MSG_ERROR([The protoc-c program was not found.])
+	fi
+	AC_ARG_WITH([protobuf-c],
+		    AC_HELP_STRING([--with-protobuf-c=path],
+				   [Path where protobuf-c is installed, for dnstap]), [
+	    # workaround for protobuf-c includes at old dir
+	    # before protobuf-c-1.0.0
+	    if test -f $withval/include/google/protobuf-c/protobuf-c.h
+	    then
+		CFLAGS="$CFLAGS -I$withval/include/google"
+	    else
+		CFLAGS="$CFLAGS -I$withval/include"
+	    fi
+	    LDFLAGS="$LDFLAGS -L$withval/lib"
+	], [
+	    # workaround for protobuf-c includes at old dir
+	    # before protobuf-c-1.0.0
+	    if test -f /usr/include/google/protobuf-c/protobuf-c.h
+	    then
+		CFLAGS="$CFLAGS -I/usr/include/google"
+	    else
+		if test -f /usr/local/include/google/protobuf-c/protobuf-c.h
+		then
+		    CFLAGS="$CFLAGS -I/usr/local/include/google"
+		    LDFLAGS="$LDFLAGS -L/usr/local/lib"
+		fi
+	    fi
+	])
+	AC_ARG_WITH([libfstrm], AC_HELP_STRING([--with-libfstrm=path],
+		    [Path where libfstrm is installed, for dnstap]), [
+	    CFLAGS="$CFLAGS -I$withval/include"
+	    LDFLAGS="$LDFLAGS -L$withval/lib"
+	])
+
+	AC_SEARCH_LIBS([fstrm_iothr_init], [fstrm], [],
+		       AC_MSG_ERROR([The fstrm library was not found. Please install fstrm!]))
+	AC_SEARCH_LIBS([protobuf_c_message_pack], [protobuf-c], [],
+		       AC_MSG_ERROR([The protobuf-c library was not found. Please install protobuf-c!]))
+
+	AC_DEFINE(HAVE_DNSTAP, 1, [Define to 1 to enable dnstap support])
+	DNSTAP=dnstap
+	DNSTAPSRCS='${DNSTAPSRCS}'
+	DNSTAPOBJS='${DNSTAPOBJS}'
+	DNSTAPTARGETS='${DNSTAPTARGETS}'
+	DNSTAP_PB_C_H="dnstap.pb-c.h"
+fi
+AC_SUBST(DNSTAP)
+AC_SUBST(DNSTAPSRCS)
+AC_SUBST(DNSTAPOBJS)
+AC_SUBST(DNSTAPTARGETS)
+AC_SUBST(DNSTAP_PB_C_H)
 
 #
 #  The following sets up how non-blocking i/o is established.
@@ -4245,6 +4585,10 @@ if test "$atf" != no; then
 	STD_CINCLUDES="$STD_CINCLUDES -I$atf/include"
 	ATFBIN="$atf/bin"
 	ATFLIBS="-L$atf/lib -latf-c"
+	AC_CHECK_LIB(m, exp, libm=yes, libm=no)
+	if test "$libm" = "yes"; then
+		ATFLIBS="$ATFLIBS -lm"
+	fi
 	UNITTESTS=tests
 fi
 AC_SUBST(ATFBIN)
@@ -4464,8 +4808,8 @@ if test "$dlopen" = "yes"; then
 			fi
 			;;
 		*-freebsd*|*-openbsd*)
+			LDFLAGS="${LDFLAGS} -Wl,-E"
 			SO_CFLAGS="-fpic"
-			elf=`${CC} -dM -E - < /dev/null | grep __ELF__`
 			if test "$use_libtool" = "yes"; then
 				SO_LDFLAGS="-Xcompiler -shared"
 				SO_LD="${CC}"
@@ -4516,6 +4860,7 @@ if test "$dlopen" = "yes"; then
 			  [Define to allow building of objects for dlopen().])
 	fi
 fi
+CFLAGS="$CFLAGS $SO_CFLAGS"
 
 AC_SUBST(SO)
 AC_SUBST(SO_CFLAGS)
@@ -4714,8 +5059,26 @@ AC_CONFIG_FILES([
 	bin/nsupdate/Makefile
 	bin/pkcs11/Makefile
 	bin/python/Makefile
+	bin/python/isc/Makefile
+	bin/python/isc/utils.py
+	bin/python/isc/tests/Makefile
 	bin/python/dnssec-checkds.py
 	bin/python/dnssec-coverage.py
+	bin/python/dnssec-keymgr.py
+	bin/python/isc/__init__.py
+	bin/python/isc/checkds.py
+	bin/python/isc/coverage.py
+	bin/python/isc/dnskey.py
+	bin/python/isc/eventlist.py
+	bin/python/isc/keydict.py
+	bin/python/isc/keyevent.py
+	bin/python/isc/keymgr.py
+	bin/python/isc/keyseries.py
+	bin/python/isc/keyzone.py
+	bin/python/isc/policy.py
+	bin/python/isc/rndc.py
+	bin/python/isc/tests/dnskey_test.py
+	bin/python/isc/tests/policy_test.py
 	bin/rndc/Makefile
 	bin/tests/Makefile
 	bin/tests/atomic/Makefile
@@ -4748,20 +5111,22 @@ AC_CONFIG_FILES([
 	bin/tests/resolver/Makefile
 	bin/tests/sockaddr/Makefile
 	bin/tests/system/Makefile
-	bin/tests/system/conf.sh
 	bin/tests/system/builtin/Makefile
+	bin/tests/system/conf.sh
 	bin/tests/system/dlz/prereq.sh
 	bin/tests/system/dlzexternal/Makefile
 	bin/tests/system/dlzexternal/ns1/named.conf
-	bin/tests/system/dlzredir/prereq.sh
-	bin/tests/system/fetchlimit/Makefile
+	bin/tests/system/dyndb/Makefile
+	bin/tests/system/dyndb/driver/Makefile
 	bin/tests/system/filter-aaaa/Makefile
 	bin/tests/system/geoip/Makefile
 	bin/tests/system/inline/checkdsa.sh
 	bin/tests/system/lwresd/Makefile
+	bin/tests/system/pipelined/Makefile
+	bin/tests/system/resolver/Makefile
+	bin/tests/system/rndc/Makefile
 	bin/tests/system/rpz/Makefile
 	bin/tests/system/rsabigexponent/Makefile
-	bin/tests/system/sit/prereq.sh
 	bin/tests/system/statistics/Makefile
 	bin/tests/system/tkey/Makefile
 	bin/tests/system/tsiggss/Makefile
@@ -4870,9 +5235,9 @@ esac
 AC_ARG_ENABLE(full-report,
 	[  --enable-full-report	  report values of all configure options])
 
-echo "========================================================================"
+echo "==============================================================================="
 echo "Configuration summary:"
-echo "------------------------------------------------------------------------"
+echo "-------------------------------------------------------------------------------"
 echo "Optional features enabled:"
 if $use_threads; then
     echo "    Multiprocessing support (--enable-threads)"
@@ -4881,15 +5246,12 @@ if $use_threads; then
     fi
 fi
 test "$use_tuning" = "large" && echo "    Large-system tuning (--with-tuning)"
+test "$use_dnstap" = "no" || \
+        echo "    Allow 'dnstap' packet logging (--enable-dnstap)"
 test "$use_geoip" = "no" || echo "    GeoIP access control (--with-geoip)"
 test "$use_gssapi" = "no" || echo "    GSS-API (--with-gssapi)"
-test "$enable_fetchlimit" = "yes" && \
-    echo "    Recursive fetch limits for DoS attack mitigation (--enable-fetchlimit)"
-if test "$enable_sit" != "no"; then
-    echo "    Source Identity Token support (--enable-sit)"
-    if test "$enable_full_report" = "yes" -o "$with_sit_alg" != "aes"; then
-	echo "        Algorithm: $with_sit_alg"
-    fi
+if test "$enable_full_report" = "yes" -o "$with_cc_alg" != "aes"; then
+    echo "        Algorithm: $with_cc_alg"
 fi
 
 # these lines are only printed if run with --enable-full-report 
@@ -4901,6 +5263,8 @@ if test "$enable_full_report" = "yes"; then
     test "X$PYTHON" = "X" || echo "    Python tools (--with-python)"
     test "X$XMLSTATS" = "X" || echo "    XML statistics (--with-libxml2)"
     test "X$JSONSTATS" = "X" || echo "    JSON statistics (--with-libjson)"
+    test "X$ZLIB" = "X" || echo "    HTTP zlib compression (--with-zlib)"
+    test "X$NZD_TOOLS" = "X" || echo "    LMDB database to store configuration for 'addzone' zones (--with-lmdb)"
 fi
 
 if test "$use_pkcs11" != "no"; then
@@ -4957,11 +5321,10 @@ test "$enable_ipv6" = "no" -o "$found_ipv6" = "no" && \
 	echo "    IPv6 support (--enable-ipv6)"
 test "$use_tuning" = "large" || echo "    Large-system tuning (--with-tuning)"
 
+test "$use_dnstap" = "no" && \
+        echo "    Allow 'dnstap' packet logging (--enable-dnstap)"
 test "$use_geoip" = "no" && echo "    GeoIP access control (--with-geoip)"
 test "$use_gssapi" = "no" && echo "    GSS-API (--with-gssapi)"
-test "$enable_fetchlimit" = "no" && \
-        echo "    Recursive fetch limits for DoS attack mitigation (--enable-fetchlimit)"
-test "$enable_sit" = "no" && echo "    Source Identity Token support (--enable-sit)"
 
 test "$enable_fixed" = "yes" || \
     echo "    Allow 'fixed' rrset-order (--enable-fixed-rrset)"
@@ -4992,6 +5355,8 @@ test "$atf" = "no" && echo "    Automated Testing Framework (--with-atf)"
 test "X$PYTHON" = "X" && echo "    Python tools (--with-python)"
 test "X$XMLSTATS" = "X" && echo "    XML statistics (--with-libxml2)"
 test "X$JSONSTATS" = "X" && echo "    JSON statistics (--with-libjson)"
+test "X$ZLIB" = "X" && echo "    HTTP zlib compression (--with-zlib)"
+test "X$NZD_TOOLS" = "X" && echo "    LMDB database to store configuration for 'addzone' zones (--with-lmdb)"
 
 if test "X$ac_unrecognized_opts" != "X"; then
     echo
@@ -4999,10 +5364,10 @@ if test "X$ac_unrecognized_opts" != "X"; then
     echo "    $ac_unrecognized_opts"
 fi
 if test "$enable_full_report" != "yes"; then
-    echo "------------------------------------------------------------------------"
+    echo "-------------------------------------------------------------------------------"
     echo "For more detail, use --enable-full-report."
 fi
-echo "========================================================================"
+echo "==============================================================================="
 
 if test "X$CRYPTO" = "X"; then
 cat << \EOF                                                             

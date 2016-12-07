@@ -1,21 +1,10 @@
 /*
- * Copyright (C) 2004-2014, 2016  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1999-2003  Internet Software Consortium.
+ * Copyright (C) 1999-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-
-/* $Id$ */
 
 #ifndef DNS_VIEW_H
 #define DNS_VIEW_H 1
@@ -72,7 +61,9 @@
 #include <isc/stdtime.h>
 
 #include <dns/acl.h>
+#include <dns/catz.h>
 #include <dns/clientinfo.h>
+#include <dns/dnstap.h>
 #include <dns/fixedname.h>
 #include <dns/rrl.h>
 #include <dns/rdatastruct.h>
@@ -98,10 +89,11 @@ struct dns_view {
 	dns_db_t *			hints;
 
 	/*
-	 * security roots.
+	 * security roots and negative trust anchors.
 	 * internal use only; access via * dns_view_getsecroots()
 	 */
 	dns_keytable_t *		secroots_priv;
+	dns_ntatable_t *		ntatable_priv;
 
 	isc_mutex_t			lock;
 	isc_boolean_t			frozen;
@@ -124,10 +116,13 @@ struct dns_view {
 	isc_boolean_t			auth_nxdomain;
 	isc_boolean_t			additionalfromcache;
 	isc_boolean_t			additionalfromauth;
-	isc_boolean_t			minimalresponses;
+	isc_boolean_t			minimal_any;
+	dns_minimaltype_t		minimalresponses;
 	isc_boolean_t			enablednssec;
 	isc_boolean_t			enablevalidation;
 	isc_boolean_t			acceptexpired;
+	isc_boolean_t			requireservercookie;
+	isc_boolean_t			trust_anchor_telemetry;
 	dns_transfer_format_t		transfer_format;
 	dns_acl_t *			cacheacl;
 	dns_acl_t *			cacheonacl;
@@ -142,15 +137,19 @@ struct dns_view {
 	dns_acl_t *			upfwdacl;
 	dns_acl_t *			denyansweracl;
 	dns_acl_t *			nocasecompress;
+	isc_boolean_t			msgcompression;
 	dns_rbt_t *			answeracl_exclude;
 	dns_rbt_t *			denyanswernames;
 	dns_rbt_t *			answernames_exclude;
 	dns_rrl_t *			rrl;
 	isc_boolean_t			provideixfr;
 	isc_boolean_t			requestnsid;
-	isc_boolean_t			requestsit;
+	isc_boolean_t			sendcookie;
 	dns_ttl_t			maxcachettl;
 	dns_ttl_t			maxncachettl;
+	isc_uint32_t			nta_lifetime;
+	isc_uint32_t			nta_recheck;
+	char				*nta_file;
 	dns_ttl_t			prefetch_trigger;
 	dns_ttl_t			prefetch_eligible;
 	in_port_t			dstport;
@@ -164,7 +163,7 @@ struct dns_view {
 	dns_name_t *			dlv;
 	dns_fixedname_t			dlv_fixed;
 	isc_uint16_t			maxudp;
-	isc_uint16_t			situdp;
+	isc_uint16_t			nocookieudp;
 	unsigned int			maxbits;
 	dns_aaaa_t			v4_aaaa;
 	dns_aaaa_t			v6_aaaa;
@@ -172,8 +171,11 @@ struct dns_view {
 	dns_dns64list_t 		dns64;
 	unsigned int 			dns64cnt;
 	dns_rpz_zones_t			*rpzs;
+	dns_catz_zones_t		*catzs;
 	dns_dlzdblist_t 		dlz_searched;
 	dns_dlzdblist_t 		dlz_unsearched;
+	isc_uint32_t			fail_ttl;
+	dns_badcache_t			*failcache;
 
 	/*
 	 * Configurable data for server use only,
@@ -195,6 +197,10 @@ struct dns_view {
 
 	dns_zone_t *			managed_keys;
 	dns_zone_t *			redirect;
+	dns_name_t *			redirectzone;	/* points to
+							 * redirectfixed
+							 * when valid */
+	dns_fixedname_t 		redirectfixed;
 
 	/*
 	 * File and configuration data for zones added at runtime
@@ -204,10 +210,18 @@ struct dns_view {
 	 * named implements.
 	 */
 	char *				new_zone_file;
+	char *			        new_zone_db;
+	void *				new_zone_dbenv;
 	void *				new_zone_config;
 	void				(*cfg_destroy)(void **);
+	isc_mutex_t			new_zone_lock;
 
 	unsigned char			secret[32];	/* Client secret */
+	unsigned int			v6bias;
+
+	dns_dtenv_t			*dtenv;		/* Dnstap environment */
+	dns_dtmsgtype_t			dttypes;	/* Dnstap message types
+							   to log */
 };
 
 #define DNS_VIEW_MAGIC			ISC_MAGIC('V','i','e','w')
@@ -1076,16 +1090,49 @@ dns_view_iscacheshared(dns_view_t *view);
  */
 
 isc_result_t
-dns_view_initsecroots(dns_view_t *view, isc_mem_t *mctx);
+dns_view_initntatable(dns_view_t *view,
+		      isc_taskmgr_t *taskmgr, isc_timermgr_t *timermgr);
 /*%<
- * Initialize security roots for the view.  (Note that secroots is
- * NULL until this function is called, so any function using
- * secroots must check its validity first.  One way to do this is
- * use dns_view_getsecroots() and check its return value.)
+ * Initialize the negative trust anchor table for the view.
  *
  * Requires:
  * \li	'view' is valid.
- * \li	'view->secroots' is NULL.
+ *
+ * Returns:
+ *\li	ISC_R_SUCCESS
+ *\li	Any other result indicates failure
+ */
+
+isc_result_t
+dns_view_getntatable(dns_view_t *view, dns_ntatable_t **ntp);
+/*%<
+ * Get the negative trust anchor table for this view.  Returns
+ * ISC_R_NOTFOUND if the table not been initialized for the view.
+ *
+ * '*ntp' is attached on success; the caller is responsible for
+ * detaching it with dns_ntatable_detach().
+ *
+ * Requires:
+ * \li	'view' is valid.
+ * \li	'nta' is not NULL and '*nta' is NULL.
+ *
+ * Returns:
+ *\li	ISC_R_SUCCESS
+ *\li	ISC_R_NOTFOUND
+ */
+
+isc_result_t
+dns_view_initsecroots(dns_view_t *view, isc_mem_t *mctx);
+/*%<
+ * Initialize security roots for the view, detaching any previously
+ * existing security roots first.  (Note that secroots_priv is
+ * NULL until this function is called, so any function using
+ * security roots must check that they have been initialized first.
+ * One way to do this is use dns_view_getsecroots() and check its
+ * return value.)
+ *
+ * Requires:
+ * \li	'view' is valid.
  *
  * Returns:
  *\li	ISC_R_SUCCESS
@@ -1112,10 +1159,14 @@ dns_view_getsecroots(dns_view_t *view, dns_keytable_t **ktp);
 
 isc_result_t
 dns_view_issecuredomain(dns_view_t *view, dns_name_t *name,
-			 isc_boolean_t *secure_domain);
+			isc_stdtime_t now, isc_boolean_t checknta,
+			isc_boolean_t *secure_domain);
 /*%<
- * Is 'name' at or beneath a trusted key?  Put answer in
- * '*secure_domain'.
+ * Is 'name' at or beneath a trusted key, and not covered by a valid
+ * negative trust anchor?  Put answer in '*secure_domain'.
+ *
+ * If 'checknta' is ISC_FALSE, ignore the NTA table in determining
+ * whether this is a secure domain.
  *
  * Requires:
  * \li	'view' is valid.
@@ -1123,6 +1174,20 @@ dns_view_issecuredomain(dns_view_t *view, dns_name_t *name,
  * Returns:
  *\li	ISC_R_SUCCESS
  *\li	Any other value indicates failure
+ */
+
+isc_boolean_t
+dns_view_ntacovers(dns_view_t *view, isc_stdtime_t now,
+		   dns_name_t *name, dns_name_t *anchor);
+/*%<
+ * Is there a current negative trust anchor above 'name' and below 'anchor'?
+ *
+ * Requires:
+ * \li	'view' is valid.
+ *
+ * Returns:
+ *\li	ISC_R_TRUE
+ *\li	ISC_R_FALSE
  */
 
 void
@@ -1145,7 +1210,7 @@ dns_view_untrust(dns_view_t *view, dns_name_t *keyname,
  * \li	'dnskey' is valid.
  */
 
-void
+isc_result_t
 dns_view_setnewzones(dns_view_t *view, isc_boolean_t allow, void *cfgctx,
 		     void (*cfg_destroy)(void **));
 /*%<
@@ -1164,6 +1229,10 @@ dns_view_setnewzones(dns_view_t *view, isc_boolean_t allow, void *cfgctx,
  *
  * Requires:
  * \li 'view' is valid.
+ *
+ * Returns:
+ * \li ISC_R_SUCCESS
+ * \li ISC_R_NOSPACE
  */
 
 void
@@ -1190,6 +1259,42 @@ dns_view_searchdlz(dns_view_t *view, dns_name_t *name,
  * \li 'view' is valid.
  * \li 'name' is not NULL.
  * \li 'dbp' is not NULL and *dbp is NULL.
+ */
+
+isc_uint32_t
+dns_view_getfailttl(dns_view_t *view);
+/*%<
+ * Get the view's servfail-ttl.  zero => no servfail caching.
+ *
+ * Requires:
+ *\li	'view' to be valid.
+ */
+
+void
+dns_view_setfailttl(dns_view_t *view, isc_uint32_t failttl);
+/*%<
+ * Set the view's servfail-ttl.  zero => no servfail caching.
+ *
+ * Requires:
+ *\li	'view' to be valid.
+ */
+
+isc_result_t
+dns_view_saventa(dns_view_t *view);
+/*%<
+ * Save NTA for names in this view to a file.
+ *
+ * Requires:
+ *\li	'view' to be valid.
+ */
+
+isc_result_t
+dns_view_loadnta(dns_view_t *view);
+/*%<
+ * Loads NTA for names in this view from a file.
+ *
+ * Requires:
+ *\li	'view' to be valid.
  */
 
 ISC_LANG_ENDDECLS

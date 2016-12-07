@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2009, 2012-2014  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 2000, 2001, 2003  Internet Software Consortium.
+ * Copyright (C) 2000, 2001, 2003-2009, 2012-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id: peer.c,v 1.33 2009/09/02 23:48:02 tbox Exp $ */
@@ -43,10 +34,13 @@
 #define SERVER_UDPSIZE_BIT		 6
 #define SERVER_MAXUDP_BIT		 7
 #define REQUEST_NSID_BIT                 8
-#define REQUEST_SIT_BIT                  9
+#define SEND_COOKIE_BIT                  9
 #define NOTIFY_DSCP_BIT                 10
 #define TRANSFER_DSCP_BIT               11
 #define QUERY_DSCP_BIT                 	12
+#define REQUEST_EXPIRE_BIT              13
+#define EDNS_VERSION_BIT	        14
+#define FORCE_TCP_BIT			15
 
 static void
 peerlist_delete(dns_peerlist_t **list);
@@ -452,26 +446,78 @@ dns_peer_getrequestnsid(dns_peer_t *peer, isc_boolean_t *retval) {
 }
 
 isc_result_t
-dns_peer_setrequestsit(dns_peer_t *peer, isc_boolean_t newval) {
+dns_peer_setsendcookie(dns_peer_t *peer, isc_boolean_t newval) {
 	isc_boolean_t existed;
 
 	REQUIRE(DNS_PEER_VALID(peer));
 
-	existed = DNS_BIT_CHECK(REQUEST_SIT_BIT, &peer->bitflags);
+	existed = DNS_BIT_CHECK(SEND_COOKIE_BIT, &peer->bitflags);
 
-	peer->request_sit = newval;
-	DNS_BIT_SET(REQUEST_SIT_BIT, &peer->bitflags);
+	peer->send_cookie = newval;
+	DNS_BIT_SET(SEND_COOKIE_BIT, &peer->bitflags);
 
 	return (existed ? ISC_R_EXISTS : ISC_R_SUCCESS);
 }
 
 isc_result_t
-dns_peer_getrequestsit(dns_peer_t *peer, isc_boolean_t *retval) {
+dns_peer_getsendcookie(dns_peer_t *peer, isc_boolean_t *retval) {
 	REQUIRE(DNS_PEER_VALID(peer));
 	REQUIRE(retval != NULL);
 
-	if (DNS_BIT_CHECK(REQUEST_SIT_BIT, &peer->bitflags)) {
-		*retval = peer->request_sit;
+	if (DNS_BIT_CHECK(SEND_COOKIE_BIT, &peer->bitflags)) {
+		*retval = peer->send_cookie;
+		return (ISC_R_SUCCESS);
+	} else
+		return (ISC_R_NOTFOUND);
+}
+
+isc_result_t
+dns_peer_setrequestexpire(dns_peer_t *peer, isc_boolean_t newval) {
+	isc_boolean_t existed;
+
+	REQUIRE(DNS_PEER_VALID(peer));
+
+	existed = DNS_BIT_CHECK(REQUEST_EXPIRE_BIT, &peer->bitflags);
+
+	peer->request_expire = newval;
+	DNS_BIT_SET(REQUEST_EXPIRE_BIT, &peer->bitflags);
+
+	return (existed ? ISC_R_EXISTS : ISC_R_SUCCESS);
+}
+
+isc_result_t
+dns_peer_getrequestexpire(dns_peer_t *peer, isc_boolean_t *retval) {
+	REQUIRE(DNS_PEER_VALID(peer));
+	REQUIRE(retval != NULL);
+
+	if (DNS_BIT_CHECK(REQUEST_EXPIRE_BIT, &peer->bitflags)) {
+		*retval = peer->request_expire;
+		return (ISC_R_SUCCESS);
+	} else
+		return (ISC_R_NOTFOUND);
+}
+
+isc_result_t
+dns_peer_setforcetcp(dns_peer_t *peer, isc_boolean_t newval) {
+	isc_boolean_t existed;
+
+	REQUIRE(DNS_PEER_VALID(peer));
+
+	existed = DNS_BIT_CHECK(FORCE_TCP_BIT, &peer->bitflags);
+
+	peer->force_tcp = newval;
+	DNS_BIT_SET(FORCE_TCP_BIT, &peer->bitflags);
+
+	return (existed ? ISC_R_EXISTS : ISC_R_SUCCESS);
+}
+
+isc_result_t
+dns_peer_getforcetcp(dns_peer_t *peer, isc_boolean_t *retval) {
+	REQUIRE(DNS_PEER_VALID(peer));
+	REQUIRE(retval != NULL);
+
+	if (DNS_BIT_CHECK(FORCE_TCP_BIT, &peer->bitflags)) {
+		*retval = peer->force_tcp;
 		return (ISC_R_SUCCESS);
 	} else
 		return (ISC_R_NOTFOUND);
@@ -810,4 +856,26 @@ dns_peer_getquerydscp(dns_peer_t *peer, isc_dscp_t *dscpp) {
 		return (ISC_R_SUCCESS);
 	}
 	return (ISC_R_NOTFOUND);
+}
+
+isc_result_t
+dns_peer_setednsversion(dns_peer_t *peer, isc_uint8_t ednsversion) {
+	REQUIRE(DNS_PEER_VALID(peer));
+
+	peer->ednsversion = ednsversion;
+	DNS_BIT_SET(EDNS_VERSION_BIT, &peer->bitflags);
+
+	return (ISC_R_SUCCESS);
+}
+
+isc_result_t
+dns_peer_getednsversion(dns_peer_t *peer, isc_uint8_t *ednsversion) {
+	REQUIRE(DNS_PEER_VALID(peer));
+	REQUIRE(ednsversion != NULL);
+
+	if (DNS_BIT_CHECK(EDNS_VERSION_BIT, &peer->bitflags)) {
+		*ednsversion = peer->ednsversion;
+		return (ISC_R_SUCCESS);
+	} else
+		return (ISC_R_NOTFOUND);
 }

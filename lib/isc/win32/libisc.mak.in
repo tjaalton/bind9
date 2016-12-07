@@ -2,28 +2,28 @@
 !IF "$(CFG)" == ""
 CFG=libisc - @PLATFORM@ Debug
 !MESSAGE No configuration specified. Defaulting to libisc - @PLATFORM@ Debug.
-!ENDIF 
+!ENDIF
 
 !IF "$(CFG)" != "libisc - @PLATFORM@ Release" && "$(CFG)" != "libisc - @PLATFORM@ Debug"
 !MESSAGE Invalid configuration "$(CFG)" specified.
 !MESSAGE You can specify a configuration when running NMAKE
 !MESSAGE by defining the macro CFG on the command line. For example:
-!MESSAGE 
+!MESSAGE
 !MESSAGE NMAKE /f "libisc.mak" CFG="libisc - @PLATFORM@ Debug"
-!MESSAGE 
+!MESSAGE
 !MESSAGE Possible choices for configuration are:
-!MESSAGE 
+!MESSAGE
 !MESSAGE "libisc - @PLATFORM@ Release" (based on "@PLATFORM@ (x86) Dynamic-Link Library")
 !MESSAGE "libisc - @PLATFORM@ Debug" (based on "@PLATFORM@ (x86) Dynamic-Link Library")
-!MESSAGE 
+!MESSAGE
 !ERROR An invalid configuration is specified.
-!ENDIF 
+!ENDIF
 
 !IF "$(OS)" == "Windows_NT"
 NULL=
-!ELSE 
+!ELSE
 NULL=nul
-!ENDIF 
+!ENDIF
 
 CPP=cl.exe
 MTL=midl.exe
@@ -133,6 +133,7 @@ CLEAN :
 	-@erase "$(INTDIR)\dir.obj"
 	-@erase "$(INTDIR)\DLLMain.obj"
 	-@erase "$(INTDIR)\entropy.obj"
+	-@erase "$(INTDIR)\errno.obj"
 	-@erase "$(INTDIR)\errno2result.obj"
 	-@erase "$(INTDIR)\error.obj"
 	-@erase "$(INTDIR)\event.obj"
@@ -143,6 +144,7 @@ CLEAN :
 	-@erase "$(INTDIR)\hex.obj"
 	-@erase "$(INTDIR)\hmacmd5.obj"
 	-@erase "$(INTDIR)\hmacsha.obj"
+	-@erase "$(INTDIR)\ht.obj"
 	-@erase "$(INTDIR)\httpd.obj"
 	-@erase "$(INTDIR)\inet_aton.obj"
 	-@erase "$(INTDIR)\inet_ntop.obj"
@@ -159,6 +161,7 @@ CLEAN :
 	-@erase "$(INTDIR)\mem.obj"
 	-@erase "$(INTDIR)\msgcat.obj"
 	-@erase "$(INTDIR)\mutexblock.obj"
+	-@erase "$(INTDIR)\meminfo.obj"
 	-@erase "$(INTDIR)\net.obj"
 	-@erase "$(INTDIR)\netaddr.obj"
 	-@erase "$(INTDIR)\netscope.obj"
@@ -215,17 +218,17 @@ CLEAN :
     if not exist "$(OUTDIR)/$(NULL)" mkdir "$(OUTDIR)"
 
 @IF PKCS11
-CPP_PROJ=/nologo /MD /W3 @COPTX@ @COPTI@ /O2 /I "./" /I "../../../" /I "include" /I "../include" /I "win32" /I "../../isccfg/include" /I "../../dns/win32/include" /I "../../dns/include" @LIBXML2_INC@ @OPENSSL_INC@ /D "BIND9" @CRYPTO@ @PK11_LIB_LOCATION@ /D "WIN32" /D "NDEBUG" /D "__STDC__" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBISC_EXPORTS" /Fp"$(INTDIR)\libisc.pch" @COPTY@ /Fo"$(INTDIR)\\" /Fd"$(INTDIR)\\" /FD /c 
+CPP_PROJ=/nologo /MD /W3 @COPTX@ @COPTI@ /O2 /I "./" /I "../../../" /I "include" /I "../include" /I "win32" /I "../../isccfg/include" /I "../../dns/win32/include" /I "../../dns/include" @LIBXML2_INC@ @OPENSSL_INC@ @ZLIB_INC@ /D "BIND9" @CRYPTO@ @PK11_LIB_LOCATION@ /D "WIN32" /D "NDEBUG" /D "__STDC__" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBISC_EXPORTS" /Fp"$(INTDIR)\libisc.pch" @COPTY@ /Fo"$(INTDIR)\\" /Fd"$(INTDIR)\\" /FD /c 
 @ELSE PKCS11
-CPP_PROJ=/nologo /MD /W3 @COPTX@ @COPTI@ /O2 /I "./" /I "../../../" /I "include" /I "../include" /I "win32" /I "../../isccfg/include" @LIBXML2_INC@ @OPENSSL_INC@ /D "BIND9" /D "WIN32" /D "NDEBUG" /D "__STDC__" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBISC_EXPORTS" /Fp"$(INTDIR)\libisc.pch" @COPTY@ /Fo"$(INTDIR)\\" /Fd"$(INTDIR)\\" /FD /c 
+CPP_PROJ=/nologo /MD /W3 @COPTX@ @COPTI@ /O2 /I "./" /I "../../../" /I "include" /I "../include" /I "win32" /I "../../isccfg/include" @LIBXML2_INC@ @OPENSSL_INC@ @ZLIB_INC@ /D "BIND9" /D "WIN32" /D "NDEBUG" /D "__STDC__" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBISC_EXPORTS" /Fp"$(INTDIR)\libisc.pch" @COPTY@ /Fo"$(INTDIR)\\" /Fd"$(INTDIR)\\" /FD /c 
 @END PKCS11
-MTL_PROJ=/nologo /D "NDEBUG" /mktyplib203 /win32 
+MTL_PROJ=/nologo /D "NDEBUG" /mktyplib203 /win32
 BSC32=bscmake.exe
-BSC32_FLAGS=/nologo /o"$(OUTDIR)\libisc.bsc" 
+BSC32_FLAGS=/nologo /o"$(OUTDIR)\libisc.bsc"
 BSC32_SBRS= \
 	
 LINK32=link.exe
-LINK32_FLAGS=user32.lib advapi32.lib ws2_32.lib $(LIBXML) @OPENSSL_LIB@ /nologo /dll /incremental:no /pdb:"$(OUTDIR)\libisc.pdb" @MACHINE@ /def:".\libisc.def" /out:"../../../Build/Release/libisc.dll" /implib:"$(OUTDIR)\libisc.lib" 
+LINK32_FLAGS=user32.lib advapi32.lib ws2_32.lib $(LIBXML) @OPENSSL_LIB@ @ZLIB_LIB@ /nologo /dll /incremental:no /pdb:"$(OUTDIR)\libisc.pdb" @MACHINE@ /def:".\libisc.def" /out:"../../../Build/Release/libisc.dll" /implib:"$(OUTDIR)\libisc.lib" 
 DEF_FILE= \
 	".\libisc.def"
 LINK32_OBJS= \
@@ -234,6 +237,7 @@ LINK32_OBJS= \
 	"$(INTDIR)\dir.obj" \
 	"$(INTDIR)\DLLMain.obj" \
 	"$(INTDIR)\entropy.obj" \
+	"$(INTDIR)\errno.obj" \
 	"$(INTDIR)\errno2result.obj" \
 	"$(INTDIR)\file.obj" \
 	"$(INTDIR)\fsaccess.obj" \
@@ -241,6 +245,7 @@ LINK32_OBJS= \
 	"$(INTDIR)\ipv6.obj" \
 	"$(INTDIR)\iterated_hash.obj" \
 	"$(INTDIR)\keyboard.obj" \
+	"$(INTDIR)\meminfo.obj" \
 	"$(INTDIR)\net.obj" \
 	"$(INTDIR)\ntpaths.obj" \
 	"$(INTDIR)\once.obj" \
@@ -279,6 +284,7 @@ LINK32_OBJS= \
 	"$(INTDIR)\hex.obj" \
 	"$(INTDIR)\hmacmd5.obj" \
 	"$(INTDIR)\hmacsha.obj" \
+	"$(INTDIR)\ht.obj" \
 	"$(INTDIR)\httpd.obj" \
 	"$(INTDIR)\inet_aton.obj" \
 	"$(INTDIR)\inet_ntop.obj" \
@@ -377,6 +383,8 @@ CLEAN :
 	-@erase "$(INTDIR)\DLLMain.sbr"
 	-@erase "$(INTDIR)\entropy.obj"
 	-@erase "$(INTDIR)\entropy.sbr"
+	-@erase "$(INTDIR)\errno.obj"
+	-@erase "$(INTDIR)\errno.sbr"
 	-@erase "$(INTDIR)\errno2result.obj"
 	-@erase "$(INTDIR)\errno2result.sbr"
 	-@erase "$(INTDIR)\error.obj"
@@ -397,6 +405,8 @@ CLEAN :
 	-@erase "$(INTDIR)\hmacmd5.sbr"
 	-@erase "$(INTDIR)\hmacsha.obj"
 	-@erase "$(INTDIR)\hmacsha.sbr"
+	-@erase "$(INTDIR)\ht.obj"
+	-@erase "$(INTDIR)\ht.sbr"
 	-@erase "$(INTDIR)\httpd.obj"
 	-@erase "$(INTDIR)\httpd.sbr"
 	-@erase "$(INTDIR)\inet_aton.obj"
@@ -429,6 +439,8 @@ CLEAN :
 	-@erase "$(INTDIR)\msgcat.sbr"
 	-@erase "$(INTDIR)\mutexblock.obj"
 	-@erase "$(INTDIR)\mutexblock.sbr"
+	-@erase "$(INTDIR)\meminfo.obj"
+	-@erase "$(INTDIR)\meminfo.sbr"
 	-@erase "$(INTDIR)\net.obj"
 	-@erase "$(INTDIR)\net.sbr"
 	-@erase "$(INTDIR)\netaddr.obj"
@@ -531,19 +543,20 @@ CLEAN :
     if not exist "$(OUTDIR)/$(NULL)" mkdir "$(OUTDIR)"
 
 @IF PKCS11
-CPP_PROJ=/nologo /MDd /W3 /Gm @COPTX@ @COPTI@ /ZI /Od /I "./" /I "../../../" /I "include" /I "../include" /I "win32" /I "../../isccfg/include" /I "../../dns/win32/include" /I "../../dns/include" @LIBXML2_INC@ @OPENSSL_INC@ /D "BIND9" @CRYPTO@ @PK11_LIB_LOCATION@ /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "__STDC__" /D "_MBCS" /D "_USRDLL" /D "LIBISC_EXPORTS" /FR"$(INTDIR)\\" /Fp"$(INTDIR)\libisc.pch" @COPTY@ /Fo"$(INTDIR)\\" /Fd"$(INTDIR)\\" /FD /GZ /c 
+CPP_PROJ=/nologo /MDd /W3 /Gm @COPTX@ @COPTI@ /ZI /Od /I "./" /I "../../../" /I "include" /I "../include" /I "win32" /I "../../isccfg/include" /I "../../dns/win32/include" /I "../../dns/include" @LIBXML2_INC@ @OPENSSL_INC@ @ZLIB_INC@ /D "BIND9" @CRYPTO@ @PK11_LIB_LOCATION@ /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "__STDC__" /D "_MBCS" /D "_USRDLL" /D "LIBISC_EXPORTS" /FR"$(INTDIR)\\" /Fp"$(INTDIR)\libisc.pch" @COPTY@ /Fo"$(INTDIR)\\" /Fd"$(INTDIR)\\" /FD /GZ /c 
 @ELSE PKCS11
-CPP_PROJ=/nologo /MDd /W3 /Gm @COPTX@ @COPTI@ /ZI /Od /I "./" /I "../../../" /I "include" /I "../include" /I "win32" /I "../../isccfg/include" @LIBXML2_INC@ @OPENSSL_INC@ /D "BIND9" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "__STDC__" /D "_MBCS" /D "_USRDLL" /D "LIBISC_EXPORTS" /FR"$(INTDIR)\\" /Fp"$(INTDIR)\libisc.pch" @COPTY@ /Fo"$(INTDIR)\\" /Fd"$(INTDIR)\\" /FD /GZ /c 
+CPP_PROJ=/nologo /MDd /W3 /Gm @COPTX@ @COPTI@ /ZI /Od /I "./" /I "../../../" /I "include" /I "../include" /I "win32" /I "../../isccfg/include" @LIBXML2_INC@ @OPENSSL_INC@ @ZLIB_INC@ /D "BIND9" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "__STDC__" /D "_MBCS" /D "_USRDLL" /D "LIBISC_EXPORTS" /FR"$(INTDIR)\\" /Fp"$(INTDIR)\libisc.pch" @COPTY@ /Fo"$(INTDIR)\\" /Fd"$(INTDIR)\\" /FD /GZ /c 
 @END PKCS11
-MTL_PROJ=/nologo /D "_DEBUG" /mktyplib203 /win32 
+MTL_PROJ=/nologo /D "_DEBUG" /mktyplib203 /win32
 BSC32=bscmake.exe
-BSC32_FLAGS=/nologo /o"$(OUTDIR)\libisc.bsc" 
+BSC32_FLAGS=/nologo /o"$(OUTDIR)\libisc.bsc"
 BSC32_SBRS= \
 	"$(INTDIR)\app.sbr" \
 	"$(INTDIR)\condition.sbr" \
 	"$(INTDIR)\dir.sbr" \
 	"$(INTDIR)\DLLMain.sbr" \
 	"$(INTDIR)\entropy.sbr" \
+	"$(INTDIR)\errno.sbr" \
 	"$(INTDIR)\errno2result.sbr" \
 	"$(INTDIR)\file.sbr" \
 	"$(INTDIR)\fsaccess.sbr" \
@@ -551,6 +564,7 @@ BSC32_SBRS= \
 	"$(INTDIR)\ipv6.sbr" \
 	"$(INTDIR)\iterated_hash.sbr" \
 	"$(INTDIR)\keyboard.sbr" \
+	"$(INTDIR)\meminfo.sbr" \
 	"$(INTDIR)\net.sbr" \
 	"$(INTDIR)\ntpaths.sbr" \
 	"$(INTDIR)\once.sbr" \
@@ -589,6 +603,7 @@ BSC32_SBRS= \
 	"$(INTDIR)\hex.sbr" \
 	"$(INTDIR)\hmacmd5.sbr" \
 	"$(INTDIR)\hmacsha.sbr" \
+	"$(INTDIR)\ht.sbr" \
 	"$(INTDIR)\httpd.sbr" \
 	"$(INTDIR)\inet_aton.sbr" \
 	"$(INTDIR)\inet_ntop.sbr" \
@@ -639,7 +654,7 @@ BSC32_SBRS= \
 <<
 
 LINK32=link.exe
-LINK32_FLAGS=user32.lib advapi32.lib ws2_32.lib $(LIBXML) @OPENSSL_LIB@ /nologo /dll /incremental:yes /pdb:"$(OUTDIR)\libisc.pdb" /map:"$(INTDIR)\libisc.map" /debug @MACHINE@ /def:".\libisc.def" /out:"../../../Build/Debug/libisc.dll" /implib:"$(OUTDIR)\libisc.lib" /pdbtype:sept 
+LINK32_FLAGS=user32.lib advapi32.lib ws2_32.lib $(LIBXML) @OPENSSL_LIB@ @ZLIB_LIB@ /nologo /dll /incremental:yes /pdb:"$(OUTDIR)\libisc.pdb" /map:"$(INTDIR)\libisc.map" /debug @MACHINE@ /def:".\libisc.def" /out:"../../../Build/Debug/libisc.dll" /implib:"$(OUTDIR)\libisc.lib" /pdbtype:sept 
 DEF_FILE= \
 	".\libisc.def"
 LINK32_OBJS= \
@@ -648,6 +663,7 @@ LINK32_OBJS= \
 	"$(INTDIR)\dir.obj" \
 	"$(INTDIR)\DLLMain.obj" \
 	"$(INTDIR)\entropy.obj" \
+	"$(INTDIR)\errno.obj" \
 	"$(INTDIR)\errno2result.obj" \
 	"$(INTDIR)\file.obj" \
 	"$(INTDIR)\fsaccess.obj" \
@@ -655,6 +671,7 @@ LINK32_OBJS= \
 	"$(INTDIR)\ipv6.obj" \
 	"$(INTDIR)\iterated_hash.obj" \
 	"$(INTDIR)\keyboard.obj" \
+	"$(INTDIR)\meminfo.obj" \
 	"$(INTDIR)\net.obj" \
 	"$(INTDIR)\ntpaths.obj" \
 	"$(INTDIR)\once.obj" \
@@ -693,6 +710,7 @@ LINK32_OBJS= \
 	"$(INTDIR)\hex.obj" \
 	"$(INTDIR)\hmacmd5.obj" \
 	"$(INTDIR)\hmacsha.obj" \
+	"$(INTDIR)\ht.obj" \
 	"$(INTDIR)\httpd.obj" \
 	"$(INTDIR)\inet_aton.obj" \
 	"$(INTDIR)\inet_ntop.obj" \
@@ -743,46 +761,46 @@ LINK32_OBJS= \
 <<
   $(_VC_MANIFEST_EMBED_DLL)
 
-!ENDIF 
+!ENDIF
 
 .c{$(INTDIR)}.obj::
    $(CPP) @<<
-   $(CPP_PROJ) $< 
+   $(CPP_PROJ) $<
 <<
 
 .cpp{$(INTDIR)}.obj::
    $(CPP) @<<
-   $(CPP_PROJ) $< 
+   $(CPP_PROJ) $<
 <<
 
 .cxx{$(INTDIR)}.obj::
    $(CPP) @<<
-   $(CPP_PROJ) $< 
+   $(CPP_PROJ) $<
 <<
 
 .c{$(INTDIR)}.sbr::
    $(CPP) @<<
-   $(CPP_PROJ) $< 
+   $(CPP_PROJ) $<
 <<
 
 .cpp{$(INTDIR)}.sbr::
    $(CPP) @<<
-   $(CPP_PROJ) $< 
+   $(CPP_PROJ) $<
 <<
 
 .cxx{$(INTDIR)}.sbr::
    $(CPP) @<<
-   $(CPP_PROJ) $< 
+   $(CPP_PROJ) $<
 <<
 
 
 !IF "$(NO_EXTERNAL_DEPS)" != "1"
 !IF EXISTS("libisc.dep")
 !INCLUDE "libisc.dep"
-!ELSE 
+!ELSE
 !MESSAGE Warning: cannot find "libisc.dep"
-!ENDIF 
-!ENDIF 
+!ENDIF
+!ENDIF
 
 
 !IF "$(CFG)" == "libisc - @PLATFORM@ Release" || "$(CFG)" == "libisc - @PLATFORM@ Debug"
@@ -800,7 +818,7 @@ SOURCE=.\app.c
 "$(INTDIR)\app.obj"	"$(INTDIR)\app.sbr" : $(SOURCE) "$(INTDIR)"
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=.\condition.c
 
@@ -816,7 +834,7 @@ SOURCE=.\condition.c
 "$(INTDIR)\condition.obj"	"$(INTDIR)\condition.sbr" : $(SOURCE) "$(INTDIR)"
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=.\dir.c
 
@@ -832,7 +850,7 @@ SOURCE=.\dir.c
 "$(INTDIR)\dir.obj"	"$(INTDIR)\dir.sbr" : $(SOURCE) "$(INTDIR)"
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=.\DLLMain.c
 
@@ -848,7 +866,7 @@ SOURCE=.\DLLMain.c
 "$(INTDIR)\DLLMain.obj"	"$(INTDIR)\DLLMain.sbr" : $(SOURCE) "$(INTDIR)"
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=.\entropy.c
 
@@ -864,7 +882,24 @@ SOURCE=.\entropy.c
 "$(INTDIR)\entropy.obj"	"$(INTDIR)\entropy.sbr" : $(SOURCE) "$(INTDIR)"
 
 
-!ENDIF 
+!ENDIF
+
+SOURCE=.\errno.c
+
+!IF  "$(CFG)" == "libisc - @PLATFORM@ Release"
+
+
+"$(INTDIR)\errno.obj" : $(SOURCE) "$(INTDIR)"
+
+
+!ELSEIF  "$(CFG)" == "libisc - @PLATFORM@ Debug"
+
+
+"$(INTDIR)\errno.obj"	"$(INTDIR)\errno.sbr" : $(SOURCE) "$(INTDIR)"
+
+
+!ENDIF
+
 
 SOURCE=.\errno2result.c
 
@@ -880,7 +915,7 @@ SOURCE=.\errno2result.c
 "$(INTDIR)\errno2result.obj"	"$(INTDIR)\errno2result.sbr" : $(SOURCE) "$(INTDIR)"
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=.\file.c
 
@@ -896,7 +931,7 @@ SOURCE=.\file.c
 "$(INTDIR)\file.obj"	"$(INTDIR)\file.sbr" : $(SOURCE) "$(INTDIR)"
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=.\fsaccess.c
 
@@ -912,7 +947,7 @@ SOURCE=.\fsaccess.c
 "$(INTDIR)\fsaccess.obj"	"$(INTDIR)\fsaccess.sbr" : $(SOURCE) "$(INTDIR)"
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=.\interfaceiter.c
 
@@ -928,7 +963,7 @@ SOURCE=.\interfaceiter.c
 "$(INTDIR)\interfaceiter.obj"	"$(INTDIR)\interfaceiter.sbr" : $(SOURCE) "$(INTDIR)"
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=.\ipv6.c
 
@@ -944,7 +979,7 @@ SOURCE=.\ipv6.c
 "$(INTDIR)\ipv6.obj"	"$(INTDIR)\ipv6.sbr" : $(SOURCE) "$(INTDIR)"
 
 
-!ENDIF 
+!ENDIF
 
 
 SOURCE=.\keyboard.c
@@ -961,7 +996,23 @@ SOURCE=.\keyboard.c
 "$(INTDIR)\keyboard.obj"	"$(INTDIR)\keyboard.sbr" : $(SOURCE) "$(INTDIR)"
 
 
-!ENDIF 
+!ENDIF
+
+SOURCE=.\meminfo.c
+
+!IF  "$(CFG)" == "libisc - @PLATFORM@ Release"
+
+
+"$(INTDIR)\meminfo.obj" : $(SOURCE) "$(INTDIR)"
+
+
+!ELSEIF  "$(CFG)" == "libisc - @PLATFORM@ Debug"
+
+
+"$(INTDIR)\meminfo.obj"	"$(INTDIR)\meminfo.sbr" : $(SOURCE) "$(INTDIR)"
+
+
+!ENDIF
 
 SOURCE=.\net.c
 
@@ -977,7 +1028,7 @@ SOURCE=.\net.c
 "$(INTDIR)\net.obj"	"$(INTDIR)\net.sbr" : $(SOURCE) "$(INTDIR)"
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=.\ntpaths.c
 
@@ -993,7 +1044,7 @@ SOURCE=.\ntpaths.c
 "$(INTDIR)\ntpaths.obj"	"$(INTDIR)\ntpaths.sbr" : $(SOURCE) "$(INTDIR)"
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=.\once.c
 
@@ -1009,7 +1060,7 @@ SOURCE=.\once.c
 "$(INTDIR)\once.obj"	"$(INTDIR)\once.sbr" : $(SOURCE) "$(INTDIR)"
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=.\os.c
 
@@ -1025,7 +1076,7 @@ SOURCE=.\os.c
 "$(INTDIR)\os.obj"	"$(INTDIR)\os.sbr" : $(SOURCE) "$(INTDIR)"
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=.\pk11_api.c
 
@@ -1043,7 +1094,7 @@ SOURCE=.\pk11_api.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=.\resource.c
 
@@ -1059,7 +1110,7 @@ SOURCE=.\resource.c
 "$(INTDIR)\resource.obj"	"$(INTDIR)\resource.sbr" : $(SOURCE) "$(INTDIR)"
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=.\socket.c
 
@@ -1075,7 +1126,7 @@ SOURCE=.\socket.c
 "$(INTDIR)\socket.obj"	"$(INTDIR)\socket.sbr" : $(SOURCE) "$(INTDIR)"
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=.\stdio.c
 
@@ -1091,7 +1142,7 @@ SOURCE=.\stdio.c
 "$(INTDIR)\stdio.obj"	"$(INTDIR)\stdio.sbr" : $(SOURCE) "$(INTDIR)"
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=.\stdtime.c
 
@@ -1107,7 +1158,7 @@ SOURCE=.\stdtime.c
 "$(INTDIR)\stdtime.obj"	"$(INTDIR)\stdtime.sbr" : $(SOURCE) "$(INTDIR)"
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=.\strerror.c
 
@@ -1123,7 +1174,7 @@ SOURCE=.\strerror.c
 "$(INTDIR)\strerror.obj"	"$(INTDIR)\strerror.sbr" : $(SOURCE) "$(INTDIR)"
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=.\syslog.c
 
@@ -1139,7 +1190,7 @@ SOURCE=.\syslog.c
 "$(INTDIR)\syslog.obj"	"$(INTDIR)\syslog.sbr" : $(SOURCE) "$(INTDIR)"
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=.\thread.c
 
@@ -1155,7 +1206,7 @@ SOURCE=.\thread.c
 "$(INTDIR)\thread.obj"	"$(INTDIR)\thread.sbr" : $(SOURCE) "$(INTDIR)"
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=.\time.c
 
@@ -1171,7 +1222,7 @@ SOURCE=.\time.c
 "$(INTDIR)\time.obj"	"$(INTDIR)\time.sbr" : $(SOURCE) "$(INTDIR)"
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=.\version.c
 
@@ -1187,7 +1238,7 @@ SOURCE=.\version.c
 "$(INTDIR)\version.obj"	"$(INTDIR)\version.sbr" : $(SOURCE) "$(INTDIR)"
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=.\win32os.c
 
@@ -1203,7 +1254,7 @@ SOURCE=.\win32os.c
 "$(INTDIR)\win32os.obj"	"$(INTDIR)\win32os.sbr" : $(SOURCE) "$(INTDIR)"
 
 
-!ENDIF 
+!ENDIF
 
 @IF AES
 SOURCE=..\aes.c
@@ -1222,7 +1273,7 @@ SOURCE=..\aes.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 @END AES
 
 SOURCE=..\assertions.c
@@ -1241,7 +1292,7 @@ SOURCE=..\assertions.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\backtrace.c
 
@@ -1259,7 +1310,7 @@ SOURCE=..\backtrace.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\backtrace-emptytbl.c
 
@@ -1277,7 +1328,7 @@ SOURCE=..\backtrace-emptytbl.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\base32.c
 
@@ -1295,7 +1346,7 @@ SOURCE=..\base32.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\base64.c
 
@@ -1313,7 +1364,7 @@ SOURCE=..\base64.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\bind9.c
 
@@ -1331,7 +1382,7 @@ SOURCE=..\bind9.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\buffer.c
 
@@ -1349,7 +1400,7 @@ SOURCE=..\buffer.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\bufferlist.c
 
@@ -1367,7 +1418,7 @@ SOURCE=..\bufferlist.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\commandline.c
 
@@ -1385,7 +1436,7 @@ SOURCE=..\commandline.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\counter.c
 
@@ -1403,7 +1454,7 @@ SOURCE=..\counter.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\crc64.c
 
@@ -1421,7 +1472,7 @@ SOURCE=..\crc64.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\error.c
 
@@ -1439,7 +1490,7 @@ SOURCE=..\error.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\event.c
 
@@ -1457,7 +1508,7 @@ SOURCE=..\event.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\hash.c
 
@@ -1475,7 +1526,7 @@ SOURCE=..\hash.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\heap.c
 
@@ -1493,7 +1544,7 @@ SOURCE=..\heap.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\hex.c
 
@@ -1511,7 +1562,7 @@ SOURCE=..\hex.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\hmacmd5.c
 
@@ -1529,7 +1580,7 @@ SOURCE=..\hmacmd5.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\hmacsha.c
 
@@ -1547,7 +1598,25 @@ SOURCE=..\hmacsha.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
+
+SOURCE=..\ht.c
+
+!IF  "$(CFG)" == "libisc - @PLATFORM@ Release"
+
+
+"$(INTDIR)\ht.obj" : $(SOURCE) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ELSEIF  "$(CFG)" == "libisc - @PLATFORM@ Debug"
+
+
+"$(INTDIR)\ht.obj"	"$(INTDIR)\ht.sbr" : $(SOURCE) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ENDIF
 
 SOURCE=..\httpd.c
 
@@ -1565,7 +1634,7 @@ SOURCE=..\httpd.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\inet_aton.c
 
@@ -1583,7 +1652,7 @@ SOURCE=..\inet_aton.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\inet_ntop.c
 
@@ -1601,7 +1670,7 @@ SOURCE=..\inet_ntop.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\inet_pton.c
 
@@ -1619,7 +1688,7 @@ SOURCE=..\inet_pton.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\iterated_hash.c
 
@@ -1637,7 +1706,7 @@ SOURCE=..\iterated_hash.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\lex.c
 
@@ -1655,7 +1724,7 @@ SOURCE=..\lex.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\lfsr.c
 
@@ -1673,7 +1742,7 @@ SOURCE=..\lfsr.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\lib.c
 
@@ -1691,7 +1760,7 @@ SOURCE=..\lib.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\log.c
 
@@ -1709,7 +1778,7 @@ SOURCE=..\log.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\md5.c
 
@@ -1727,7 +1796,7 @@ SOURCE=..\md5.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\mem.c
 
@@ -1745,7 +1814,7 @@ SOURCE=..\mem.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\nls\msgcat.c
 
@@ -1763,7 +1832,7 @@ SOURCE=..\nls\msgcat.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\mutexblock.c
 
@@ -1781,7 +1850,7 @@ SOURCE=..\mutexblock.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\netaddr.c
 
@@ -1799,7 +1868,7 @@ SOURCE=..\netaddr.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\netscope.c
 
@@ -1817,7 +1886,7 @@ SOURCE=..\netscope.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\ondestroy.c
 
@@ -1835,7 +1904,7 @@ SOURCE=..\ondestroy.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\parseint.c
 
@@ -1853,7 +1922,7 @@ SOURCE=..\parseint.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\pk11.c
 
@@ -1871,7 +1940,7 @@ SOURCE=..\pk11.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\pk11_result.c
 
@@ -1889,7 +1958,7 @@ SOURCE=..\pk11_result.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\pool.c
 
@@ -1907,7 +1976,7 @@ SOURCE=..\pool.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\portset.c
 
@@ -1925,7 +1994,7 @@ SOURCE=..\portset.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\quota.c
 
@@ -1943,7 +2012,7 @@ SOURCE=..\quota.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\radix.c
 
@@ -1961,7 +2030,7 @@ SOURCE=..\radix.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\random.c
 
@@ -1979,7 +2048,7 @@ SOURCE=..\random.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\ratelimiter.c
 
@@ -1997,7 +2066,7 @@ SOURCE=..\ratelimiter.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\refcount.c
 
@@ -2015,7 +2084,7 @@ SOURCE=..\refcount.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\regex.c
 
@@ -2033,7 +2102,7 @@ SOURCE=..\regex.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 
 SOURCE=..\region.c
@@ -2052,7 +2121,7 @@ SOURCE=..\region.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\result.c
 
@@ -2070,7 +2139,7 @@ SOURCE=..\result.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\rwlock.c
 
@@ -2088,7 +2157,7 @@ SOURCE=..\rwlock.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\safe.c
 
@@ -2106,7 +2175,7 @@ SOURCE=..\safe.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\serial.c
 
@@ -2124,7 +2193,7 @@ SOURCE=..\serial.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\sha1.c
 
@@ -2142,7 +2211,7 @@ SOURCE=..\sha1.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\sha2.c
 
@@ -2160,7 +2229,7 @@ SOURCE=..\sha2.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\sockaddr.c
 
@@ -2178,7 +2247,7 @@ SOURCE=..\sockaddr.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\stats.c
 
@@ -2196,7 +2265,7 @@ SOURCE=..\stats.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\string.c
 
@@ -2214,7 +2283,7 @@ SOURCE=..\string.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\symtab.c
 
@@ -2232,7 +2301,7 @@ SOURCE=..\symtab.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\task.c
 
@@ -2250,7 +2319,7 @@ SOURCE=..\task.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\taskpool.c
 
@@ -2268,7 +2337,7 @@ SOURCE=..\taskpool.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\timer.c
 
@@ -2286,7 +2355,7 @@ SOURCE=..\timer.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 SOURCE=..\tm.c
 
@@ -2304,10 +2373,10 @@ SOURCE=..\tm.c
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-!ENDIF 
+!ENDIF
 
 
-!ENDIF 
+!ENDIF
 
 ####################################################
 # Commands to generate initial empty manifest file and the RC file

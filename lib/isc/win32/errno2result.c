@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004, 2005, 2007, 2008, 2013  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 2000-2002  Internet Software Consortium.
+ * Copyright (C) 2000-2002, 2004, 2005, 2007, 2008, 2013, 2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id: errno2result.c,v 1.17 2008/09/12 04:46:25 marka Exp $ */
@@ -32,7 +23,9 @@
  * not already there.
  */
 isc_result_t
-isc__errno2resultx(int posixerrno, const char *file, int line) {
+isc__errno2resultx(int posixerrno, isc_boolean_t dolog,
+		   const char *file, int line)
+{
 	char strbuf[ISC_STRERRORSIZE];
 
 	switch (posixerrno) {
@@ -103,9 +96,13 @@ isc__errno2resultx(int posixerrno, const char *file, int line) {
 	case WSAENOBUFS:
 		return (ISC_R_NORESOURCES);
 	default:
-		isc__strerror(posixerrno, strbuf, sizeof(strbuf));
-		UNEXPECTED_ERROR(file, line, "unable to convert errno "
-				 "to isc_result: %d: %s", posixerrno, strbuf);
+		if (dolog) {
+			isc__strerror(posixerrno, strbuf, sizeof(strbuf));
+			UNEXPECTED_ERROR(file, line,
+					 "unable to convert errno "
+					 "to isc_result: %d: %s",
+					 posixerrno, strbuf);
+		}
 		/*
 		 * XXXDCL would be nice if perhaps this function could
 		 * return the system's error string, so the caller

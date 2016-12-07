@@ -1,19 +1,10 @@
 /* config.h.in.  Generated from configure.in by autoheader.  */
 /*
- * Copyright (C) 2004, 2005, 2007, 2008, 2012, 2014, 2016  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1999-2003  Internet Software Consortium.
+ * Copyright (C) 1999-2005, 2007, 2008, 2012, 2014, 2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id: acconfig.h,v 1.53 2008/12/01 23:47:44 tbox Exp $ */
@@ -153,8 +144,8 @@ int sigwait(const unsigned int *set, int *sig);
 /* Define if building universal (internal helper macro) */
 #undef AC_APPLE_UNIVERSAL_BUILD
 
-/* Use AES for Source Identity Token generation */
-#undef AES_SIT
+/* Use AES for Client Cookie generation */
+#undef AES_CC
 
 /* Define to enable the "filter-aaaa-on-v4" and "filter-aaaa-on-v6" options.
    */
@@ -173,9 +164,8 @@ int sigwait(const unsigned int *set, int *sig);
 /* Define to enable "rrset-order fixed" syntax. */
 #undef DNS_RDATASET_FIXED
 
-/* Define to enable the "fetches-per-server" and "fetches-per-zone" options.
-   */
-#undef ENABLE_FETCHLIMIT
+/* Define to enable American Fuzzy Lop test harness */
+#undef ENABLE_AFL
 
 /* Define to enable rpz-nsdname rules. */
 #undef ENABLE_RPZ_NSDNAME
@@ -194,6 +184,9 @@ int sigwait(const unsigned int *set, int *sig);
    instead. Don't use 'offsetof (struct s, d[0])', as this doesn't work with
    MSVC and with C++ compilers. */
 #undef FLEXIBLE_ARRAY_MEMBER
+
+/* Define to 1 if the compiler supports __builtin_clz. */
+#undef HAVE_BUILTIN_CLZ
 
 /* Define to 1 if the compiler supports __builtin_expect. */
 #undef HAVE_BUILTIN_EXPECT
@@ -218,6 +211,9 @@ int sigwait(const unsigned int *set, int *sig);
 
 /* Define to 1 if you have the `dlsym' function. */
 #undef HAVE_DLSYM
+
+/* Define to 1 to enable dnstap support */
+#undef HAVE_DNSTAP
 
 /* Define to 1 if you have the `EVP_sha256' function. */
 #undef HAVE_EVP_SHA256
@@ -329,6 +325,9 @@ int sigwait(const unsigned int *set, int *sig);
 
 /* Define to 1 if you have the <linux/types.h> header file. */
 #undef HAVE_LINUX_TYPES_H
+
+/* Define if lmdb was found */
+#undef HAVE_LMDB
 
 /* Define to 1 if you have the <locale.h> header file. */
 #undef HAVE_LOCALE_H
@@ -465,14 +464,17 @@ int sigwait(const unsigned int *set, int *sig);
 /* Define to 1 if you have the `usleep' function. */
 #undef HAVE_USLEEP
 
+/* Define if zlib was found */
+#undef HAVE_ZLIB
+
 /* HMAC_*() return ints */
 #undef HMAC_RETURN_INT
 
-/* Use HMAC-SHA1 for Source Identity Token generation */
-#undef HMAC_SHA1_SIT
+/* Use HMAC-SHA1 for Client Cookie generation */
+#undef HMAC_SHA1_CC
 
-/* Use HMAC-SHA256 for Source Identity Token generation */
-#undef HMAC_SHA256_SIT
+/* Use HMAC-SHA256 for Client Cookie generation */
+#undef HMAC_SHA256_CC
 
 /* return type of gai_strerror */
 #undef IRS_GAISTRERROR_RETURN_T

@@ -1,18 +1,10 @@
 #!/bin/sh
 #
-# Copyright (C) 2014  Internet Systems Consortium, Inc. ("ISC")
+# Copyright (C) 2014, 2016  Internet Systems Consortium, Inc. ("ISC")
 #
-# Permission to use, copy, modify, and/or distribute this software for any
-# purpose with or without fee is hereby granted, provided that the above
-# copyright notice and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-# AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
-# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
-# OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-# PERFORMANCE OF THIS SOFTWARE.
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 SYSTEMTESTTOP=..
 . $SYSTEMTESTTOP/conf.sh
@@ -31,6 +23,85 @@ grep "origin = ns1.example" nslookup.out${n} > /dev/null || ret=1
 if [ $ret != 0 ]; then echo "I:failed"; fi
 status=`expr $status + $ret`
 
-echo "I:exit status: $status"
-exit $status
+n=`expr $n + 1`
+echo "Check A only lookup"
+ret=0
+$NSLOOKUP -port=5300 a-only.example.net 10.53.0.1 > nslookup.out${n} || ret=1
+lines=`grep "Server:" nslookup.out${n} | wc -l`
+test $lines = 1 || ret=1
+lines=`grep a-only.example.net nslookup.out${n} | wc -l`
+test $lines = 1 || ret=1
+grep "1.2.3.4" nslookup.out${n} > /dev/null || ret=1
+if [ $ret != 0 ]; then echo "I:failed"; fi
+status=`expr $status + $ret`
 
+n=`expr $n + 1`
+echo "Check AAAA only lookup"
+ret=0
+$NSLOOKUP -port=5300 aaaa-only.example.net 10.53.0.1 > nslookup.out${n} || ret=1
+lines=`grep "Server:" nslookup.out${n} | wc -l`
+test $lines = 1 || ret=1
+lines=`grep aaaa-only.example.net nslookup.out${n} | wc -l`
+test $lines = 1 || ret=1
+grep "2001::ffff" nslookup.out${n} > /dev/null || ret=1
+if [ $ret != 0 ]; then echo "I:failed"; fi
+status=`expr $status + $ret`
+
+n=`expr $n + 1`
+echo "Check dual A + AAAA lookup"
+ret=0
+$NSLOOKUP -port=5300 dual.example.net 10.53.0.1 > nslookup.out${n} || ret=1
+lines=`grep "Server:" nslookup.out${n} | wc -l`
+test $lines = 1 || ret=1
+lines=`grep dual.example.net nslookup.out${n} | wc -l`
+test $lines = 2 || ret=1
+grep "1.2.3.4" nslookup.out${n} > /dev/null || ret=1
+grep "2001::ffff" nslookup.out${n} > /dev/null || ret=1
+if [ $ret != 0 ]; then echo "I:failed"; fi
+status=`expr $status + $ret`
+
+n=`expr $n + 1`
+echo "Check CNAME to A only lookup"
+ret=0
+$NSLOOKUP -port=5300 cname-a-only.example.net 10.53.0.1 > nslookup.out${n} || ret=1
+lines=`grep "Server:" nslookup.out${n} | wc -l`
+test $lines = 1 || ret=1
+lines=`grep "canonical name" nslookup.out${n} | wc -l`
+test $lines = 1 || ret=1
+lines=`grep a-only.example.net nslookup.out${n} | grep -v "canonical name" | wc -l`
+test $lines = 1 || ret=1
+grep "1.2.3.4" nslookup.out${n} > /dev/null || ret=1
+if [ $ret != 0 ]; then echo "I:failed"; fi
+status=`expr $status + $ret`
+
+n=`expr $n + 1`
+echo "Check CNAME to AAAA only lookup"
+ret=0
+$NSLOOKUP -port=5300 cname-aaaa-only.example.net 10.53.0.1 > nslookup.out${n} || ret=1
+lines=`grep "Server:" nslookup.out${n} | wc -l`
+test $lines = 1 || ret=1
+lines=`grep "canonical name" nslookup.out${n} | wc -l`
+test $lines = 1 || ret=1
+lines=`grep aaaa-only.example.net nslookup.out${n} | grep -v "canonical name" |wc -l`
+test $lines = 1 || ret=1
+grep "2001::ffff" nslookup.out${n} > /dev/null || ret=1
+if [ $ret != 0 ]; then echo "I:failed"; fi
+status=`expr $status + $ret`
+
+n=`expr $n + 1`
+echo "Check CNAME to dual A + AAAA lookup"
+ret=0
+$NSLOOKUP -port=5300 cname-dual.example.net 10.53.0.1 > nslookup.out${n} || ret=1
+lines=`grep "Server:" nslookup.out${n} | wc -l`
+test $lines = 1 || ret=1
+lines=`grep "canonical name" nslookup.out${n} | wc -l`
+test $lines = 1 || ret=1
+lines=`grep dual.example.net nslookup.out${n} | grep -v "canonical name" | wc -l`
+test $lines = 2 || ret=1
+grep "1.2.3.4" nslookup.out${n} > /dev/null || ret=1
+grep "2001::ffff" nslookup.out${n} > /dev/null || ret=1
+if [ $ret != 0 ]; then echo "I:failed"; fi
+status=`expr $status + $ret`
+
+echo "I:exit status: $status"
+[ $status -eq 0 ] || exit 1

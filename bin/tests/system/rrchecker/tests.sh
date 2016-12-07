@@ -1,18 +1,10 @@
 #!/bin/sh
 #
-# Copyright (C) 2013-2015  Internet Systems Consortium, Inc. ("ISC")
+# Copyright (C) 2013-2016  Internet Systems Consortium, Inc. ("ISC")
 #
-# Permission to use, copy, modify, and/or distribute this software for any
-# purpose with or without fee is hereby granted, provided that the above
-# copyright notice and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-# AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
-# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
-# OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-# PERFORMANCE OF THIS SOFTWARE.
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 SYSTEMTESTTOP=..
 . $SYSTEMTESTTOP/conf.sh
@@ -21,15 +13,15 @@ status=0
 t=0
 
 echo "I:class list"
-$RRCHECKER -C > classlist.out 
+$RRCHECKER -C > classlist.out
 diff classlist.out classlist.good || { echo "I:failed"; status=`expr $status + 1`; }
 
 echo "I:type list"
-$RRCHECKER -T > typelist.out 
+$RRCHECKER -T > typelist.out
 diff typelist.out typelist.good || { echo "I:failed"; status=`expr $status + 1`; }
 
 echo "I:private type list"
-$RRCHECKER -P > privatelist.out 
+$RRCHECKER -P > privatelist.out
 diff privatelist.out privatelist.good || { echo "I:failed"; status=`expr $status + 1`; }
 
 myecho() {
@@ -44,7 +36,7 @@ $SHELL ../genzone.sh 0 > tempzone
 $CHECKZONE -Dq . tempzone | sed '/^;/d' |
 while read -r n tt cl ty rest
 do
- 	myecho "$cl $ty $rest" | $RRCHECKER -p > checker.out || {
+	myecho "$cl $ty $rest" | $RRCHECKER -p > checker.out || {
 		ret=1
 		echo "I: '$cl $ty $rest' not handled."
 	}
@@ -61,12 +53,12 @@ ret=0
 $CHECKZONE -Dq . tempzone | sed '/^;/d' |
 while read -r n tt cl ty rest
 do
- 	myecho "$cl $ty $rest" | $RRCHECKER -u > checker.out || {
+	myecho "$cl $ty $rest" | $RRCHECKER -u > checker.out || {
 		ret=1
 		echo "I: '$cl $ty $rest' not converted to unknown record format"
 	}
 	read -r clu tyu restu < checker.out
- 	myecho "$clu $tyu $restu" | $RRCHECKER -p > checker.out || {
+	myecho "$clu $tyu $restu" | $RRCHECKER -p > checker.out || {
 		ret=1
 		echo "I: '$cl $ty $rest' not converted back to canonical format"
 	}
@@ -79,4 +71,4 @@ done
 test $ret -eq 0 || { echo "I:failed"; status=`expr $status + 1`; }
 
 echo "I:exit status: $status"
-exit $status
+[ $status -eq 0 ] || exit 1

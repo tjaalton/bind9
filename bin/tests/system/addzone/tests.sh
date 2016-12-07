@@ -1,18 +1,10 @@
 #!/bin/sh
 #
-# Copyright (C) 2010-2013, 2015, 2016  Internet Systems Consortium, Inc. ("ISC")
+# Copyright (C) 2010-2016  Internet Systems Consortium, Inc. ("ISC")
 #
-# Permission to use, copy, modify, and/or distribute this software for any
-# purpose with or without fee is hereby granted, provided that the above
-# copyright notice and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-# AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
-# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
-# OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-# PERFORMANCE OF THIS SOFTWARE.
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 SYSTEMTESTTOP=..
 . $SYSTEMTESTTOP/conf.sh
@@ -30,6 +22,8 @@ n=`expr $n + 1`
 if [ $ret != 0 ]; then echo "I:failed"; fi
 status=`expr $status + $ret`
 
+# When LMDB support is compiled in, this tests that migration from
+# NZF to NZD occurs during named startup
 echo "I:checking previously added zone ($n)"
 ret=0
 $DIG $DIGOPTS @10.53.0.2 a.previous.example a > dig.out.ns2.$n || ret=1
@@ -39,12 +33,36 @@ n=`expr $n + 1`
 if [ $ret != 0 ]; then echo "I:failed"; fi
 status=`expr $status + $ret`
 
+if [ -n "$NZD" ]; then
+    echo "I:checking that existing NZF file was renamed after migration ($n)"
+    [ -e ns2/3bf305731dd26307.nzf~ ] || ret=1
+    n=`expr $n + 1`
+    if [ $ret != 0 ]; then echo "I:failed"; fi
+    status=`expr $status + $ret`
+fi
+
 echo "I:adding new zone ($n)"
 ret=0
 $RNDC -c ../common/rndc.conf -s 10.53.0.2 -p 9953 addzone 'added.example { type master; file "added.db"; };' 2>&1 | sed 's/^/I:ns2 /'
 $DIG $DIGOPTS @10.53.0.2 a.added.example a > dig.out.ns2.$n || ret=1
 grep 'status: NOERROR' dig.out.ns2.$n > /dev/null || ret=1
 grep '^a.added.example' dig.out.ns2.$n > /dev/null || ret=1
+n=`expr $n + 1`
+if [ $ret != 0 ]; then echo "I:failed"; fi
+status=`expr $status + $ret`
+
+echo "I:checking addzone errors are logged correctly"
+ret=0
+$RNDC -c ../common/rndc.conf -s 10.53.0.2 -p 9953 addzone bad.example '{ type mister; };' 2>&1 | grep 'unexpected token' > /dev/null 2>&1 || ret=1
+grep "addzone: 'mister' unexpected" ns2/named.run >/dev/null 2>&1 || ret=1
+n=`expr $n + 1`
+if [ $ret != 0 ]; then echo "I:failed"; fi
+status=`expr $status + $ret`
+
+echo "I:checking modzone errors are logged correctly"
+ret=0
+$RNDC -c ../common/rndc.conf -s 10.53.0.2 -p 9953 modzone added.example '{ type mister; };' 2>&1 | grep 'unexpected token' > /dev/null 2>&1 || ret=1
+grep "modzone: 'mister' unexpected" ns2/named.run >/dev/null 2>&1 || ret=1
 n=`expr $n + 1`
 if [ $ret != 0 ]; then echo "I:failed"; fi
 status=`expr $status + $ret`
@@ -82,10 +100,21 @@ n=`expr $n + 1`
 if [ $ret != 0 ]; then echo "I:failed"; fi
 status=`expr $status + $ret`
 
-echo "I:verifying no comments in nzf file ($n)"
+if [ -z "$NZD" ]; then
+    echo "I:verifying no comments in NZF file ($n)"
+    ret=0
+    hcount=`grep "^# New zone file for view: _default" ns2/3bf305731dd26307.nzf | wc -l`
+    [ $hcount -eq 0 ] || ret=1
+    n=`expr $n + 1`
+    if [ $ret != 0 ]; then echo "I:failed"; fi
+    status=`expr $status + $ret`
+fi
+
+echo "I:checking rndc showzone with previously added zone ($n)"
 ret=0
-hcount=`grep "^# New zone file for view: _default" ns2/3bf305731dd26307.nzf | wc -l`
-[ $hcount -eq 0 ] || ret=1
+$RNDC -c ../common/rndc.conf -s 10.53.0.2 -p 9953 showzone previous.example > rndc.out.ns2.$n
+expected='zone "previous.example" { type master; file "previous.db"; };'
+[ "`cat rndc.out.ns2.$n`" = "$expected" ] || ret=1
 n=`expr $n + 1`
 if [ $ret != 0 ]; then echo "I:failed"; fi
 status=`expr $status + $ret`
@@ -100,15 +129,17 @@ n=`expr $n + 1`
 if [ $ret != 0 ]; then echo "I:failed"; fi
 status=`expr $status + $ret`
 
-echo "I:checking nzf file now has comment ($n)"
-ret=0
-hcount=`grep "^# New zone file for view: _default" ns2/3bf305731dd26307.nzf | wc -l`
-[ $hcount -eq 1 ] || ret=1
-n=`expr $n + 1`
-if [ $ret != 0 ]; then echo "I:failed"; fi
-status=`expr $status + $ret`
+if [ -z "$NZD" ]; then
+    echo "I:checking NZF file now has comment ($n)"
+    ret=0
+    hcount=`grep "^# New zone file for view: _default" ns2/3bf305731dd26307.nzf | wc -l`
+    [ $hcount -eq 1 ] || ret=1
+    n=`expr $n + 1`
+    if [ $ret != 0 ]; then echo "I:failed"; fi
+    status=`expr $status + $ret`
+fi
 
-echo "I:deleting newly added zone ($n)"
+echo "I:deleting newly added zone added.example ($n)"
 ret=0
 $RNDC -c ../common/rndc.conf -s 10.53.0.2 -p 9953 delzone added.example 2>&1 | sed 's/^/I:ns2 /'
 $DIG $DIGOPTS @10.53.0.2 a.added.example a > dig.out.ns2.$n
@@ -128,13 +159,29 @@ n=`expr $n + 1`
 if [ $ret != 0 ]; then echo "I:failed"; fi
 status=`expr $status + $ret`
 
-echo "I:attempt to delete a normally-loaded zone ($n)"
+echo "I:checking rndc showzone with a normally-loaded zone ($n)"
+ret=0
+$RNDC -c ../common/rndc.conf -s 10.53.0.2 -p 9953 showzone normal.example > rndc.out.ns2.$n
+expected='zone "normal.example" { type master; file "normal.db"; };'
+[ "`cat rndc.out.ns2.$n`" = "$expected" ] || ret=1
+n=`expr $n + 1`
+if [ $ret != 0 ]; then echo "I:failed"; fi
+status=`expr $status + $ret`
+
+echo "I:checking rndc showzone with a normally-loaded zone with trailing dot ($n)"
+ret=0
+$RNDC -c ../common/rndc.conf -s 10.53.0.2 -p 9953 showzone finaldot.example > rndc.out.ns2.$n
+expected='zone "finaldot.example." { type master; file "normal.db"; };'
+[ "`cat rndc.out.ns2.$n`" = "$expected" ] || ret=1
+n=`expr $n + 1`
+if [ $ret != 0 ]; then echo "I:failed"; fi
+status=`expr $status + $ret`
+
+echo "I:delete a normally-loaded zone ($n)"
 ret=0
 $RNDC -c ../common/rndc.conf -s 10.53.0.2 -p 9953 delzone normal.example 2> rndc.out.ns2.$n
-grep "permission denied" rndc.out.ns2.$n > /dev/null || ret=1
 $DIG $DIGOPTS @10.53.0.2 a.normal.example a > dig.out.ns2.$n
-grep 'status: NOERROR' dig.out.ns2.$n > /dev/null || ret=1
-grep '^a.normal.example' dig.out.ns2.$n > /dev/null || ret=1
+grep 'status: REFUSED' dig.out.ns2.$n > /dev/null || ret=1
 n=`expr $n + 1`
 if [ $ret != 0 ]; then echo "I:failed"; fi
 status=`expr $status + $ret`
@@ -229,6 +276,18 @@ done
 n=`expr $n + 1`
 status=`expr $status + $ret`
 
+echo "I:modifying zone configuration ($n)"
+ret=0
+$RNDC -c ../common/rndc.conf -s 10.53.0.2 -p 9953 addzone 'mod.example { type master; file "added.db"; };' 2>&1 | sed 's/^/I:ns2 /'
+$DIG +norec $DIGOPTS @10.53.0.2 mod.example ns > dig.out.ns2.1.$n || ret=1
+grep 'status: NOERROR' dig.out.ns2.1.$n > /dev/null || ret=1
+$RNDC -c ../common/rndc.conf -s 10.53.0.2 -p 9953 modzone 'mod.example { type master; file "added.db"; allow-query { none; }; };' 2>&1 | sed 's/^/I:ns2 /'
+$DIG +norec $DIGOPTS @10.53.0.2 mod.example ns > dig.out.ns2.2.$n || ret=1
+$RNDC -c ../common/rndc.conf -s 10.53.0.2 -p 9953 showzone mod.example | grep 'allow-query { "none"; };' > /dev/null 2>&1 || ret=1
+n=`expr $n + 1`
+if [ $ret != 0 ]; then echo "I:failed"; fi
+status=`expr $status + $ret`
+
 echo "I:reconfiguring server with multiple views"
 rm -f ns2/named.conf 
 cp -f ns2/named2.conf ns2/named.conf
@@ -257,15 +316,26 @@ n=`expr $n + 1`
 if [ $ret != 0 ]; then echo "I:failed"; fi
 status=`expr $status + $ret`
 
-echo "I:checking new nzf file has comment ($n)"
-ret=0
-hcount=`grep "^# New zone file for view: external" ns2/3c4623849a49a539.nzf | wc -l`
-[ $hcount -eq 1 ] || ret=1
-n=`expr $n + 1`
-if [ $ret != 0 ]; then echo "I:failed"; fi
-status=`expr $status + $ret`
+if [ -z "$NZD" ]; then
+    echo "I:checking new NZF file has comment ($n)"
+    ret=0
+    hcount=`grep "^# New zone file for view: external" ns2/external.nzf | wc -l`
+    [ $hcount -eq 1 ] || ret=1
+    n=`expr $n + 1`
+    if [ $ret != 0 ]; then echo "I:failed"; fi
+    status=`expr $status + $ret`
+fi
 
-echo "I:checking rndc reload causes named to reload the external view's NZF file ($n)"
+if [ -n "$NZD" ]; then
+    echo "I:verifying added.example in external view created an external.nzd DB ($n)"
+    ret=0
+    [ -e ns2/external.nzd ] || ret=1
+    n=`expr $n + 1`
+    if [ $ret != 0 ]; then echo "I:failed"; fi
+    status=`expr $status + $ret`
+fi
+
+echo "I:checking rndc reload causes named to reload the external view's new zone config ($n)"
 ret=0
 $RNDC -c ../common/rndc.conf -s 10.53.0.2 -p 9953 reload 2>&1 | sed 's/^/I:ns2 /'
 $DIG +norec $DIGOPTS @10.53.0.2 -b 10.53.0.2 a.added.example a > dig.out.ns2.int.$n || ret=1
@@ -273,6 +343,25 @@ grep 'status: NOERROR' dig.out.ns2.int.$n > /dev/null || ret=1
 $DIG +norec $DIGOPTS @10.53.0.4 -b 10.53.0.4 a.added.example a > dig.out.ns2.ext.$n || ret=1
 grep 'status: NOERROR' dig.out.ns2.ext.$n > /dev/null || ret=1
 grep '^a.added.example' dig.out.ns2.ext.$n > /dev/null || ret=1
+n=`expr $n + 1`
+if [ $ret != 0 ]; then echo "I:failed"; fi
+status=`expr $status + $ret`
+
+echo "I:checking rndc showzone with newly added zone ($n)"
+# loop because showzone may complain if zones are still being
+# loaded from the NZDB at this point.
+for try in 0 1 2 3 4 5; do
+    ret=0
+    $RNDC -c ../common/rndc.conf -s 10.53.0.2 -p 9953 showzone added.example in external > rndc.out.ns2.$n
+    if [ -z "$NZD" ]; then
+      expected='zone "added.example" in external { type master; file "added.db"; };'
+    else
+      expected='zone "added.example" { type master; file "added.db"; };'
+    fi
+    [ "`cat rndc.out.ns2.$n`" = "$expected" ] || ret=1
+    [ $ret -eq 0 ] && break
+    sleep 1
+done
 n=`expr $n + 1`
 if [ $ret != 0 ]; then echo "I:failed"; fi
 status=`expr $status + $ret`
@@ -304,8 +393,7 @@ status=`expr $status + $ret`
 echo "I:attempting to delete a policy zone ($n)"
 ret=0
 $RNDC -c ../common/rndc.conf -s 10.53.0.2 -p 9953 delzone 'policy in internal' 2> rndc.out.ns2.$n >&1
-grep 'cannot be deleted' rndc.out.ns2.$n > /dev/null ||
-grep 'permission denied' rndc.out.ns2.$n > /dev/null || ret=1
+grep 'cannot be deleted' rndc.out.ns2.$n > /dev/null || ret=1
 n=`expr $n + 1`
 if [ $ret != 0 ]; then echo "I:failed"; fi
 status=`expr $status + $ret`
@@ -320,4 +408,4 @@ if [ $ret != 0 ]; then echo "I:failed"; fi
 status=`expr $status + $ret`
 
 echo "I:exit status: $status"
-exit $status
+[ $status -eq 0 ] || exit 1

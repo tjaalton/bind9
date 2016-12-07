@@ -3,17 +3,9 @@
 <!--
  - Copyright (C) 2010, 2012-2016  Internet Systems Consortium, Inc. ("ISC")
  -
- - Permission to use, copy, modify, and/or distribute this software for any
- - purpose with or without fee is hereby granted, provided that the above
- - copyright notice and this permission notice appear in all copies.
- -
- - THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- - REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- - AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- - INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- - LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- - OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- - PERFORMANCE OF THIS SOFTWARE.
+ - This Source Code Form is subject to the terms of the Mozilla Public
+ - License, v. 2.0. If a copy of the MPL was not distributed with this
+ - file, You can obtain one at http://mozilla.org/MPL/2.0/.
 -->
 
 <!-- Converted by db4-upgrade version 1.0 -->
@@ -236,18 +228,12 @@ $ <userinput>patch -p1 -d openssl-0.9.8zc \
 $ <userinput>cp pkcs11.GCC4.0.2.so.4.05 /opt/pkcs11/usr/lib/libpkcs11.so</userinput>
 </screen>
       <para>
-	This library is only available for Linux as a 32-bit
-	binary. If we are compiling on a 64-bit Linux system, it is
-	necessary to force a 32-bit build, by specifying -m32 in the
-	build options.
-      </para>
-      <para>
-	Finally, the Keyper library requires threads, so we
+	The Keyper library requires threads, so we
 	must specify -pthread.
       </para>
       <screen>
 $ <userinput>cd openssl-0.9.8zc</userinput>
-$ <userinput>./Configure linux-generic32 -m32 -pthread \
+$ <userinput>./Configure linux-x86_64 -pthread \
 	    --pk11-libname=/opt/pkcs11/usr/lib/libpkcs11.so \
 	    --pk11-flavor=sign-only \
 	    --prefix=/opt/pkcs11/usr</userinput>
@@ -370,15 +356,9 @@ $ <userinput>./Configure linux-x86_64 -pthread \
 	To link with the PKCS#11 provider, threads must be
 	enabled in the BIND 9 build.
       </para>
-      <para>
-	The PKCS#11 library for the AEP Keyper is currently
-	only available as a 32-bit binary. If we are building on a
-	64-bit host, we must force a 32-bit build by adding "-m32" to
-	the CC options on the "configure" command line.
-      </para>
       <screen>
 $ <userinput>cd ../bind9</userinput>
-$ <userinput>./configure CC="gcc -m32" --enable-threads \
+$ <userinput>./configure --enable-threads \
 	   --with-openssl=/opt/pkcs11/usr \
 	   --with-pkcs11=/opt/pkcs11/usr/lib/libpkcs11.so</userinput>
 </screen>
@@ -604,7 +584,7 @@ $ <userinput>dnssec-signzone -E '' -S example.net</userinput>
     <para>
       If you want <command>named</command> to dynamically re-sign zones
       using HSM keys, and/or to to sign new records inserted via nsupdate,
-      then named must have access to the HSM PIN. In OpenSSL-based PKCS#11,
+      then <command>named</command> must have access to the HSM PIN. In OpenSSL-based PKCS#11,
       this is accomplished by placing the PIN into the openssl.cnf file
       (in the above examples,
       <filename>/opt/pkcs11/usr/ssl/openssl.cnf</filename>).
@@ -612,7 +592,7 @@ $ <userinput>dnssec-signzone -E '' -S example.net</userinput>
     <para>
       The location of the openssl.cnf file can be overridden by
       setting the OPENSSL_CONF environment variable before running
-      named.
+      <command>named</command>.
     </para>
     <para>Sample openssl.cnf:</para>
     <programlisting>

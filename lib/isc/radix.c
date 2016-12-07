@@ -1,17 +1,9 @@
 /*
- * Copyright (C) 2007-2009, 2011-2014  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2007-2009, 2011-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id$ */
@@ -70,6 +62,7 @@ _new_prefix(isc_mem_t *mctx, isc_prefix_t **target, int family, void *dest,
 	}
 
 	prefix->family = family;
+	prefix->ecs = ISC_FALSE;
 	prefix->mctx = NULL;
 	isc_mem_attach(mctx, &prefix->mctx);
 
@@ -129,8 +122,8 @@ _comp_with_mask(void *addr, void *dest, u_int mask) {
 		return (1);
 
 	if (memcmp(addr, dest, mask / 8) == 0) {
-		int n = mask / 8;
-		int m = ((~0) << (8 - (mask % 8)));
+		u_int n = mask / 8;
+		u_int m = ((~0U) << (8 - (mask % 8)));
 
 		if ((mask % 8) == 0 ||
 		    (((u_char *)addr)[n] & m) == (((u_char *)dest)[n] & m))
@@ -182,12 +175,13 @@ _clear_radix(isc_radix_tree_t *radix, isc_radix_destroyfunc_t func) {
 
 			if (Xrn->prefix != NULL) {
 				_deref_prefix(Xrn->prefix);
-				if (func != NULL && (Xrn->data[0] != NULL ||
-						     Xrn->data[1] != NULL))
+				if (func != NULL)
 					func(Xrn->data);
 			} else {
 				INSIST(Xrn->data[0] == NULL &&
-				       Xrn->data[1] == NULL);
+				       Xrn->data[1] == NULL &&
+				       Xrn->data[2] == NULL &&
+				       Xrn->data[3] == NULL);
 			}
 
 			isc_mem_put(radix->mctx, Xrn, sizeof(*Xrn));
@@ -242,8 +236,7 @@ isc_radix_search(isc_radix_tree_t *radix, isc_radix_node_t **target,
 	isc_radix_node_t *stack[RADIX_MAXBITS + 1];
 	u_char *addr;
 	isc_uint32_t bitlen;
-	int tfamily = -1;
-	int cnt = 0;
+	int toff = -1, cnt = 0;
 
 	REQUIRE(radix != NULL);
 	REQUIRE(prefix != NULL);
@@ -284,13 +277,15 @@ isc_radix_search(isc_radix_tree_t *radix, isc_radix_node_t **target,
 
 		if (_comp_with_mask(isc_prefix_tochar(node->prefix),
 				    isc_prefix_tochar(prefix),
-				    node->prefix->bitlen)) {
-			if (node->node_num[ISC_IS6(prefix->family)] != -1 &&
-				 ((*target == NULL) ||
-				  (*target)->node_num[ISC_IS6(tfamily)] >
-				   node->node_num[ISC_IS6(prefix->family)])) {
+				    node->prefix->bitlen))
+		{
+			int off = ISC_RADIX_OFF(prefix);
+			if (node->node_num[off] != -1 &&
+			    ((*target == NULL) ||
+			     (*target)->node_num[toff] > node->node_num[off]))
+			{
 				*target = node;
-				tfamily = prefix->family;
+				toff = off;
 			}
 		}
 	}
@@ -330,7 +325,8 @@ isc_radix_insert(isc_radix_tree_t *radix, isc_radix_node_t **target,
 		if (node == NULL)
 			return (ISC_R_NOMEMORY);
 		node->bit = bitlen;
-		node->node_num[0] = node->node_num[1] = -1;
+		for (i = 0; i < 4; i++)
+			node->node_num[i] = -1;
 		node->prefix = NULL;
 		result = _ref_prefix(radix->mctx, &node->prefix, prefix);
 		if (result != ISC_R_SUCCESS) {
@@ -349,25 +345,24 @@ isc_radix_insert(isc_radix_tree_t *radix, isc_radix_node_t **target,
 			 * added to num_added_node at the end of
 			 * the merge operation--we don't do it here.
 			 */
-			if (source->node_num[0] != -1)
-				node->node_num[0] = radix->num_added_node +
-						    source->node_num[0];
-			if (source->node_num[1] != -1)
-				node->node_num[1] = radix->num_added_node +
-						    source->node_num[1];
-			node->data[0] = source->data[0];
-			node->data[1] = source->data[1];
+			for (i = 0; i < 4; i++) {
+				if (source->node_num[i] != -1)
+					node->node_num[i] =
+						radix->num_added_node +
+						source->node_num[i];
+				node->data[i] = source->data[i];
+			}
 		} else {
+			int next = ++radix->num_added_node;
 			if (fam == AF_UNSPEC) {
 				/* "any" or "none" */
-				node->node_num[0] = node->node_num[1] =
-					++radix->num_added_node;
+				for (i = 0; i < 4; i++)
+					node->node_num[i] = next;
 			} else {
-				node->node_num[ISC_IS6(fam)] =
-					++radix->num_added_node;
+				node->node_num[ISC_RADIX_OFF(prefix)] = next;
 			}
-			node->data[0] = NULL;
-			node->data[1] = NULL;
+
+			memset(node->data, 0, sizeof(node->data));
 		}
 		radix->head = node;
 		radix->num_active_node++;
@@ -429,37 +424,33 @@ isc_radix_insert(isc_radix_tree_t *radix, isc_radix_node_t **target,
 		if (node->prefix != NULL) {
 			/* Set node_num only if it hasn't been set before */
 			if (source != NULL) {
-				/* Merging node */
-				if (node->node_num[0] == -1 &&
-				    source->node_num[0] != -1) {
-					node->node_num[0] =
-						radix->num_added_node +
-						source->node_num[0];
-					node->data[0] = source->data[0];
-				}
-				if (node->node_num[1] == -1 &&
-				    source->node_num[0] != -1) {
-					node->node_num[1] =
-						radix->num_added_node +
-						source->node_num[1];
-					node->data[1] = source->data[1];
+				/* Merging nodes */
+				for (i = 0; i < 4; i++) {
+					if (node->node_num[i] == -1 &&
+					    source->node_num[i] != -1) {
+						node->node_num[i] =
+							radix->num_added_node +
+							source->node_num[i];
+						node->data[i] = source->data[i];
+					}
 				}
 			} else {
 				if (fam == AF_UNSPEC) {
 					/* "any" or "none" */
 					int next = radix->num_added_node + 1;
-					if (node->node_num[0] == -1) {
-						node->node_num[0] = next;
-						radix->num_added_node = next;
-					}
-					if (node->node_num[1] == -1) {
-						node->node_num[1] = next;
-						radix->num_added_node = next;
+					for (i = 0; i < 4; i++)  {
+						if (node->node_num[i] == -1) {
+							node->node_num[i] =
+								next;
+							radix->num_added_node =
+								next;
+						}
 					}
 				} else {
-					if (node->node_num[ISC_IS6(fam)] == -1)
-						node->node_num[ISC_IS6(fam)]
-						   = ++radix->num_added_node;
+					int off = ISC_RADIX_OFF(prefix);
+					if (node->node_num[off] == -1)
+						node->node_num[off] =
+							++radix->num_added_node;
 				}
 			}
 			*target = node;
@@ -471,27 +462,27 @@ isc_radix_insert(isc_radix_tree_t *radix, isc_radix_node_t **target,
 				return (result);
 		}
 		INSIST(node->data[0] == NULL && node->node_num[0] == -1 &&
-		       node->data[1] == NULL && node->node_num[1] == -1);
+		       node->data[1] == NULL && node->node_num[1] == -1 &&
+		       node->data[2] == NULL && node->node_num[2] == -1 &&
+		       node->data[3] == NULL && node->node_num[3] == -1);
 		if (source != NULL) {
 			/* Merging node */
-			if (source->node_num[0] != -1) {
-				node->node_num[0] = radix->num_added_node +
-						    source->node_num[0];
-				node->data[0] = source->data[0];
-			}
-			if (source->node_num[1] != -1) {
-				node->node_num[1] = radix->num_added_node +
-						    source->node_num[1];
-				node->data[1] = source->data[1];
+			for (i = 0; i < 4; i++) {
+				int cur = radix->num_added_node;
+				if (source->node_num[i] != -1) {
+					node->node_num[i] =
+						source->node_num[i] + cur;
+					node->data[i] = source->data[i];
+				}
 			}
 		} else {
+			int next = ++radix->num_added_node;
 			if (fam == AF_UNSPEC) {
 				/* "any" or "none" */
-				node->node_num[0] = node->node_num[1] =
-					++radix->num_added_node;
+				for (i = 0; i < 4; i++)
+					node->node_num[i] = next;
 			} else {
-				node->node_num[ISC_IS6(fam)] =
-					++radix->num_added_node;
+				node->node_num[ISC_RADIX_OFF(prefix)] = next;
 			}
 		}
 		*target = node;
@@ -521,30 +512,32 @@ isc_radix_insert(isc_radix_tree_t *radix, isc_radix_node_t **target,
 	}
 	new_node->parent = NULL;
 	new_node->l = new_node->r = NULL;
-	new_node->node_num[0] = new_node->node_num[1] = -1;
+	for (i = 0; i < 4; i++) {
+		new_node->node_num[i] = -1;
+		new_node->data[i] = NULL;
+	}
 	radix->num_active_node++;
 
 	if (source != NULL) {
 		/* Merging node */
-		if (source->node_num[0] != -1)
-			new_node->node_num[0] = radix->num_added_node +
-						source->node_num[0];
-		if (source->node_num[1] != -1)
-			new_node->node_num[1] = radix->num_added_node +
-						source->node_num[1];
-		new_node->data[0] = source->data[0];
-		new_node->data[1] = source->data[1];
+		for (i = 0; i < 4; i++) {
+			int cur = radix->num_added_node;
+			if (source->node_num[i] != -1) {
+				new_node->node_num[i] =
+					source->node_num[i] + cur;
+				new_node->data[i] = source->data[i];
+			}
+		}
 	} else {
+		int next = ++radix->num_added_node;
 		if (fam == AF_UNSPEC) {
 			/* "any" or "none" */
-			new_node->node_num[0] = new_node->node_num[1] =
-				++radix->num_added_node;
+			for (i = 0; i < 4; i++)
+				new_node->node_num[i] = next;
 		} else {
-			new_node->node_num[ISC_IS6(fam)] =
-				++radix->num_added_node;
+			new_node->node_num[ISC_RADIX_OFF(prefix)] = next;
 		}
-		new_node->data[0] = NULL;
-		new_node->data[1] = NULL;
+		memset(new_node->data, 0, sizeof(new_node->data));
 	}
 
 	if (node->bit == differ_bit) {
@@ -586,8 +579,10 @@ isc_radix_insert(isc_radix_tree_t *radix, isc_radix_node_t **target,
 		glue->bit = differ_bit;
 		glue->prefix = NULL;
 		glue->parent = node->parent;
-		glue->data[0] = glue->data[1] = NULL;
-		glue->node_num[0] = glue->node_num[1] = -1;
+		for (i = 0; i < 4; i++) {
+			glue->data[i] = NULL;
+			glue->node_num[i] = -1;
+		}
 		radix->num_active_node++;
 		if (differ_bit < radix->maxbits &&
 		    BIT_TEST(addr[differ_bit>>3], 0x80 >> (differ_bit & 07))) {
@@ -630,7 +625,7 @@ isc_radix_remove(isc_radix_tree_t *radix, isc_radix_node_t *node) {
 			_deref_prefix(node->prefix);
 
 		node->prefix = NULL;
-		node->data[0] = node->data[1] = NULL;
+		memset(node->data, 0, sizeof(node->data));
 		return;
 	}
 

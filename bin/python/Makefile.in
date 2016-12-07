@@ -1,18 +1,8 @@
-# Copyright (C) 2012-2014  Internet Systems Consortium, Inc. ("ISC")
+# Copyright (C) 2012-2014, 2016  Internet Systems Consortium, Inc. ("ISC")
 #
-# Permission to use, copy, modify, and/or distribute this software for any
-# purpose with or without fee is hereby granted, provided that the above
-# copyright notice and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-# AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
-# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
-# OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-# PERFORMANCE OF THIS SOFTWARE.
-
-# $Id$
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 srcdir =	@srcdir@
 VPATH =		@srcdir@
@@ -22,11 +12,13 @@ top_srcdir =	@top_srcdir@
 
 PYTHON	=	@PYTHON@
 
-TARGETS =	dnssec-checkds dnssec-coverage
-PYSRCS =	dnssec-checkds.py dnssec-coverage.py
+SUBDIRS	=	isc
 
-MANPAGES =	dnssec-checkds.8 dnssec-coverage.8
-HTMLPAGES =	dnssec-checkds.html dnssec-coverage.html
+TARGETS =	dnssec-checkds dnssec-coverage dnssec-keymgr
+PYSRCS =	dnssec-checkds.py dnssec-coverage.py dnssec-keymgr.py
+
+MANPAGES =	dnssec-checkds.8 dnssec-coverage.8 dnssec-keymgr.8
+HTMLPAGES =	dnssec-checkds.html dnssec-coverage.html dnssec-keymgr.html
 MANOBJS =	${MANPAGES} ${HTMLPAGES}
 
 @BIND9_MAKE_RULES@
@@ -39,6 +31,10 @@ dnssec-coverage: dnssec-coverage.py
 	cp -f dnssec-coverage.py dnssec-coverage
 	chmod +x dnssec-coverage
 
+dnssec-keymgr: dnssec-keymgr.py
+	cp -f dnssec-keymgr.py dnssec-keymgr
+	chmod +x dnssec-keymgr
+
 doc man:: ${MANOBJS}
 
 docclean manclean maintainer-clean::
@@ -49,13 +45,23 @@ installdirs:
 	$(SHELL) ${top_srcdir}/mkinstalldirs ${DESTDIR}${mandir}/man8
 
 install:: ${TARGETS} installdirs
-	${INSTALL_SCRIPT} dnssec-checkds@EXEEXT@ ${DESTDIR}${sbindir}
-	${INSTALL_SCRIPT} dnssec-coverage@EXEEXT@ ${DESTDIR}${sbindir}
+	${INSTALL_SCRIPT} dnssec-checkds ${DESTDIR}${sbindir}
+	${INSTALL_SCRIPT} dnssec-coverage ${DESTDIR}${sbindir}
+	${INSTALL_SCRIPT} dnssec-keymgr ${DESTDIR}${sbindir}
 	${INSTALL_DATA} ${srcdir}/dnssec-checkds.8 ${DESTDIR}${mandir}/man8
 	${INSTALL_DATA} ${srcdir}/dnssec-coverage.8 ${DESTDIR}${mandir}/man8
+	${INSTALL_DATA} ${srcdir}/dnssec-keymgr.8 ${DESTDIR}${mandir}/man8
+	if test -n "${PYTHON}" ; then \
+		if test -n "${DESTDIR}" ; then \
+			${PYTHON} ${srcdir}/setup.py install --root=${DESTDIR} --prefix=${prefix} ; \
+		else \
+			${PYTHON} ${srcdir}/setup.py install --prefix=${prefix} ; \
+		fi \
+	fi
 
 clean distclean::
 	rm -f ${TARGETS}
+	rm -rf build
 
 distclean::
-	rm -f dnssec-checkds.py dnssec-coverage.py
+	rm -f dnssec-checkds.py dnssec-coverage.py dnssec-keymgr.py

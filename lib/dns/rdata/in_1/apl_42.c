@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004, 2005, 2007-2009, 2014, 2015  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 2002  Internet Software Consortium.
+ * Copyright (C) 2002, 2004, 2005, 2007-2009, 2014-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id: apl_42.c,v 1.16 2009/12/04 22:06:37 tbox Exp $ */
@@ -324,7 +315,7 @@ dns_rdata_apl_first(dns_rdata_in_apl_t *apl) {
 	 */
 	INSIST(apl->apl_len > 3U);
 	length = apl->apl[apl->offset + 3] & 0x7f;
-	INSIST(length <= apl->apl_len);
+	INSIST(4 + length <= apl->apl_len);
 
 	apl->offset = 0;
 	return (ISC_R_SUCCESS);
@@ -356,10 +347,10 @@ dns_rdata_apl_next(dns_rdata_in_apl_t *apl) {
 	 * 16 to 32 bits promotion as 'length' is 32 bits so there is
 	 * no overflow problems.
 	 */
-	INSIST(length + apl->offset <= apl->apl_len);
+	INSIST(4 + length + apl->offset <= apl->apl_len);
 
-	apl->offset += apl->apl[apl->offset + 3] & 0x7f;
-	return ((apl->offset >= apl->apl_len) ? ISC_R_SUCCESS : ISC_R_NOMORE);
+	apl->offset += 4 + length;
+	return ((apl->offset < apl->apl_len) ? ISC_R_SUCCESS : ISC_R_NOMORE);
 }
 
 isc_result_t
@@ -381,22 +372,27 @@ dns_rdata_apl_current(dns_rdata_in_apl_t *apl, dns_rdata_apl_ent_t *ent) {
 	 */
 	INSIST(apl->apl_len > 3U);
 	INSIST(apl->offset <= apl->apl_len - 4U);
-	length = apl->apl[apl->offset + 3] & 0x7f;
+	length = (apl->apl[apl->offset + 3] & 0x7f);
 	/*
 	 * 16 to 32 bits promotion as 'length' is 32 bits so there is
 	 * no overflow problems.
 	 */
-	INSIST(length + apl->offset <= apl->apl_len);
+	INSIST(4 + length + apl->offset <= apl->apl_len);
 
 	ent->family = (apl->apl[apl->offset] << 8) + apl->apl[apl->offset + 1];
 	ent->prefix = apl->apl[apl->offset + 2];
-	ent->length = apl->apl[apl->offset + 3] & 0x7f;
+	ent->length = length;
 	ent->negative = ISC_TF((apl->apl[apl->offset + 3] & 0x80) != 0);
 	if (ent->length != 0)
 		ent->data = &apl->apl[apl->offset + 4];
 	else
 		ent->data = NULL;
 	return (ISC_R_SUCCESS);
+}
+
+unsigned int
+dns_rdata_apl_count(const dns_rdata_in_apl_t *apl) {
+	return (apl->apl_len);
 }
 
 static inline isc_result_t

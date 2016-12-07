@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004, 2005, 2007, 2008, 2010-2012, 2014  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1999-2001, 2003  Internet Software Consortium.
+ * Copyright (C) 1999-2001, 2003-2005, 2007, 2008, 2010-2012, 2014-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id$ */
@@ -22,6 +13,7 @@
 #include <config.h>
 
 #include <stddef.h>
+#include <string.h>
 
 #include <isc/util.h>
 
@@ -49,7 +41,9 @@ static dns_rdatasetmethods_t methods = {
 	NULL,
 	NULL,
 	NULL,
-	NULL
+	NULL,
+	isc__rdatalist_setownercase,
+	isc__rdatalist_getownercase
 };
 
 void
@@ -67,6 +61,11 @@ dns_rdatalist_init(dns_rdatalist_t *rdatalist) {
 	rdatalist->ttl = 0;
 	ISC_LIST_INIT(rdatalist->rdata);
 	ISC_LINK_INIT(rdatalist, link);
+	memset(rdatalist->upper, 0xeb, sizeof(rdatalist->upper));
+	/*
+	 * Clear upper set bit.
+	 */
+	rdatalist->upper[0] &= ~0x01;
 }
 
 isc_result_t
@@ -80,6 +79,9 @@ dns_rdatalist_tordataset(dns_rdatalist_t *rdatalist,
 	REQUIRE(rdatalist != NULL);
 	REQUIRE(DNS_RDATASET_VALID(rdataset));
 	REQUIRE(! dns_rdataset_isassociated(rdataset));
+
+	/* Check if dns_rdatalist_init has was called. */
+	REQUIRE(rdatalist->upper[0] == 0xea);
 
 	rdataset->methods = &methods;
 	rdataset->rdclass = rdatalist->rdclass;
@@ -367,4 +369,45 @@ isc__rdatalist_getclosest(dns_rdataset_t *rdataset, dns_name_t *name,
 	dns_rdataset_clone(tneg, neg);
 	dns_rdataset_clone(tnegsig, negsig);
 	return (ISC_R_SUCCESS);
+}
+
+void
+isc__rdatalist_setownercase(dns_rdataset_t *rdataset, const dns_name_t *name) {
+	dns_rdatalist_t *rdatalist;
+	unsigned int i;
+
+	/*
+	 * We do not need to worry about label lengths as they are all
+	 * less than or equal to 63.
+	 */
+	rdatalist = rdataset->private1;
+	memset(rdatalist->upper, 0, sizeof(rdatalist->upper));
+	for (i = 1; i < name->length; i++)
+		if (name->ndata[i] >= 0x41 && name->ndata[i] <= 0x5a)
+			rdatalist->upper[i/8] |= 1 << (i%8);
+	/*
+	 * Record that upper has been set.
+	 */
+	rdatalist->upper[0] |= 0x01;
+}
+
+void
+isc__rdatalist_getownercase(const dns_rdataset_t *rdataset, dns_name_t *name) {
+	dns_rdatalist_t *rdatalist;
+	unsigned int i;
+
+	rdatalist = rdataset->private1;
+	if ((rdatalist->upper[0] & 0x01) == 0)
+		return;
+	for (i = 0; i < name->length; i++) {
+		/*
+		 * Set the case bit if it does not match the recorded bit.
+		 */
+		if (name->ndata[i] >= 0x61 && name->ndata[i] <= 0x7a &&
+		    (rdatalist->upper[i/8] & (1 << (i%8))) != 0)
+			name->ndata[i] &= ~0x20; /* clear the lower case bit */
+		else if (name->ndata[i] >= 0x41 && name->ndata[i] <= 0x5a &&
+		    (rdatalist->upper[i/8] & (1 << (i%8))) == 0)
+			name->ndata[i] |= 0x20; /* set the lower case bit */
+	}
 }

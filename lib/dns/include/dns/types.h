@@ -1,21 +1,10 @@
 /*
- * Copyright (C) 2004-2013, 2015  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1998-2003  Internet Software Consortium.
+ * Copyright (C) 1998-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-
-/* $Id$ */
 
 #ifndef DNS_TYPES_H
 #define DNS_TYPES_H 1
@@ -45,7 +34,14 @@ typedef ISC_LIST(dns_adbaddrinfo_t)		dns_adbaddrinfolist_t;
 typedef struct dns_adbentry			dns_adbentry_t;
 typedef struct dns_adbfind			dns_adbfind_t;
 typedef ISC_LIST(dns_adbfind_t)			dns_adbfindlist_t;
+typedef struct dns_badcache 			dns_badcache_t;
 typedef struct dns_byaddr			dns_byaddr_t;
+typedef struct dns_catz_zonemodmethods		dns_catz_zonemodmethods_t;
+typedef struct dns_catz_entry_options		dns_catz_options_t;
+typedef struct dns_catz_entry			dns_catz_entry_t;
+typedef struct dns_catz_zone			dns_catz_zone_t;
+typedef struct dns_catz_changed			dns_catz_changed_t;
+typedef struct dns_catz_zones			dns_catz_zones_t;
 typedef struct dns_client			dns_client_t;
 typedef void					dns_clientrestrans_t;
 typedef void					dns_clientreqtrans_t;
@@ -58,11 +54,13 @@ typedef struct dns_dbimplementation		dns_dbimplementation_t;
 typedef struct dns_dbiterator			dns_dbiterator_t;
 typedef void					dns_dbload_t;
 typedef void					dns_dbnode_t;
+typedef struct dns_dbonupdatelistener		dns_dbonupdatelistener_t;
 typedef struct dns_dbtable			dns_dbtable_t;
 typedef void					dns_dbversion_t;
 typedef struct dns_dlzimplementation		dns_dlzimplementation_t;
 typedef struct dns_dlzdb			dns_dlzdb_t;
 typedef ISC_LIST(dns_dlzdb_t)			dns_dlzdblist_t;
+typedef struct dns_dyndbctx			dns_dyndbctx_t;
 typedef struct dns_sdlzimplementation		dns_sdlzimplementation_t;
 typedef struct dns_decompress			dns_decompress_t;
 typedef struct dns_dispatch			dns_dispatch_t;
@@ -76,6 +74,10 @@ typedef ISC_LIST(dns_dns64_t)			dns_dns64list_t;
 typedef struct dns_dnsseckey			dns_dnsseckey_t;
 typedef ISC_LIST(dns_dnsseckey_t)		dns_dnsseckeylist_t;
 typedef isc_uint8_t				dns_dsdigest_t;
+typedef struct dns_dtdata			dns_dtdata_t;
+typedef struct dns_dtenv			dns_dtenv_t;
+typedef struct dns_dtmsg			dns_dtmsg_t;
+typedef isc_uint16_t 				dns_dtmsgtype_t;
 typedef struct dns_dumpctx			dns_dumpctx_t;
 typedef struct dns_ednsopt			dns_ednsopt_t;
 typedef struct dns_fetch			dns_fetch_t;
@@ -99,6 +101,8 @@ typedef isc_region_t				dns_label_t;
 typedef struct dns_lookup			dns_lookup_t;
 typedef struct dns_name				dns_name_t;
 typedef ISC_LIST(dns_name_t)			dns_namelist_t;
+typedef struct dns_nta				dns_nta_t;
+typedef struct dns_ntatable			dns_ntatable_t;
 typedef isc_uint16_t				dns_opcode_t;
 typedef unsigned char				dns_offsets_t[128];
 typedef struct dns_order			dns_order_t;
@@ -140,6 +144,7 @@ typedef struct dns_zone				dns_zone_t;
 typedef ISC_LIST(dns_zone_t)			dns_zonelist_t;
 typedef struct dns_zonemgr			dns_zonemgr_t;
 typedef struct dns_zt				dns_zt_t;
+typedef struct dns_ipkeylist 			dns_ipkeylist_t;
 
 /*
  * If we are not using GSSAPI, define the types we use as opaque types here.
@@ -182,6 +187,13 @@ typedef enum {
 	dns_notifytype_explicit = 2,
 	dns_notifytype_masteronly = 3
 } dns_notifytype_t;
+
+typedef enum {
+	dns_minimal_no = 0,
+	dns_minimal_yes = 1,
+	dns_minimal_noauth = 2,
+	dns_minimal_noauthrec = 3
+} dns_minimaltype_t;
 
 typedef enum {
 	dns_dialuptype_no = 0,
@@ -247,6 +259,10 @@ enum {
 #define dns_rcode_badvers		((dns_rcode_t)dns_rcode_badvers)
 	dns_rcode_badcookie = 23
 #define dns_rcode_badcookie		((dns_rcode_t)dns_rcode_badcookie)
+	/*
+	 * Update dns_rcodestats_create() and dns_rcodestats_increment()
+	 * and this comment if a rcode > dns_rcode_badcookie is assigned.
+	 */
 	/* Private space [3841..4095] */
 };
 
@@ -348,15 +364,18 @@ typedef enum {
 /*%
  * DNS Serial Number Update Method.
  *
+ * \li	_none:		Keep the current serial.
  * \li	_increment:	Add one to the current serial, skipping 0.
  * \li	_unixtime:	Set to the seconds since 00:00 Jan 1, 1970,
  *			if possible.
- * \li	_yyyymmvv:	Set to Year, Month, Version, if possible.
- *			(Not yet implemented)
+ * \li	_date:		Set to today's date in YYYYMMDDVV format:
+ *                      (Year, Month, Day, Version)
  */
 typedef enum {
-	dns_updatemethod_increment = 0,
-	dns_updatemethod_unixtime
+	dns_updatemethod_none = 0,
+	dns_updatemethod_increment,
+	dns_updatemethod_unixtime,
+	dns_updatemethod_date
 } dns_updatemethod_t;
 
 /*

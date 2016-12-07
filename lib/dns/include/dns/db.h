@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2009, 2011-2015  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1999-2003  Internet Software Consortium.
+ * Copyright (C) 1999-2009, 2011-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id$ */
@@ -195,6 +186,8 @@ typedef struct dns_dbmethods {
 				   dns_rdataset_t *sigrdataset);
 	isc_result_t	(*setcachestats)(dns_db_t *db, isc_stats_t *stats);
 	size_t		(*hashsize)(dns_db_t *db);
+	isc_result_t	(*nodefullname)(dns_db_t *db, dns_dbnode_t *node,
+					dns_name_t *name);
 } dns_dbmethods_t;
 
 typedef isc_result_t
@@ -202,6 +195,9 @@ typedef isc_result_t
 		      dns_dbtype_t type, dns_rdataclass_t rdclass,
 		      unsigned int argc, char *argv[], void *driverarg,
 		      dns_db_t **dbp);
+
+typedef isc_result_t
+(*dns_dbupdate_callback_t)(dns_db_t *db, void *fn_arg);
 
 #define DNS_DB_MAGIC		ISC_MAGIC('D','N','S','D')
 #define DNS_DB_VALID(db)	ISC_MAGIC_VALID(db, DNS_DB_MAGIC)
@@ -216,18 +212,25 @@ typedef isc_result_t
  * invariants.
  */
 struct dns_db {
-	unsigned int			magic;
-	unsigned int			impmagic;
-	dns_dbmethods_t *		methods;
-	isc_uint16_t			attributes;
-	dns_rdataclass_t		rdclass;
-	dns_name_t			origin;
-	isc_ondestroy_t			ondest;
-	isc_mem_t *			mctx;
+	unsigned int				magic;
+	unsigned int				impmagic;
+	dns_dbmethods_t *			methods;
+	isc_uint16_t				attributes;
+	dns_rdataclass_t			rdclass;
+	dns_name_t				origin;
+	isc_ondestroy_t				ondest;
+	isc_mem_t *				mctx;
+	ISC_LIST(dns_dbonupdatelistener_t)	update_listeners;
 };
 
 #define DNS_DBATTR_CACHE		0x01
 #define DNS_DBATTR_STUB			0x02
+
+struct dns_dbonupdatelistener {
+	dns_dbupdate_callback_t			onupdate;
+	void *					onupdate_arg;
+	ISC_LINK(dns_dbonupdatelistener_t)	link;
+};
 
 /*@{*/
 /*%
@@ -242,6 +245,7 @@ struct dns_db {
 #define DNS_DBFIND_COVERINGNSEC		0x0040
 #define DNS_DBFIND_FORCENSEC3		0x0080
 #define DNS_DBFIND_ADDITIONALOK		0x0100
+#define DNS_DBFIND_NOZONECUT		0x0200
 /*@}*/
 
 /*@{*/
@@ -259,6 +263,7 @@ struct dns_db {
  * Options that can be specified for dns_db_subtractrdataset().
  */
 #define DNS_DBSUB_EXACT			0x01
+#define DNS_DBSUB_WANTOLD		0x02
 
 /*@{*/
 /*%
@@ -784,6 +789,15 @@ dns_db_findext(dns_db_t *db, dns_name_t *name, dns_dbversion_t *version,
  * \li	If the #DNS_DBFIND_NOWILD option is set, then wildcard matching will
  *	be disabled.  This option is only meaningful for zone databases.
  *
+ * \li  If the #DNS_DBFIND_NOZONECUT option is set, the database is
+ *	assumed to contain no zone cuts above 'name'.  An implementation
+ *	may therefore choose to search for a match beginning at 'name'
+ *	rather than walking down the tree to check check for delegations.
+ *	If #DNS_DBFIND_NOWILD is not set, wildcard matching will be
+ *	attempted at each node starting at the direct ancestor of 'name'
+ *	and working up to the zone origin.  This option is only meaningful
+ *	when querying redirect zones.
+ *
  * \li	If the #DNS_DBFIND_FORCENSEC option is set, the database is assumed to
  *	have NSEC records, and these will be returned when appropriate.  This
  *	is only necessary when querying a database that was not secure
@@ -795,7 +809,7 @@ dns_db_findext(dns_db_t *db, dns_name_t *name, dns_dbversion_t *version,
  *	that it is correct.  This only affects answers returned from the
  *	cache.
  *
- * \li	In the #DNS_DBFIND_FORCENSEC3 option is set, then we are looking
+ * \li	If the #DNS_DBFIND_FORCENSEC3 option is set, then we are looking
  *	in the NSEC3 tree and not the main tree.  Without this option being
  *	set NSEC3 records will not be found.
  *
@@ -1271,6 +1285,9 @@ dns_db_subtractrdataset(dns_db_t *db, dns_dbnode_t *node,
  *	become nonexistent.  If DNS_DBSUB_EXACT is set then all elements
  *	of 'rdataset' must exist at 'node'.
  *
+ *\li	If DNS_DBSUB_WANTOLD is set and the entire rdataset was deleted
+ *	then return the original rdatatset in newrdataset if that existed.
+ *
  * Requires:
  *
  * \li	'db' is a valid database.
@@ -1610,6 +1627,45 @@ dns_db_rpz_ready(dns_db_t *db);
  * Finish loading a response policy zone.
  */
 
+isc_result_t
+dns_db_updatenotify_register(dns_db_t *db,
+			     dns_dbupdate_callback_t fn,
+			     void *fn_arg);
+/*%<
+ * Register a notify-on-update callback function to a database.
+ *
+ * Requires:
+ *
+ * \li	'db' is a valid database
+ * \li	'db' does not have an update callback registered
+ * \li	'fn' is not NULL
+ *
+ */
+
+isc_result_t
+dns_db_updatenotify_unregister(dns_db_t *db,
+			       dns_dbupdate_callback_t fn,
+			       void *fn_arg);
+/*%<
+ * Unregister a notify-on-update callback.
+ *
+ * Requires:
+ *
+ * \li	'db' is a valid database
+ * \li	'db' has update callback registered
+ *
+ */
+
+isc_result_t
+dns_db_nodefullname(dns_db_t *db, dns_dbnode_t *node, dns_name_t *name);
+/*%<
+ * Get the name associated with a database node.
+ *
+ * Requires:
+ *
+ * \li	'db' is a valid database
+ * \li	'node' and 'name' are not NULL
+ */
 ISC_LANG_ENDDECLS
 
 #endif /* DNS_DB_H */

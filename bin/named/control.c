@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2007, 2009-2016  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 2001-2003  Internet Software Consortium.
+ * Copyright (C) 2001-2007, 2009-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id: control.c,v 1.49 2012/01/31 23:47:31 tbox Exp $ */
@@ -76,7 +67,9 @@ command_compare(const char *str, const char *command) {
  * when a control channel message is received.
  */
 isc_result_t
-ns_control_docommand(isccc_sexpr_t *message, isc_buffer_t *text) {
+ns_control_docommand(isccc_sexpr_t *message, isc_boolean_t readonly,
+		     isc_buffer_t **text)
+{
 	isccc_sexpr_t *data;
 	char *cmdline = NULL;
 	char *command = NULL;
@@ -122,16 +115,38 @@ ns_control_docommand(isccc_sexpr_t *message, isc_buffer_t *text) {
 	 * Compare the 'command' parameter against all known control commands.
 	 */
 	if (command_compare(command, NS_COMMAND_NULL) ||
-	    command_compare(command, NS_COMMAND_STATUS)) {
+	    command_compare(command, NS_COMMAND_STATUS))
+	{
 		log_level = ISC_LOG_DEBUG(1);
 	} else {
 		log_level = ISC_LOG_INFO;
 	}
 
+	/*
+	 * If this listener should have read-only access, reject
+	 * restricted commands here. rndc nta is handled specially
+	 * below.
+	 */
+	if (readonly &&
+	    !command_compare(command, NS_COMMAND_NTA) &&
+	    !command_compare(command, NS_COMMAND_NULL) &&
+	    !command_compare(command, NS_COMMAND_STATUS) &&
+	    !command_compare(command, NS_COMMAND_SHOWZONE) &&
+	    !command_compare(command, NS_COMMAND_TESTGEN) &&
+	    !command_compare(command, NS_COMMAND_ZONESTATUS))
+	{
+		isc_log_write(ns_g_lctx, NS_LOGCATEGORY_GENERAL,
+			      NS_LOGMODULE_CONTROL, log_level,
+			      "rejecting restricted control channel "
+			      "command '%s'", cmdline);
+		result = ISC_R_FAILURE;
+		goto cleanup;
+	}
+
 	isc_log_write(ns_g_lctx, NS_LOGCATEGORY_GENERAL,
 		      NS_LOGMODULE_CONTROL, log_level,
 		      "received control channel command '%s'",
-		      command);
+		      cmdline);
 
 	if (command_compare(command, NS_COMMAND_RELOAD)) {
 		result = ns_server_reloadcommand(ns_g_server, lex, text);
@@ -167,7 +182,7 @@ ns_control_docommand(isccc_sexpr_t *message, isc_buffer_t *text) {
 #endif
 		/* Do not flush master files */
 		ns_server_flushonshutdown(ns_g_server, ISC_FALSE);
-		ns_os_shutdownmsg(cmdline, text);
+		ns_os_shutdownmsg(cmdline, *text);
 		isc_app_shutdown();
 		result = ISC_R_SUCCESS;
 	} else if (command_compare(command, NS_COMMAND_STOP)) {
@@ -184,7 +199,7 @@ ns_control_docommand(isccc_sexpr_t *message, isc_buffer_t *text) {
 			ns_smf_want_disable = 1;
 #endif
 		ns_server_flushonshutdown(ns_g_server, ISC_TRUE);
-		ns_os_shutdownmsg(cmdline, text);
+		ns_os_shutdownmsg(cmdline, *text);
 		isc_app_shutdown();
 		result = ISC_R_SUCCESS;
 	} else if (command_compare(command, NS_COMMAND_DUMPSTATS)) {
@@ -192,10 +207,10 @@ ns_control_docommand(isccc_sexpr_t *message, isc_buffer_t *text) {
 	} else if (command_compare(command, NS_COMMAND_QUERYLOG)) {
 		result = ns_server_togglequerylog(ns_g_server, lex);
 	} else if (command_compare(command, NS_COMMAND_DUMPDB)) {
-		ns_server_dumpdb(ns_g_server, lex);
+		ns_server_dumpdb(ns_g_server, lex, text);
 		result = ISC_R_SUCCESS;
 	} else if (command_compare(command, NS_COMMAND_SECROOTS)) {
-		result = ns_server_dumpsecroots(ns_g_server, lex);
+		result = ns_server_dumpsecroots(ns_g_server, lex, text);
 	} else if (command_compare(command, NS_COMMAND_TRACE)) {
 		result = ns_server_setdebuglevel(ns_g_server, lex);
 	} else if (command_compare(command, NS_COMMAND_NOTRACE)) {
@@ -240,14 +255,26 @@ ns_control_docommand(isccc_sexpr_t *message, isc_buffer_t *text) {
 	} else if (command_compare(command, NS_COMMAND_SIGN) ||
 		   command_compare(command, NS_COMMAND_LOADKEYS)) {
 		result = ns_server_rekey(ns_g_server, lex, text);
-	} else if (command_compare(command, NS_COMMAND_ADDZONE)) {
-		result = ns_server_add_zone(ns_g_server, cmdline, text);
+	} else if (command_compare(command, NS_COMMAND_ADDZONE) ||
+		   command_compare(command, NS_COMMAND_MODZONE)) {
+		result = ns_server_changezone(ns_g_server, cmdline, text);
 	} else if (command_compare(command, NS_COMMAND_DELZONE)) {
-		result = ns_server_del_zone(ns_g_server, lex, text);
+		result = ns_server_delzone(ns_g_server, lex, text);
+	} else if (command_compare(command, NS_COMMAND_SHOWZONE)) {
+		result = ns_server_showzone(ns_g_server, lex, text);
 	} else if (command_compare(command, NS_COMMAND_SIGNING)) {
 		result = ns_server_signing(ns_g_server, lex, text);
 	} else if (command_compare(command, NS_COMMAND_ZONESTATUS)) {
 		result = ns_server_zonestatus(ns_g_server, lex, text);
+	} else if (command_compare(command, NS_COMMAND_NTA)) {
+		result = ns_server_nta(ns_g_server, lex, readonly, text);
+	} else if (command_compare(command, NS_COMMAND_TESTGEN)) {
+		result = ns_server_testgen(lex, text);
+	} else if (command_compare(command, NS_COMMAND_MKEYS)) {
+		result = ns_server_mkeys(ns_g_server, lex, text);
+	} else if (command_compare(command, NS_COMMAND_DNSTAP) ||
+		   command_compare(command, NS_COMMAND_DNSTAPREOPEN)) {
+		result = ns_server_dnstap(ns_g_server, lex, text);
 	} else {
 		isc_log_write(ns_g_lctx, NS_LOGCATEGORY_GENERAL,
 			      NS_LOGMODULE_CONTROL, ISC_LOG_WARNING,

@@ -1,21 +1,10 @@
 /*
- * Copyright (C) 2004-2015  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 2000-2003  Internet Software Consortium.
+ * Copyright (C) 2000-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-
-/* $Id$ */
 
 #include <config.h>
 
@@ -1155,6 +1144,9 @@ create_fetch(dns_validator_t *val, dns_name_t *name, dns_rdatatype_t type,
 	if ((val->options & DNS_VALIDATOR_NOCDFLAG) != 0)
 		fopts |= DNS_FETCHOPT_NOCDFLAG;
 
+	if ((val->options & DNS_VALIDATOR_NONTA) != 0)
+		fopts |= DNS_FETCHOPT_NONTA;
+
 	validator_logcreate(val, name, type, caller, "fetch");
 	return (dns_resolver_createfetch(val->view->resolver, name, type,
 					 NULL, NULL, NULL, fopts,
@@ -1182,8 +1174,8 @@ create_validator(dns_validator_t *val, dns_name_t *name, dns_rdatatype_t type,
 		return (DNS_R_NOVALIDSIG);
 	}
 
-	/* OK to clear other options, but preserve NOCDFLAG */
-	vopts |= (val->options & DNS_VALIDATOR_NOCDFLAG);
+	/* OK to clear other options, but preserve NOCDFLAG and NONTA. */
+	vopts |= (val->options & (DNS_VALIDATOR_NOCDFLAG|DNS_VALIDATOR_NONTA));
 
 	validator_logcreate(val, name, type, caller, "validator");
 	result = dns_validator_create(val->view, name, type,
@@ -1661,12 +1653,9 @@ validate(dns_validator_t *val, isc_boolean_t resume) {
 			validator_log(val, ISC_LOG_DEBUG(3),
 				      "failed to verify rdataset");
 		else {
-			isc_stdtime_t now;
-
-			isc_stdtime_get(&now);
 			dns_rdataset_trimttl(event->rdataset,
 					     event->sigrdataset,
-					     val->siginfo, now,
+					     val->siginfo, val->start,
 					     val->view->acceptexpired);
 		}
 
@@ -3085,6 +3074,11 @@ startfinddlvsep(dns_validator_t *val, dns_name_t *unsecure) {
 		markanswer(val, "startfinddlvsep (1)");
 		return (ISC_R_SUCCESS);
 	}
+	if (result == DNS_R_NTACOVERED) {
+		validator_log(val, ISC_LOG_DEBUG(3), "DLV covered by NTA");
+		validator_done(val, ISC_R_SUCCESS);
+		return (ISC_R_SUCCESS);
+	}
 	if (result != ISC_R_SUCCESS) {
 		validator_log(val, ISC_LOG_DEBUG(3), "DLV lookup: %s",
 			      dns_result_totext(result));
@@ -3173,6 +3167,10 @@ finddlvsep(dns_validator_t *val, isc_boolean_t resume) {
 		validator_log(val, ISC_LOG_DEBUG(2), "DLV concatenate failed");
 		return (DNS_R_NOVALIDSIG);
 	}
+
+	if (((val->options & DNS_VALIDATOR_NONTA) == 0) &&
+	    dns_view_ntacovers(val->view, val->start, dlvname, val->view->dlv))
+		return (DNS_R_NTACOVERED);
 
 	while (dns_name_countlabels(dlvname) >=
 	       dns_name_countlabels(val->view->dlv) + val->dlvlabels) {
@@ -3790,6 +3788,7 @@ dns_validator_create(dns_view_t *view, dns_name_t *name, dns_rdatatype_t type,
 	dns_fixedname_init(&val->wild);
 	dns_fixedname_init(&val->nearest);
 	dns_fixedname_init(&val->closest);
+	isc_stdtime_get(&val->start);
 	ISC_LINK_INIT(val, link);
 	val->magic = VALIDATOR_MAGIC;
 

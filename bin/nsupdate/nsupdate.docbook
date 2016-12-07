@@ -1,18 +1,9 @@
 <!--
- - Copyright (C) 2004-2012, 2014, 2015  Internet Systems Consortium, Inc. ("ISC")
- - Copyright (C) 2000-2003  Internet Software Consortium.
+ - Copyright (C) 2000-2012, 2014-2016  Internet Systems Consortium, Inc. ("ISC")
  -
- - Permission to use, copy, modify, and/or distribute this software for any
- - purpose with or without fee is hereby granted, provided that the above
- - copyright notice and this permission notice appear in all copies.
- -
- - THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- - REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- - AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- - INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- - LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- - OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- - PERFORMANCE OF THIS SOFTWARE.
+ - This Source Code Form is subject to the terms of the Mozilla Public
+ - License, v. 2.0. If a copy of the MPL was not distributed with this
+ - file, You can obtain one at http://mozilla.org/MPL/2.0/.
 -->
 
 <!-- Converted by db4-upgrade version 1.0 -->
@@ -24,6 +15,7 @@
     <corpname>ISC</corpname>
     <corpauthor>Internet Systems Consortium, Inc.</corpauthor>
   </refentryinfo>
+
   <refmeta>
     <refentrytitle><application>nsupdate</application></refentrytitle>
     <manvolnum>1</manvolnum>
@@ -36,6 +28,10 @@
 
   <docinfo>
     <copyright>
+      <year>2000</year>
+      <year>2001</year>
+      <year>2002</year>
+      <year>2003</year>
       <year>2004</year>
       <year>2005</year>
       <year>2006</year>
@@ -47,14 +43,8 @@
       <year>2012</year>
       <year>2014</year>
       <year>2015</year>
+      <year>2016</year>
       <holder>Internet Systems Consortium, Inc. ("ISC")</holder>
-    </copyright>
-    <copyright>
-      <year>2000</year>
-      <year>2001</year>
-      <year>2002</year>
-      <year>2003</year>
-      <holder>Internet Software Consortium.</holder>
     </copyright>
   </docinfo>
 
@@ -334,7 +324,8 @@
 	    <literal>hmac-sha1</literal>, <literal>hmac-sha224</literal>,
 	    <literal>hmac-sha256</literal>, <literal>hmac-sha384</literal>, or
 	    <literal>hmac-sha512</literal>.  If <parameter>hmac</parameter>
-	    is not specified, the default is <literal>hmac-md5</literal>.
+	    is not specified, the default is <literal>hmac-md5</literal>
+	    or if MD5 was disabled <literal>hmac-sha256</literal>.
 	  </para>
 	  <para>
 	    NOTE: Use of the <option>-y</option> option is discouraged because the
@@ -491,7 +482,8 @@
 	      <parameter>keyname</parameter> <parameter>secret</parameter> pair.
 	      If <parameter>hmac</parameter> is specified, then it sets the
 	      signing algorithm in use; the default is
-	      <literal>hmac-md5</literal>.  The <command>key</command>
+	      <literal>hmac-md5</literal> or if MD5 was disabled
+	      <literal>hmac-sha256</literal>.  The <command>key</command>
 	      command overrides any key specified on the command line via
 	      <option>-y</option> or <option>-k</option>.
 	    </para>
@@ -505,7 +497,7 @@
 	  <listitem>
 	    <para>
 	      Use GSS-TSIG to sign the updated.  This is equivalent to
-	      specifying <option>-g</option> on the commandline.
+	      specifying <option>-g</option> on the command line.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -518,7 +510,7 @@
 	    <para>
 	      Use the Windows 2000 version of GSS-TSIG to sign the updated.
 	      This is equivalent to specifying <option>-o</option> on the
-	      commandline.
+	      command line.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -533,6 +525,22 @@
 	      When using GSS-TSIG use <parameter>realm_name</parameter> rather
 	      than the default realm in <filename>krb5.conf</filename>.  If no
 	      realm is specified the saved realm is cleared.
+	    </para>
+	  </listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term>
+	    <command>check-names</command>
+	    <arg choice="req" rep="norepeat"><optional>yes_or_no</optional></arg>
+	  </term>
+	  <listitem>
+	    <para>
+	      Turn on or off check-names processing on records to
+	      be added.  Check-names has no effect on prerequisites
+	      or records to be deleted.  By default check-names
+	      processing is on.  If check-names processing fails
+	      the record will not be added to the UPDATE message.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -898,4 +906,5 @@
       releases.
     </para>
   </refsection>
+
 </refentry>

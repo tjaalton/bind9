@@ -1,17 +1,9 @@
 /*
  * Copyright (C) 2011-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* ! \file */
@@ -33,6 +25,8 @@
 #include <isc/util.h>
 #include <isc/print.h>
 #include <isc/string.h>
+
+#include <pk11/site.h>
 
 /*
  * Test data from RFC6234
@@ -776,6 +770,7 @@ ATF_TC_BODY(isc_sha512, tc) {
 	}
 }
 
+#ifndef PK11_MD5_DISABLE
 ATF_TC(isc_md5);
 ATF_TC_HEAD(isc_md5, tc) {
 	atf_tc_set_md_var(tc, "descr", "md5 example from RFC1321");
@@ -848,6 +843,7 @@ ATF_TC_BODY(isc_md5, tc) {
 		testcase++;
 	}
 }
+#endif
 
 /* HMAC-SHA1 test */
 ATF_TC(isc_hmacsha1);
@@ -1644,6 +1640,7 @@ ATF_TC_BODY(isc_hmacsha512, tc) {
 }
 
 
+#ifndef PK11_MD5_DISABLE
 /* HMAC-MD5 Test */
 ATF_TC(isc_hmacmd5);
 ATF_TC_HEAD(isc_hmacmd5, tc) {
@@ -1785,6 +1782,7 @@ ATF_TC_BODY(isc_hmacmd5, tc) {
 		test_key++;
 	}
 }
+#endif
 
 /* CRC64 Test */
 ATF_TC(isc_crc64);
@@ -1895,7 +1893,6 @@ ATF_TC_BODY(isc_hash_function, tc) {
 	ATF_CHECK(h1 != h2);
 }
 
-
 ATF_TC(isc_hash_function_reverse);
 ATF_TC_HEAD(isc_hash_function_reverse, tc) {
 	atf_tc_set_md_var(tc, "descr", "Reverse hash function test");
@@ -1943,6 +1940,29 @@ ATF_TC_BODY(isc_hash_function_reverse, tc) {
 	ATF_CHECK(h1 != h2);
 }
 
+ATF_TC(isc_hash_initializer);
+ATF_TC_HEAD(isc_hash_initializer, tc) {
+	atf_tc_set_md_var(tc, "descr", "Hash function initializer test");
+}
+ATF_TC_BODY(isc_hash_initializer, tc) {
+	unsigned int h1;
+	unsigned int h2;
+
+	UNUSED(tc);
+
+	h1 = isc_hash_function("Hello world", 12, ISC_TRUE, NULL);
+	h2 = isc_hash_function("Hello world", 12, ISC_TRUE, NULL);
+
+	ATF_CHECK_EQ(h1, h2);
+
+	isc_hash_set_initializer(isc_hash_get_initializer());
+
+	/* Hash value must not change */
+	h2 = isc_hash_function("Hello world", 12, ISC_TRUE, NULL);
+
+	ATF_CHECK_EQ(h1, h2);
+}
+
 /*
  * Main
  */
@@ -1953,13 +1973,18 @@ ATF_TP_ADD_TCS(tp) {
 	 */
 	ATF_TP_ADD_TC(tp, isc_hash_function);
 	ATF_TP_ADD_TC(tp, isc_hash_function_reverse);
+	ATF_TP_ADD_TC(tp, isc_hash_initializer);
+#ifndef PK11_MD5_DISABLE
 	ATF_TP_ADD_TC(tp, isc_hmacmd5);
+#endif
 	ATF_TP_ADD_TC(tp, isc_hmacsha1);
 	ATF_TP_ADD_TC(tp, isc_hmacsha224);
 	ATF_TP_ADD_TC(tp, isc_hmacsha256);
 	ATF_TP_ADD_TC(tp, isc_hmacsha384);
 	ATF_TP_ADD_TC(tp, isc_hmacsha512);
+#ifndef PK11_MD5_DISABLE
 	ATF_TP_ADD_TC(tp, isc_md5);
+#endif
 	ATF_TP_ADD_TC(tp, isc_sha1);
 	ATF_TP_ADD_TC(tp, isc_sha224);
 	ATF_TP_ADD_TC(tp, isc_sha256);

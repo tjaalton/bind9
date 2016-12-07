@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004, 2005, 2007-2009, 2012-2016  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1999-2002  Internet Software Consortium.
+ * Copyright (C) 1999-2002, 2004, 2005, 2007-2009, 2012-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 #include <config.h>
@@ -45,8 +36,10 @@
 #include <named/ntservice.h>
 
 
+static char *lockfile = NULL;
 static char *pidfile = NULL;
 static int devnullfd = -1;
+static int lockfilefd = -1;
 
 static BOOL Initialized = FALSE;
 
@@ -64,8 +57,10 @@ ns_paths_init(void) {
 	ns_g_conffile = isc_ntpaths_get(NAMED_CONF_PATH);
 	ns_g_defaultpidfile = isc_ntpaths_get(NAMED_PID_PATH);
 	lwresd_g_defaultpidfile = isc_ntpaths_get(LWRESD_PID_PATH);
+	ns_g_defaultlockfile = isc_ntpaths_get(NAMED_LOCK_PATH);
 	ns_g_keyfile = isc_ntpaths_get(RNDC_KEY_PATH);
 	ns_g_defaultsessionkeyfile = isc_ntpaths_get(SESSION_KEY_PATH);
+	ns_g_defaultdnstap = NULL;
 
 	Initialized = TRUE;
 }
@@ -205,6 +200,22 @@ cleanup_pidfile(void) {
 	pidfile = NULL;
 }
 
+static void
+cleanup_lockfile(void) {
+	if (lockfilefd != -1) {
+		close(lockfilefd);
+		lockfilefd = -1;
+	}
+
+	if (lockfile != NULL) {
+		int n = unlink(lockfile);
+		if (n == -1 && errno != ENOENT)
+			ns_main_earlywarning("unlink '%s': failed", lockfile);
+		free(lockfile);
+		lockfile = NULL;
+	}
+}
+
 FILE *
 ns_os_openfile(const char *filename, int mode, isc_boolean_t switch_user) {
 	char strbuf[ISC_STRERRORSIZE];
@@ -233,7 +244,7 @@ ns_os_openfile(const char *filename, int mode, isc_boolean_t switch_user) {
 
 void
 ns_os_writepidfile(const char *filename, isc_boolean_t first_time) {
-	FILE *lockfile;
+	FILE *pidlockfile;
 	pid_t pid;
 	char strbuf[ISC_STRERRORSIZE];
 	void (*report)(const char *, ...);
@@ -256,9 +267,9 @@ ns_os_writepidfile(const char *filename, isc_boolean_t first_time) {
 		return;
 	}
 
-	lockfile = ns_os_openfile(filename, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH,
-				  ISC_FALSE);
-	if (lockfile == NULL) {
+	pidlockfile = ns_os_openfile(filename, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH,
+				     ISC_FALSE);
+	if (pidlockfile == NULL) {
 		free(pidfile);
 		pidfile = NULL;
 		return;
@@ -266,25 +277,74 @@ ns_os_writepidfile(const char *filename, isc_boolean_t first_time) {
 
 	pid = getpid();
 
-	if (fprintf(lockfile, "%ld\n", (long)pid) < 0) {
+	if (fprintf(pidlockfile, "%ld\n", (long)pid) < 0) {
 		(*report)("fprintf() to pid file '%s' failed", filename);
-		(void)fclose(lockfile);
+		(void)fclose(pidlockfile);
 		cleanup_pidfile();
 		return;
 	}
-	if (fflush(lockfile) == EOF) {
+	if (fflush(pidlockfile) == EOF) {
 		(*report)("fflush() to pid file '%s' failed", filename);
-		(void)fclose(lockfile);
+		(void)fclose(pidlockfile);
 		cleanup_pidfile();
 		return;
 	}
-	(void)fclose(lockfile);
+	(void)fclose(pidlockfile);
 }
+
+isc_boolean_t
+ns_os_issingleton(const char *filename) {
+	char strbuf[ISC_STRERRORSIZE];
+	OVERLAPPED o;
+
+	if (lockfilefd != -1)
+		return (ISC_TRUE);
+
+	if (strcasecmp(filename, "none") == 0)
+		return (ISC_TRUE);
+
+	lockfile = strdup(filename);
+	if (lockfile == NULL) {
+		isc__strerror(errno, strbuf, sizeof(strbuf));
+		ns_main_earlyfatal("couldn't allocate memory for '%s': %s",
+				   filename, strbuf);
+	}
+
+	/*
+	 * ns_os_openfile() uses safeopen() which removes any existing
+	 * files. We can't use that here.
+	 */
+	lockfilefd = open(filename, O_WRONLY | O_CREAT,
+			  S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
+	if (lockfilefd == -1) {
+		cleanup_lockfile();
+		return (ISC_FALSE);
+	}
+
+	memset(&o, 0, sizeof(o));
+	/* Expect ERROR_LOCK_VIOLATION if already locked */
+	if (!LockFileEx((HANDLE) _get_osfhandle(lockfilefd),
+			LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY,
+			0, 0, 1, &o)) {
+		cleanup_lockfile();
+		return (ISC_FALSE);
+	}
+
+	return (ISC_TRUE);
+}
+
 
 void
 ns_os_shutdown(void) {
 	closelog();
 	cleanup_pidfile();
+
+	if (lockfilefd != -1) {
+		(void) UnlockFile((HANDLE) _get_osfhandle(lockfilefd),
+				  0, 0, 0, 1);
+		close(lockfilefd);
+		lockfilefd = -1;
+	}
 	ntservice_shutdown();	/* This MUST be the last thing done */
 }
 

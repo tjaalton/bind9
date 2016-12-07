@@ -1,21 +1,10 @@
 /*
- * Copyright (C) 2004-2008, 2011-2016  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 2001-2003  Internet Software Consortium.
+ * Copyright (C) 2001-2008, 2011-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-
-/* $Id: controlconf.c,v 1.63 2011/12/22 08:07:48 marka Exp $ */
 
 /*! \file */
 
@@ -83,7 +72,7 @@ struct controlconnection {
 	isc_boolean_t			ccmsg_valid;
 	isc_boolean_t			sending;
 	isc_timer_t *			timer;
-	unsigned char			buffer[2048];
+	isc_buffer_t *			buffer;
 	controllistener_t *		listener;
 	isc_uint32_t			nonce;
 	ISC_LINK(controlconnection_t)	link;
@@ -104,6 +93,7 @@ struct controllistener {
 	isc_uint32_t			perm;
 	isc_uint32_t			owner;
 	isc_uint32_t			group;
+	isc_boolean_t			readonly;
 	ISC_LINK(controllistener_t)	link;
 };
 
@@ -166,6 +156,9 @@ static void
 maybe_free_connection(controlconnection_t *conn) {
 	controllistener_t *listener = conn->listener;
 
+	if (conn->buffer != NULL)
+		isc_buffer_free(&conn->buffer);
+
 	if (conn->timer != NULL)
 		isc_timer_detach(&conn->timer);
 
@@ -181,6 +174,11 @@ maybe_free_connection(controlconnection_t *conn) {
 	}
 
 	ISC_LIST_UNLINK(listener->connections, conn, link);
+#ifdef ENABLE_AFL
+	if (ns_g_fuzz_type == ns_fuzz_rndc) {
+		named_fuzz_notify();
+	}
+#endif
 	isc_mem_put(listener->mctx, conn, sizeof(*conn));
 }
 
@@ -326,21 +324,19 @@ control_recvmessage(isc_task_t *task, isc_event_t *event) {
 	controlkey_t *key;
 	isccc_sexpr_t *request = NULL;
 	isccc_sexpr_t *response = NULL;
-	isccc_region_t ccregion;
 	isc_uint32_t algorithm;
 	isccc_region_t secret;
 	isc_stdtime_t now;
 	isc_buffer_t b;
 	isc_region_t r;
-	isc_uint32_t len;
-	isc_buffer_t text;
-	char textarray[2*1024];
+	isc_buffer_t *text;
 	isc_result_t result;
 	isc_result_t eresult;
 	isccc_sexpr_t *_ctrl;
 	isccc_time_t sent;
 	isccc_time_t exp;
 	isc_uint32_t nonce;
+	isccc_sexpr_t *data;
 
 	REQUIRE(event->ev_type == ISCCC_EVENT_CCMSG);
 
@@ -348,6 +344,7 @@ control_recvmessage(isc_task_t *task, isc_event_t *event) {
 	listener = conn->listener;
 	algorithm = DST_ALG_UNKNOWN;
 	secret.rstart = NULL;
+	text = NULL;
 
 	/* Is the server shutting down? */
 	if (listener->controls->shuttingdown)
@@ -366,6 +363,8 @@ control_recvmessage(isc_task_t *task, isc_event_t *event) {
 	     key != NULL;
 	     key = ISC_LIST_NEXT(key, link))
 	{
+		isccc_region_t ccregion;
+
 		ccregion.rstart = isc_buffer_base(&conn->ccmsg.buffer);
 		ccregion.rend = isc_buffer_used(&conn->ccmsg.buffer);
 		secret.rstart = isc_mem_get(listener->mctx, key->secret.length);
@@ -445,7 +444,9 @@ control_recvmessage(isc_task_t *task, isc_event_t *event) {
 		goto cleanup_request;
 	}
 
-	isc_buffer_init(&text, textarray, sizeof(textarray));
+	result = isc_buffer_allocate(listener->mctx, &text, 2 * 2048);
+	if (result != ISC_R_SUCCESS)
+		goto cleanup_request;
 
 	/*
 	 * Establish nonce.
@@ -455,15 +456,19 @@ control_recvmessage(isc_task_t *task, isc_event_t *event) {
 			isc_random_get(&conn->nonce);
 		eresult = ISC_R_SUCCESS;
 	} else
-		eresult = ns_control_docommand(request, &text);
+		eresult = ns_control_docommand(request, listener->readonly, &text);
 
 	result = isccc_cc_createresponse(request, now, now + 60, &response);
 	if (result != ISC_R_SUCCESS)
 		goto cleanup_request;
-	if (eresult != ISC_R_SUCCESS) {
-		isccc_sexpr_t *data;
 
-		data = isccc_alist_lookup(response, "_data");
+	data = isccc_alist_lookup(response, "_data");
+	if (data != NULL) {
+		if (isccc_cc_defineuint32(data, "result", eresult) == NULL)
+			goto cleanup_response;
+	}
+
+	if (eresult != ISC_R_SUCCESS) {
 		if (data != NULL) {
 			const char *estr = isc_result_totext(eresult);
 			if (isccc_cc_definestring(data, "err", estr) == NULL)
@@ -471,12 +476,9 @@ control_recvmessage(isc_task_t *task, isc_event_t *event) {
 		}
 	}
 
-	if (isc_buffer_usedlength(&text) > 0) {
-		isccc_sexpr_t *data;
-
-		data = isccc_alist_lookup(response, "_data");
+	if (isc_buffer_usedlength(text) > 0) {
 		if (data != NULL) {
-			char *str = (char *)isc_buffer_base(&text);
+			char *str = (char *)isc_buffer_base(text);
 			if (isccc_cc_definestring(data, "text", str) == NULL)
 				goto cleanup_response;
 		}
@@ -487,16 +489,26 @@ control_recvmessage(isc_task_t *task, isc_event_t *event) {
 	    isccc_cc_defineuint32(_ctrl, "_nonce", conn->nonce) == NULL)
 		goto cleanup_response;
 
-	ccregion.rstart = conn->buffer + 4;
-	ccregion.rend = conn->buffer + sizeof(conn->buffer);
-	result = isccc_cc_towire(response, &ccregion, algorithm, &secret);
+	if (conn->buffer == NULL) {
+		result = isc_buffer_allocate(listener->mctx,
+					     &conn->buffer, 2 * 2048);
+		if (result != ISC_R_SUCCESS)
+			goto cleanup_response;
+	}
+
+	isc_buffer_clear(conn->buffer);
+	/* Skip the length field (4 bytes) */
+	isc_buffer_add(conn->buffer, 4);
+
+	result = isccc_cc_towire(response, &conn->buffer, algorithm, &secret);
 	if (result != ISC_R_SUCCESS)
 		goto cleanup_response;
-	isc_buffer_init(&b, conn->buffer, 4);
-	len = sizeof(conn->buffer) - REGION_SIZE(ccregion);
-	isc_buffer_putuint32(&b, len - 4);
-	r.base = conn->buffer;
-	r.length = len;
+
+	isc_buffer_init(&b, conn->buffer->base, 4);
+	isc_buffer_putuint32(&b, conn->buffer->used - 4);
+
+	r.base = conn->buffer->base;
+	r.length = conn->buffer->used;
 
 	result = isc_socket_send(conn->sock, &r, task, control_senddone, conn);
 	if (result != ISC_R_SUCCESS)
@@ -506,6 +518,7 @@ control_recvmessage(isc_task_t *task, isc_event_t *event) {
 	isc_mem_put(listener->mctx, secret.rstart, REGION_SIZE(secret));
 	isccc_sexpr_free(&request);
 	isccc_sexpr_free(&response);
+	isc_buffer_free(&text);
 	return;
 
  cleanup_response:
@@ -514,6 +527,8 @@ control_recvmessage(isc_task_t *task, isc_event_t *event) {
  cleanup_request:
 	isccc_sexpr_free(&request);
 	isc_mem_put(listener->mctx, secret.rstart, REGION_SIZE(secret));
+	if (text != NULL)
+		isc_buffer_free(&text);
 
  cleanup:
 	isc_socket_detach(&conn->sock);
@@ -553,6 +568,7 @@ newconnection(controllistener_t *listener, isc_socket_t *sock) {
 
 	conn->ccmsg_valid = ISC_TRUE;
 	conn->sending = ISC_FALSE;
+	conn->buffer = NULL;
 	conn->timer = NULL;
 	isc_interval_set(&interval, 60, 0);
 	result = isc_timer_create(ns_g_timermgr, isc_timertype_once,
@@ -569,16 +585,22 @@ newconnection(controllistener_t *listener, isc_socket_t *sock) {
 					 control_recvmessage, conn);
 	if (result != ISC_R_SUCCESS)
 		goto cleanup;
-	isccc_ccmsg_setmaxsize(&conn->ccmsg, 2048);
 
 	ISC_LIST_APPEND(listener->connections, conn, link);
 	return (ISC_R_SUCCESS);
 
  cleanup:
+	if (conn->buffer != NULL)
+		isc_buffer_free(&conn->buffer);
 	isccc_ccmsg_invalidate(&conn->ccmsg);
 	if (conn->timer != NULL)
 		isc_timer_detach(&conn->timer);
 	isc_mem_put(listener->mctx, conn, sizeof(*conn));
+#ifdef ENABLE_AFL
+	if (ns_g_fuzz_type == ns_fuzz_rndc) {
+		named_fuzz_notify();
+	}
+#endif
 	return (result);
 }
 
@@ -1034,6 +1056,14 @@ update_listener(ns_controls_t *cp, controllistener_t **listenerp,
 		result = dns_acl_any(listener->mctx, &new_acl);
 	}
 
+	if (control != NULL) {
+		const cfg_obj_t *readonly;
+
+		readonly = cfg_tuple_get(control, "read-only");
+		if (!cfg_obj_isvoid(readonly))
+			listener->readonly = cfg_obj_asboolean(readonly);
+	}
+
 	if (result == ISC_R_SUCCESS) {
 		dns_acl_detach(&listener->acl);
 		dns_acl_attach(new_acl, &listener->acl);
@@ -1106,6 +1136,7 @@ add_listener(ns_controls_t *cp, controllistener_t **listenerp,
 		listener->perm = 0;
 		listener->owner = 0;
 		listener->group = 0;
+		listener->readonly = ISC_FALSE;
 		ISC_LINK_INIT(listener, link);
 		ISC_LIST_INIT(listener->keys);
 		ISC_LIST_INIT(listener->connections);
@@ -1121,6 +1152,14 @@ add_listener(ns_controls_t *cp, controllistener_t **listenerp,
 		} else {
 			result = dns_acl_any(mctx, &new_acl);
 		}
+	}
+
+	if ((result == ISC_R_SUCCESS) && (control != NULL)) {
+		const cfg_obj_t *readonly;
+
+		readonly = cfg_tuple_get(control, "read-only");
+		if (!cfg_obj_isvoid(readonly))
+			listener->readonly = cfg_obj_asboolean(readonly);
 	}
 
 	if (result == ISC_R_SUCCESS) {

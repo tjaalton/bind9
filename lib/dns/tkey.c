@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2015  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1999-2001, 2003  Internet Software Consortium.
+ * Copyright (C) 1999-2001, 2003-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /*! \file */
@@ -25,6 +16,8 @@
 #include <isc/print.h>
 #include <isc/string.h>
 #include <isc/util.h>
+
+#include <pk11/site.h>
 
 #include <dns/dnssec.h>
 #include <dns/fixedname.h>
@@ -240,6 +233,7 @@ static isc_result_t
 compute_secret(isc_buffer_t *shared, isc_region_t *queryrandomness,
 	       isc_region_t *serverrandomness, isc_buffer_t *secret)
 {
+#ifndef PK11_MD5_DISABLE
 	isc_md5_t md5ctx;
 	isc_region_t r, r2;
 	unsigned char digests[32];
@@ -284,7 +278,14 @@ compute_secret(isc_buffer_t *shared, isc_region_t *queryrandomness,
 		isc_buffer_add(secret, sizeof(digests));
 	}
 	return (ISC_R_SUCCESS);
+#else
+	UNUSED(shared);
+	UNUSED(queryrandomness);
+	UNUSED(serverrandomness);
+	UNUSED(secret);
 
+	return (ISC_R_NOTIMPLEMENTED);
+#endif
 }
 
 static isc_result_t
@@ -313,12 +314,18 @@ process_dhtkey(dns_message_t *msg, dns_name_t *signer, dns_name_t *name,
 		return (DNS_R_REFUSED);
 	}
 
+#ifndef PK11_MD5_DISABLE
 	if (!dns_name_equal(&tkeyin->algorithm, DNS_TSIG_HMACMD5_NAME)) {
 		tkey_log("process_dhtkey: algorithms other than "
 			 "hmac-md5 are not supported");
 		tkeyout->error = dns_tsigerror_badalg;
 		return (ISC_R_SUCCESS);
 	}
+#else
+	tkey_log("process_dhtkey: MD5 was disabled");
+	tkeyout->error = dns_tsigerror_badalg;
+	return (ISC_R_SUCCESS);
+#endif
 
 	/*
 	 * Look for a DH KEY record that will work with ours.
@@ -345,6 +352,7 @@ process_dhtkey(dns_message_t *msg, dns_name_t *signer, dns_name_t *name,
 				dns_rdata_reset(&keyrdata);
 				continue;
 			}
+#ifndef PK11_DH_DISABLE
 			if (dst_key_alg(pubkey) == DNS_KEYALG_DH) {
 				if (dst_key_paramcompare(pubkey, tctx->dhkey))
 				{
@@ -354,6 +362,7 @@ process_dhtkey(dns_message_t *msg, dns_name_t *signer, dns_name_t *name,
 				} else
 					found_incompatible = ISC_TRUE;
 			}
+#endif
 			dst_key_free(&pubkey);
 			dns_rdata_reset(&keyrdata);
 		}
@@ -453,7 +462,8 @@ process_gsstkey(dns_name_t *name, dns_rdata_tkey_t *tkeyin,
 	isc_result_t result = ISC_R_SUCCESS;
 	dst_key_t *dstkey = NULL;
 	dns_tsigkey_t *tsigkey = NULL;
-	dns_fixedname_t principal;
+	dns_fixedname_t fixed;
+	dns_name_t *principal;
 	isc_stdtime_t now;
 	isc_region_t intoken;
 	isc_buffer_t *outtoken = NULL;
@@ -490,16 +500,15 @@ process_gsstkey(dns_name_t *name, dns_rdata_tkey_t *tkeyin,
 	if (result == ISC_R_SUCCESS)
 		gss_ctx = dst_key_getgssctx(tsigkey->key);
 
-	dns_fixedname_init(&principal);
+	dns_fixedname_init(&fixed);
+	principal = dns_fixedname_name(&fixed);
 
 	/*
 	 * Note that tctx->gsscred may be NULL if tctx->gssapi_keytab is set
 	 */
 	result = dst_gssapi_acceptctx(tctx->gsscred, tctx->gssapi_keytab,
-				      &intoken,
-				      &outtoken, &gss_ctx,
-				      dns_fixedname_name(&principal),
-				      tctx->mctx);
+				      &intoken, &outtoken, &gss_ctx,
+				      principal, tctx->mctx);
 	if (result == DNS_R_INVALIDTKEY) {
 		if (tsigkey != NULL)
 			dns_tsigkey_detach(&tsigkey);
@@ -515,7 +524,10 @@ process_gsstkey(dns_name_t *name, dns_rdata_tkey_t *tkeyin,
 
 	isc_stdtime_get(&now);
 
-	if (tsigkey == NULL) {
+	if (dns_name_countlabels(principal) == 0U) {
+		if (tsigkey != NULL)
+			dns_tsigkey_detach(&tsigkey);
+	} else if (tsigkey == NULL) {
 #ifdef GSSAPI
 		OM_uint32 gret, minor, lifetime;
 #endif
@@ -534,8 +546,7 @@ process_gsstkey(dns_name_t *name, dns_rdata_tkey_t *tkeyin,
 			expire = now + lifetime;
 #endif
 		RETERR(dns_tsigkey_createfromkey(name, &tkeyin->algorithm,
-						 dstkey, ISC_TRUE,
-						 dns_fixedname_name(&principal),
+						 dstkey, ISC_TRUE, principal,
 						 now, expire, ring->mctx, ring,
 						 NULL));
 		dst_key_free(&dstkey);
@@ -1271,7 +1282,7 @@ dns_tkey_processgssresponse(dns_message_t *qmsg, dns_message_t *rmsg,
 	dst_key_t *dstkey = NULL;
 	isc_buffer_t intoken;
 	isc_result_t result;
-	unsigned char array[1024];
+	unsigned char array[TEMP_BUFFER_SZ];
 
 	REQUIRE(outtoken != NULL);
 	REQUIRE(qmsg != NULL);
@@ -1400,11 +1411,11 @@ dns_tkey_gssnegotiate(dns_message_t *qmsg, dns_message_t *rmsg,
 {
 	dns_rdata_t rtkeyrdata = DNS_RDATA_INIT, qtkeyrdata = DNS_RDATA_INIT;
 	dns_name_t *tkeyname;
-	dns_rdata_tkey_t rtkey, qtkey;
+	dns_rdata_tkey_t rtkey, qtkey, tkey;
 	isc_buffer_t intoken, outtoken;
 	dst_key_t *dstkey = NULL;
 	isc_result_t result;
-	unsigned char array[1024];
+	unsigned char array[TEMP_BUFFER_SZ];
 	isc_boolean_t freertkey = ISC_FALSE;
 
 	REQUIRE(qmsg != NULL);
@@ -1446,6 +1457,38 @@ dns_tkey_gssnegotiate(dns_message_t *qmsg, dns_message_t *rmsg,
 				    ring->mctx, err_message);
 	if (result != DNS_R_CONTINUE && result != ISC_R_SUCCESS)
 		return (result);
+
+	if (result == DNS_R_CONTINUE) {
+		dns_fixedname_t fixed;
+
+		dns_fixedname_init(&fixed);
+		dns_name_copy(tkeyname, dns_fixedname_name(&fixed), NULL);
+		tkeyname = dns_fixedname_name(&fixed);
+
+		tkey.common.rdclass = dns_rdataclass_any;
+		tkey.common.rdtype = dns_rdatatype_tkey;
+		ISC_LINK_INIT(&tkey.common, link);
+		tkey.mctx = NULL;
+		dns_name_init(&tkey.algorithm, NULL);
+
+		if (win2k)
+			dns_name_clone(DNS_TSIG_GSSAPIMS_NAME, &tkey.algorithm);
+		else
+			dns_name_clone(DNS_TSIG_GSSAPI_NAME, &tkey.algorithm);
+
+		tkey.inception = qtkey.inception;
+		tkey.expire = qtkey.expire;
+		tkey.mode = DNS_TKEYMODE_GSSAPI;
+		tkey.error = 0;
+		tkey.key = isc_buffer_base(&outtoken);
+		tkey.keylen = isc_buffer_usedlength(&outtoken);
+		tkey.other = NULL;
+		tkey.otherlen = 0;
+
+		dns_message_reset(qmsg, DNS_MESSAGE_INTENTRENDER);
+		RETERR(buildquery(qmsg, tkeyname, &tkey, win2k));
+		return (DNS_R_CONTINUE);
+	}
 
 	RETERR(dst_key_fromgssapi(dns_rootname, *context, rmsg->mctx,
 				  &dstkey, NULL));

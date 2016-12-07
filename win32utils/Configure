@@ -2,17 +2,9 @@
 #
 # Copyright (C) 2013-2016  Internet Systems Consortium, Inc. ("ISC")
 #
-# Permission to use, copy, modify, and/or distribute this software for any
-# purpose with or without fee is hereby granted, provided that the above
-# copyright notice and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-# AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
-# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
-# OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-# PERFORMANCE OF THIS SOFTWARE.
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 # Configure
 #
@@ -80,6 +72,22 @@ my @filelist = ("..\\bin\\check\\win32\\checktool.dsp",
                 "..\\bin\\pkcs11\\win32\\pk11tokens.mak",
                 "..\\bin\\python\\dnssec-checkds.py",
                 "..\\bin\\python\\dnssec-coverage.py",
+                "..\\bin\\python\\dnssec-keymgr.py",
+                "..\\bin\\python\\isc\\__init__.py",
+                "..\\bin\\python\\isc\\checkds.py",
+                "..\\bin\\python\\isc\\coverage.py",
+                "..\\bin\\python\\isc\\dnskey.py",
+                "..\\bin\\python\\isc\\eventlist.py",
+                "..\\bin\\python\\isc\\keydict.py",
+                "..\\bin\\python\\isc\\keyevent.py",
+                "..\\bin\\python\\isc\\keymgr.py",
+                "..\\bin\\python\\isc\\keyseries.py",
+                "..\\bin\\python\\isc\\keyzone.py",
+                "..\\bin\\python\\isc\\policy.py",
+                "..\\bin\\python\\isc\\rndc.py",
+                "..\\bin\\python\\isc\\tests\\dnskey_test.py",
+                "..\\bin\\python\\isc\\tests\\policy_test.py",
+                "..\\bin\\python\\isc\\utils.py",
                 "..\\bin\\rndc\\win32\\rndc.dsp",
                 "..\\bin\\rndc\\win32\\rndc.mak",
                 "..\\bin\\rndc\\win32\\rndcutil.dsp",
@@ -91,6 +99,8 @@ my @filelist = ("..\\bin\\check\\win32\\checktool.dsp",
                 "..\\bin\\tools\\win32\\ischmacfixup.mak",
                 "..\\bin\\tools\\win32\\journalprint.dsp",
                 "..\\bin\\tools\\win32\\journalprint.mak",
+                "..\\bin\\tools\\win32\\mdig.dsp",
+                "..\\bin\\tools\\win32\\mdig.mak",
                 "..\\bin\\tools\\win32\\nsec3hash.dsp",
                 "..\\bin\\tools\\win32\\nsec3hash.mak",
                 "..\\bin\\tools\\win32\\rrchecker.dsp",
@@ -250,6 +260,8 @@ my @projectlist = ("..\\bin\\check\\win32\\checkconf.vcxproj",
                    "..\\bin\\tools\\win32\\ischmacfixup.vcxproj.filters",
                    "..\\bin\\tools\\win32\\journalprint.vcxproj",
                    "..\\bin\\tools\\win32\\journalprint.vcxproj.filters",
+                   "..\\bin\\tools\\win32\\mdig.vcxproj",
+                   "..\\bin\\tools\\win32\\mdig.vcxproj.filters",
                    "..\\bin\\tools\\win32\\nsec3hash.vcxproj",
                    "..\\bin\\tools\\win32\\nsec3hash.vcxproj.filters",
                    "..\\bin\\tools\\win32\\rrchecker.vcxproj",
@@ -344,7 +356,7 @@ my @projectlist = ("..\\bin\\check\\win32\\checkconf.vcxproj",
 
 my %configdefh;
 
-my @substdefh = ("AES_SIT",
+my @substdefh = ("AES_CC",
                  "ALLOW_FILTER_AAAA",
                  "CONFIGARGS",
                  "DNS_RDATASET_FIXED",
@@ -365,9 +377,10 @@ my @substdefh = ("AES_SIT",
                  "HAVE_PKCS11_ECDSA",
                  "HAVE_PKCS11_GOST",
                  "HAVE_READLINE",
+                 "HAVE_ZLIB",
                  "HMAC_RETURN_INT",
-                 "HMAC_SHA1_SIT",
-                 "HMAC_SHA256_SIT",
+                 "HMAC_SHA1_CC",
+                 "HMAC_SHA256_CC",
                  "ISC_LIST_CHECKINIT",
                  "PREFER_GOSTASN1",
                  "TUNE_LARGE",
@@ -378,14 +391,14 @@ my @substdefh = ("AES_SIT",
 
 my %configdefp;
 
-my @substdefp = ("ISC_PLATFORM_HAVEATOMICSTORE",
+my @substdefp = ("ISC_PLATFORM_BUSYWAITNOP",
+                 "ISC_PLATFORM_HAVEATOMICSTORE",
                  "ISC_PLATFORM_HAVEATOMICSTOREQ",
                  "ISC_PLATFORM_HAVECMPXCHG",
                  "ISC_PLATFORM_HAVEXADD",
                  "ISC_PLATFORM_HAVEXADDQ",
                  "ISC_PLATFORM_NEEDSTRCASESTR",
                  "ISC_PLATFORM_USEBACKTRACE",
-                 "ISC_PLATFORM_USESIT",
                  "ISC_PLATFORM_WANTAES");
 
 # includes
@@ -397,7 +410,8 @@ my @substinc = ("GSSAPI_INC",
                 "IDN_INC",
                 "LIBXML2_INC",
                 "OPENSSL_INC",
-                "READLINE_INC");
+                "READLINE_INC",
+                "ZLIB_INC");
 
 # libraries
 
@@ -410,7 +424,8 @@ my @substlib = ("GSSAPI_LIB",
                 "LIBXML2_LIB",
                 "OPENSSL_LIB",
                 "READLINE_LIB",
-                "READLINE_LIBD");
+                "READLINE_LIBD",
+                "ZLIB_LIB");
 
 # DLLs
 
@@ -425,7 +440,8 @@ my @substdll = ("COMERR_DLL",
                 "K5SPRT_DLL",
                 "LIBXML2_DLL",
                 "OPENSSL_DLL",
-                "WSHELP_DLL");
+                "WSHELP_DLL",
+                "ZLIB_DLL");
 
 # variables
 
@@ -439,6 +455,7 @@ my @substvar = ("BIND9_VERSION",
                 "COPTMLD",
                 "COPTX",
                 "COPTY",
+                "expanded_sysconfdir",
                 "INTRINSIC",
                 "MACHINE",
                 "OPENSSL_PATH",
@@ -474,7 +491,8 @@ my @substcond = ("AES",
                  "PYTHON",
                  "SAMPLES",
                  "TESTS",
-                 "XTESTS");
+                 "XTESTS",
+                 "ZLIB");
 
 my @allcond = (@substcond, "NOTYET", "NOLONGER");
 
@@ -491,8 +509,7 @@ my @enablelist = ("developer",
                   "filter-aaaa",
                   "querytrace",
                   "rpz-nsdname",
-                  "rpz-nsip",
-                  "sit");
+                  "rpz-nsip");
 
 # with-xxx/without-xxx
 
@@ -514,7 +531,8 @@ my @withlist = ("aes",
                 "cc-alg",
                 "tests",
                 "tuning",
-                "vcredist");
+                "vcredist",
+                "zlib");
 
 # general arguments
 
@@ -550,7 +568,6 @@ my @help = (
 "  enable-querytrace     enable very verbose query trace [default=no]\n",
 "  enable-rpz-nsip       enable rpz-nsip rules [default=yes]\n",
 "  enable-rpz-nsdname    enable rpz-nsdname rules [default=yes]\n",
-"  enable-sit            enable source identity token [default=yes]\n",
 "\nOptional Packages:\n",
 "  with-tests            build with test suite\n",
 "  with-extra-tests      build with extra test suite\n",
@@ -560,7 +577,7 @@ my @help = (
 "  with-ecdsa            crypto ECDSA\n",
 "  with-gost[=ENC]       crypto GOST yes|no|raw|ans1\n",
 "  with-aes              crypto AES\n",
-"  with-sit-alg          choose the algorithm for SIT aes|sha1|sha256\n",
+"  with-cc-alg           choose the algorithm for cookies aes|sha1|sha256\n",
 "  with-gssapi[=PATH]    build with MIT KfW GSSAPI yes|no|path\n",
 "  with-libxml2[=PATH]   build with libxml2 library yes|no|path\n",
 "  with-geoip[=PATH]     build with GeoIP support yes|no|path\n",
@@ -568,6 +585,7 @@ my @help = (
 "  with-readline[=PATH]  build with readline library support yes|no|path\n",
 "  with-idn[=PATH]       build with IDN kit support yes|no|path\n",
 "  with-iconv[=PATH]     path of the iconv DLL [default=same than idn]\n",
+"  with-zlib[=PATH]      build with zlib library yes|no|path\n",
 "  with-vcredist[=PATH]  visual C++ redistributable package yes|path\n",
 "  with-tuning=OPTION    tune for plaform size (large|default)\n",
 "  with-cross-compile    32 / 64 bit build / host plaforms\n");
@@ -592,7 +610,6 @@ my $enable_developer = "no";
 my $enable_querytrace = "no";
 my $enable_rpz_nsip = "yes";
 my $enable_rpz_nsdname = "yes";
-my $enable_sit = "yes";
 my $use_tests = "no";
 my $use_xtests = "no";
 my $use_samples = "no";
@@ -604,7 +621,7 @@ my $use_ecdsa = "auto";
 my $use_gost = "auto";
 my $gost_encoding = "raw";
 my $use_aes = "auto";
-my $sit_algorithm = "aes";
+my $cookie_algorithm = "aes";
 my $use_gssapi = "no";
 my $gssapi_path = "C:\\Program\ Files\\MIT\\Kerberos\\";
 my $use_geoip = "no";
@@ -618,6 +635,8 @@ my $readline_path = "..\\..\\";
 my $use_idn = "no";
 my $idn_path = "..\\..\\";
 my $iconv_path = " --idn-- ";
+my $use_zlib = "no";
+my $zlib_path = "..\\..\\";
 my $use_vcredist = "yes";
 my $vcredist_path = " --infer-- ";
 my $cross_compile = "no";
@@ -684,11 +703,13 @@ if (($want_win32 eq "yes") && ($want_x64 eq "yes")) {
     $configvar{"BUILD_PLATFORM"} = "Win32";
     $configvar{"MACHINE"} = "/machine:X86";
     $configvar{"BUILD_MACHINE"} = "/machine:X86";
+    $configdefp{"ISC_PLATFORM_BUSYWAITNOP"} = "__asm { rep nop }";
 } elsif ($want_x64 eq "yes") {
     $configvar{"PLATFORM"} = "x64";
     $configvar{"BUILD_PLATFORM"} = "x64";
     $configvar{"MACHINE"} = "/machine:X64";
     $configvar{"BUILD_MACHINE"} = "/machine:X64";
+    $configdefp{"ISC_PLATFORM_BUSYWAITNOP"} = "_mm_pause()";
 }
 
 # get the version information
@@ -799,10 +820,6 @@ sub myenable {
         if ($val =~ /^no$/i) {
             $enable_rpz_nsdname = "no";
         }
-    } elsif ($key =~ /^sit$/i) {
-        if ($val =~ /^no$/i) {
-            $enable_sit = "no";
-        }
     } else {
         $want_unknown = "yes";
         if ($val eq "no") {
@@ -824,7 +841,6 @@ if ($enable_developer eq "yes") {
     # TODO: dlz filesystem
     $use_tests = "yes";
     $use_samples = "yes";
-    $enable_sit = "yes";
 }
 
 # parse with/without
@@ -880,8 +896,8 @@ sub mywith {
         } elsif ($val =~ /^yes$/i) {
             $use_aes = "yes";
         }
-    } elsif ($key =~ /^sit-alg$/i) {
-        $sit_algorithm = $val;
+    } elsif ($key =~ /^cc-alg$/i) {
+        $cookie_algorithm = $val;
     } elsif ($key =~ /^gssapi$/i) {
         if ($val !~ /^no$/i) {
             $use_gssapi = "yes";
@@ -923,6 +939,13 @@ sub mywith {
             $unknown_value = "without-iconv doesn't make sense)";
         } elsif ($val !~ /^yes$/i) {
             $iconv_path = $val;
+        }
+    } elsif ($key =~ /^zlib$/i) {
+        if ($val !~ /^no$/i) {
+            $use_zlib = "yes";
+            if ($val !~ /^yes$/i) {
+                $zlib_path = $val;
+            }
         }
     } elsif ($key =~ /^python$/i) {
         if ($val =~ /^no$/i) {
@@ -1064,12 +1087,7 @@ if ($verbose) {
     } else {
         print "rpz-nsdname: disabled\n";
     }
-    if ($enable_sit eq "yes") {
-        print "sit: enabled\n";
-        print "sit algorithm: $sit_algorithm\n";
-    } else {
-        print "sit: disabled\n";
-    }
+    print "cookie algorithm: $cookie_algorithm\n";
     if ($use_openssl eq "no") {
         print "openssl: disabled\n";
     } else {
@@ -1132,6 +1150,11 @@ if ($verbose) {
         if ($iconv_path ne " --idn-- ") {
             print "iconv-path: $iconv_path\n";
         }
+    }
+    if ($use_zlib eq "no") {
+        print "zlib: disabled\n";
+    } else {
+        print "zlib-path: $zlib_path\n";
     }
     if ($use_python eq "no") {
         print "python: disabled\n";
@@ -1234,7 +1257,7 @@ if (grep { -f and -x } ".\\mscver.exe") {
     die "can't get _MSC_VER value: $compret\n";
 }
 if ($verbose) {
-    print "_MSV_VER == $msc_ver\n";
+    print "_MSC_VER == $msc_ver\n";
 }
 if ($msc_ver < 1600) {
     print STDERR "warning: old version of C++ compiler/Visual Studio\n";
@@ -1427,11 +1450,6 @@ if ($enable_querytrace eq "yes") {
 # enable-rpz-nsdname
 if ($enable_rpz_nsdname ne "no") {
     $configdefh{"ENABLE_RPZ_NSDNAME"} = 1;
-}
-
-# enable-sit
-if ($enable_sit ne "no") {
-    $configdefp{"ISC_PLATFORM_USESIT"} = 1;
 }
 
 # with-tests
@@ -1916,22 +1934,20 @@ if ($use_aes eq "yes") {
     $configcond{"AES"} = 1;
 }
 
-# with-sit-alg
-if ($enable_sit ne "no") {
-    if ($sit_algorithm eq "aes") {
-        if ($use_aes ne "yes") {
-            $sit_algorithm = "sha256";
-        } else {
-            $configdefh{"AES_SIT"} = 1;
-        }
+# with-cc-alg
+if ($cookie_algorithm eq "aes") {
+    if ($use_aes ne "yes") {
+        $cookie_algorithm = "sha256";
+    } else {
+        $configdefh{"AES_CC"} = 1;
     }
-    if ($sit_algorithm eq "sha1") {
-        $configdefh{"HMAC_SHA1_SIT"} = 1;
-    } elsif ($sit_algorithm eq "sha256") {
-        $configdefh{"HMAC_SHA256_SIT"} = 1;
-    } elsif ($sit_algorithm ne "aes") {
-        die "Unrecognized SIT algorithm: $sit_algorithm\n";
-    }
+}
+if ($cookie_algorithm eq "sha1") {
+    $configdefh{"HMAC_SHA1_CC"} = 1;
+} elsif ($cookie_algorithm eq "sha256") {
+    $configdefh{"HMAC_SHA256_CC"} = 1;
+} elsif ($cookie_algorithm ne "aes") {
+    die "Unrecognized cookie algorithm: $cookie_algorithm\n";
 }
 
 # enable-openssl-hash
@@ -2325,6 +2341,34 @@ if ($use_libxml2 eq "yes") {
     $configdll{"LIBXML2_DLL"} = "$libxml2_dll";
 }
 
+# with-zlib
+if ($use_zlib eq "no") {
+    if ($verbose) {
+        print "zlib library is disabled\n";
+    }
+} else {
+    $configcond{"ZLIB"} = 1;
+    $zlib_path = File::Spec->rel2abs($zlib_path);
+    if ($verbose) {
+        print "checking for zlib directory at \"$zlib_path\"\n";
+    }
+    if (!-f File::Spec->catfile($zlib_path, "zlib.h")) {
+        die "can't find zlib.h include\n";
+    }
+    if (!-f File::Spec->catfile($zlib_path, "zdll.lib")) {
+        die "can't find zdll.lib library\n";
+    }
+    if (!-f File::Spec->catfile($zlib_path, "zlib1.dll")) {
+        die "can't find zlib1.dll DLL\n";
+    }
+    $configdefh{"HAVE_ZLIB"} = 1;
+    $configinc{"ZLIB_INC"} = "$zlib_path";
+    my $zlib_lib = File::Spec->catfile($zlib_path, "zdll.lib");
+    $configlib{"ZLIB_LIB"} = "$zlib_lib";
+    my $zlib_dll = File::Spec->catfile($zlib_path, "zlib1.dll");
+    $configdll{"ZLIB_DLL"} = "$zlib_dll";
+}
+
 # with-python
 if ($use_python eq "no") {
     if ($verbose) {
@@ -2336,23 +2380,84 @@ if ($use_python eq "no") {
     }
     my $pythonret = `python -c "quit()" 2>&1`;
     if ($? != 0) {
-        die "can't launch the python interpreter: $pythonret\n";
+        print STDERR "can't launch the python interpreter: $pythonret\n";
+        $use_python = "no";
     }
-    $use_python = "yes";
 }
 if ($use_python ne "no") {
-    if ($verbose) {
+    if ($use_python ne "auto") {
+        if ($verbose) {
+           print "checking for $python_command\n";
+        }
         my $pythonret = `"$python_command" -c "quit()" 2>&1`;
         if ($? != 0) {
-            print STDERR
-                "can't lanch the local python interpreter: $pythonret\n";
+            die "can't launch $python_command: $pythonret\n";
         }
     }
-    $configcond{"PYTHON"} = 1;
-    $configdefd{"USE_PYTHON"} = "USE_PYTHON";
-    $configvar{"PYTHON"} = "$python_command";
-    # Only a default!
-    $configvar{"prefix"} = "C:\\Program Files\ISC BIND 9";
+    if ($verbose) {
+        print "checking for python module 'argparse'\n";
+    }
+    my $pythonret = `"$python_command" -c "import argparse" 2>&1`;
+    if ($? != 0) {
+        if ($use_python ne "auto") {
+            die "can't find python module 'argparse': $pythonret\n";
+        } else {
+            print STDERR "can't find python module 'argparse': $pythonret\n";
+            $use_python = "no";
+        }
+    }
+    if ($use_python ne "no") {
+        if ($verbose) {
+            print "checking for python module 'ply'\n";
+        }
+        $pythonret = `"$python_command" -c "from ply import *" 2>&1`;
+        if ($? != 0) {
+            if ($use_python ne "auto") {
+                die "can't find python module 'ply': $pythonret\n";
+            } else {
+                print STDERR "can't find python module 'ply': $pythonret\n";
+                $use_python = "no";
+            }
+        }
+    }
+    if ($use_python ne "no") {
+        if ($verbose) {
+            print "checking for python module 'win32api'\n";
+        }
+        $pythonret = `"$python_command" -c "import win32api" 2>&1`;
+        if ($? != 0) {
+            if ($use_python ne "auto") {
+                die "can't find python module 'win32api': $pythonret\n";
+            } else {
+                print STDERR
+                    "can't find python module 'win32api': $pythonret\n";
+                $use_python = "no";
+            }
+        }
+    }
+    if ($use_python ne "no") {
+        if ($verbose) {
+            print "checking for python module 'win32con'\n";
+        }
+        $pythonret = `"$python_command" -c "import win32con" 2>&1`;
+        if ($? != 0) {
+            if ($use_python ne "auto") {
+                die "can't find python module 'win32con': $pythonret\n";
+            } else {
+                print STDERR
+                    "can't find python module 'win32con': $pythonret\n";
+                $use_python = "no";
+            }
+        }
+    }
+    if ($use_python ne "no") {
+        $configcond{"PYTHON"} = 1;
+        $configdefd{"USE_PYTHON"} = "USE_PYTHON";
+        $configvar{"PYTHON"} = "$python_command";
+        # Doesn't matter
+        $configvar{"prefix"} = "__prefix__";
+        $configvar{"expanded_sysconfdir"} = "__prefix__\\etc";
+    }
 }
 
 # with-vcredist
@@ -2730,20 +2835,11 @@ sub makeversion {
     # Standard Header
 
     print O '/*
- * Copyright (C) 2001  Internet Software Consortium.
+ * Copyright (C) 2001  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND INTERNET SOFTWARE CONSORTIUM
- * DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL
- * INTERNET SOFTWARE CONSORTIUM BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING
- * FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
- * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
- * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 ';
@@ -2836,20 +2932,11 @@ sub makesrcid {
     # Standard Header
 
     print SOUT '/*
- * Copyright (C) 2012  Internet Software Consortium.
+ * Copyright (C) 2012  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND INTERNET SOFTWARE CONSORTIUM
- * DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL
- * INTERNET SOFTWARE CONSORTIUM BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING
- * FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
- * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
- * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 ';
@@ -2964,9 +3051,10 @@ sub makeinstallfile {
         print LOUT "pkcs11-list.exe-BNFF\n";
         print LOUT "pkcs11-tokens.exe-BNFF\n";
     }
-    if ($use_python eq "yes") {
+    if ($use_python ne "no") {
         print LOUT "dnssec-checkds.py-BNFF\n";
         print LOUT "dnssec-coverage.py-BNFF\n";
+        print LOUT "dnssec-keymgr.py-BNFF\n";
     }
     print LOUT "readme1st.txt-BTFT\n";
     close LOUT;
@@ -3091,25 +3179,29 @@ exit 0;
 #  --disable-rpz-nsip supported
 #  --disable-rpz-nsdname supported
 #  --enable-filter-aaaa supported
-#  --enable-sit supported
 #  --enable-full-report supported by verbose
+#  --enable-dnstap not supported (requires libfstrm support on WIN32)
 #  --enable-seccomp not supported (Linux specific)
+#  --enable-afl not supported (not yet available on Visual Studio C++)
 #  --with-python supported
 #  --with-openssl supported
 #  --with-pkcs11 supported
 #  --with-ecdsa supported
 #  --with-gost supported
 #  --with-aes supported
-#  --with-sit-alg supported
+#  --with-cc-alg supported
 #  --with-geoip supported
 #  --with-gssapi supported with MIT (K)erberos (f)or (W)indows
 #  --with-libxml2 supported
 #  --with-libjson not supported on WIN32 (package not available on WIN32)
+#  --with-zlib supported
 #  --with-purify not supported (package available on WIN32 but for free?)
 #  --with-gperftools-profiler not supported (package not available on WIN32)
 #  --with-libtool not supported on WIN32 (never)
 #  --with-locktype not supported on WIN32 (not yet available on WIN32)
 #  --with-readline supported
+#  --with-protobuf-c not supported (no reason to until libfstrm is ready)
+#  --with-libfrtrm not supported (not yet available on WIN32)
 #  --with-docbook-xsl not supported (?)
 #  --with-idn[lib] supported
 #  --with-[lib]iconv supported (part of IDN)

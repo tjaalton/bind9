@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2008, 2011, 2013, 2014  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1999-2002  Internet Software Consortium.
+ * Copyright (C) 1999-2002, 2004-2008, 2011, 2013-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id: masterdump.h,v 1.47 2011/12/08 23:46:49 tbox Exp $ */
@@ -106,6 +97,11 @@ typedef struct dns_master_style dns_master_style_t;
 /*% Comment out data by prepending with ";" */
 #define	DNS_STYLEFLAG_COMMENTDATA	0x10000000U
 
+/*% Print TTL with human-readable units. */
+#define DNS_STYLEFLAG_TTL_UNITS		0x20000000U
+
+/*% Indent output. */
+#define DNS_STYLEFLAG_INDENT		0x40000000U
 
 ISC_LANG_BEGINDECLS
 
@@ -161,9 +157,23 @@ LIBDNS_EXTERNAL_DATA extern const dns_master_style_t dns_master_style_debug;
 LIBDNS_EXTERNAL_DATA extern const dns_master_style_t dns_master_style_comment;
 
 /*%
+ * Similar to dns_master_style_debug but data is indented with
+ * dns_master_indentstr (defaults to tab).
+ */
+LIBDNS_EXTERNAL_DATA extern const dns_master_style_t dns_master_style_indent;
+
+/*%
  * The style used for dumping "key" zones.
  */
 LIBDNS_EXTERNAL_DATA extern const dns_master_style_t dns_master_style_keyzone;
+
+/*%
+ * The default indent string to prepend lines with when using
+ * styleflag DNS_STYLEFLAG_INDENT.  This is set to "\t" by default.
+ * The indent preceeds everything else on the line, including comment
+ * characters (;).
+ */
+LIBDNS_EXTERNAL_DATA extern const char *dns_master_indentstr;
 
 /***
  ***	Functions
@@ -367,6 +377,9 @@ isc_result_t
 dns_master_dumpnode(isc_mem_t *mctx, dns_db_t *db, dns_dbversion_t *version,
 		    dns_dbnode_t *node, dns_name_t *name,
 		    const dns_master_style_t *style, const char *filename);
+
+unsigned int
+dns_master_styleflags(const dns_master_style_t *style);
 
 isc_result_t
 dns_master_stylecreate(dns_master_style_t **style, unsigned int flags,

@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2009, 2012, 2013, 2015  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 2000-2003  Internet Software Consortium.
+ * Copyright (C) 2000-2009, 2012-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id: lwresd.c,v 1.60 2009/09/02 23:48:01 tbox Exp $ */
@@ -60,11 +51,7 @@
 #define LWRESLISTENER_MAGIC	ISC_MAGIC('L', 'W', 'R', 'L')
 #define VALID_LWRESLISTENER(l)	ISC_MAGIC_VALID(l, LWRESLISTENER_MAGIC)
 
-/*!
- * The total number of clients we can handle will be NTASKS * NRECVS.
- */
-#define NTASKS		2	/*%< tasks to create to handle lwres queries */
-#define NRECVS		2	/*%< max clients per task */
+#define LWRESD_NCLIENTS_MAX		32768	/*%< max clients per task */
 
 typedef ISC_LIST(ns_lwreslistener_t) ns_lwreslistenerlist_t;
 
@@ -395,6 +382,27 @@ ns_lwdmanager_create(isc_mem_t *mctx, const cfg_obj_t *lwres,
 		}
 	}
 
+	obj = NULL;
+	(void)cfg_map_get(lwres, "lwres-tasks", &obj);
+	if (obj != NULL)
+		lwresd->ntasks = cfg_obj_asuint32(obj);
+	else
+		lwresd->ntasks = ns_g_cpus;
+
+	if (lwresd->ntasks == 0)
+		lwresd->ntasks = 1;
+
+	obj = NULL;
+	(void)cfg_map_get(lwres, "lwres-clients", &obj);
+	if (obj != NULL) {
+		lwresd->nclients = cfg_obj_asuint32(obj);
+		if (lwresd->nclients > LWRESD_NCLIENTS_MAX)
+			lwresd->nclients = LWRESD_NCLIENTS_MAX;
+	} else if (ns_g_lwresdonly)
+		lwresd->nclients = 1024;
+	else
+		lwresd->nclients = 256;
+
 	lwresd->magic = LWRESD_MAGIC;
 
 	*lwresdp = lwresd;
@@ -604,18 +612,28 @@ static isc_result_t
 listener_startclients(ns_lwreslistener_t *listener) {
 	ns_lwdclientmgr_t *cm, *next;
 	unsigned int i;
-	isc_result_t result;
+	isc_result_t result = ISC_R_SUCCESS;
+
+	isc_log_write(ns_g_lctx, NS_LOGCATEGORY_GENERAL,
+		      NS_LOGMODULE_LWRESD, ISC_LOG_DEBUG(6),
+		      "listener_startclients: creating %d "
+		      "managers with %d clients each",
+		      listener->manager->ntasks, listener->manager->nclients);
 
 	/*
 	 * Create the client managers.
 	 */
-	result = ISC_R_SUCCESS;
-	for (i = 0; i < NTASKS && result == ISC_R_SUCCESS; i++)
-		result = ns_lwdclientmgr_create(listener, NRECVS,
+	for (i = 0; i < listener->manager->ntasks; i++) {
+		result = ns_lwdclientmgr_create(listener,
+						listener->manager->nclients,
 						ns_g_taskmgr);
+		if (result != ISC_R_SUCCESS)
+			break;
+	}
 
 	/*
-	 * Ensure that we have created at least one.
+	 * If the list is empty return now with the previous
+	 * ns_lwdclientmgr_create() result.
 	 */
 	if (ISC_LIST_EMPTY(listener->cmgrs))
 		return (result);

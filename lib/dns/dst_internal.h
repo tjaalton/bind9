@@ -1,18 +1,9 @@
 /*
- * Portions Copyright (C) 2004-2014  Internet Systems Consortium, Inc. ("ISC")
- * Portions Copyright (C) 2000-2002  Internet Software Consortium.
+ * Portions Copyright (C) 2000-2002, 2004-2014, 2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC AND NETWORK ASSOCIATES DISCLAIMS
- * ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE
- * FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
- * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
- * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR
- * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * Portions Copyright (C) 1995-2000 by Network Associates, Inc.
  *
@@ -48,13 +39,19 @@
 #include <isc/hmacmd5.h>
 #include <isc/hmacsha.h>
 
+#include <pk11/site.h>
+
 #include <dns/time.h>
 
 #include <dst/dst.h>
 
 #ifdef OPENSSL
+#ifndef PK11_DH_DISABLE
 #include <openssl/dh.h>
+#endif
+#ifndef PK11_DSA_DISABLE
 #include <openssl/dsa.h>
+#endif
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/objects.h>
@@ -69,7 +66,7 @@ ISC_LANG_BEGINDECLS
 #define VALID_KEY(x) ISC_MAGIC_VALID(x, KEY_MAGIC)
 #define VALID_CTX(x) ISC_MAGIC_VALID(x, CTX_MAGIC)
 
-extern isc_mem_t *dst__memory_pool;
+LIBDNS_EXTERNAL_DATA extern isc_mem_t *dst__memory_pool;
 
 /***
  *** Types
@@ -77,7 +74,9 @@ extern isc_mem_t *dst__memory_pool;
 
 typedef struct dst_func dst_func_t;
 
+#ifndef PK11_MD5_DISABLE
 typedef struct dst_hmacmd5_key	  dst_hmacmd5_key_t;
+#endif
 typedef struct dst_hmacsha1_key   dst_hmacsha1_key_t;
 typedef struct dst_hmacsha224_key dst_hmacsha224_key_t;
 typedef struct dst_hmacsha256_key dst_hmacsha256_key_t;
@@ -115,13 +114,19 @@ struct dst_key {
 #if !defined(USE_EVP) || !USE_EVP
 		RSA *rsa;
 #endif
+#ifndef PK11_DSA_DISABLE
 		DSA *dsa;
+#endif
+#ifndef PK11_DH_DISABLE
 		DH *dh;
+#endif
 		EVP_PKEY *pkey;
 #elif PKCS11CRYPTO
 		pk11_object_t *pkey;
 #endif
+#ifndef PK11_MD5_DISABLE
 		dst_hmacmd5_key_t *hmacmd5;
+#endif
 		dst_hmacsha1_key_t *hmacsha1;
 		dst_hmacsha224_key_t *hmacsha224;
 		dst_hmacsha256_key_t *hmacsha256;
@@ -154,11 +159,15 @@ struct dst_context {
 	union {
 		void *generic;
 		dst_gssapi_signverifyctx_t *gssctx;
+#ifndef PK11_MD5_DISABLE
 		isc_md5_t *md5ctx;
+#endif
 		isc_sha1_t *sha1ctx;
 		isc_sha256_t *sha256ctx;
 		isc_sha512_t *sha512ctx;
+#ifndef PK11_MD5_DISABLE
 		isc_hmacmd5_t *hmacmd5ctx;
+#endif
 		isc_hmacsha1_t *hmacsha1ctx;
 		isc_hmacsha224_t *hmacsha224ctx;
 		isc_hmacsha256_t *hmacsha256ctx;
@@ -224,7 +233,9 @@ struct dst_func {
 isc_result_t dst__openssl_init(const char *engine);
 #define dst__pkcs11_init pk11_initialize
 
+#ifndef PK11_MD5_DISABLE
 isc_result_t dst__hmacmd5_init(struct dst_func **funcp);
+#endif
 isc_result_t dst__hmacsha1_init(struct dst_func **funcp);
 isc_result_t dst__hmacsha224_init(struct dst_func **funcp);
 isc_result_t dst__hmacsha256_init(struct dst_func **funcp);
@@ -233,10 +244,14 @@ isc_result_t dst__hmacsha512_init(struct dst_func **funcp);
 isc_result_t dst__opensslrsa_init(struct dst_func **funcp,
 				  unsigned char algorithm);
 isc_result_t dst__pkcs11rsa_init(struct dst_func **funcp);
+#ifndef PK11_DSA_DISABLE
 isc_result_t dst__openssldsa_init(struct dst_func **funcp);
 isc_result_t dst__pkcs11dsa_init(struct dst_func **funcp);
+#endif
+#ifndef PK11_DH_DISABLE
 isc_result_t dst__openssldh_init(struct dst_func **funcp);
 isc_result_t dst__pkcs11dh_init(struct dst_func **funcp);
+#endif
 isc_result_t dst__gssapi_init(struct dst_func **funcp);
 #ifdef HAVE_OPENSSL_ECDSA
 isc_result_t dst__opensslecdsa_init(struct dst_func **funcp);

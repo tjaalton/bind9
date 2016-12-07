@@ -1,23 +1,10 @@
 /*
- * Copyright (C) 2004-2015  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1999-2003  Internet Software Consortium.
+ * Copyright (C) 1999-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-
-/* $Id$ */
-
-/*% */
 
 #include <config.h>
 
@@ -31,9 +18,11 @@
 
 #include <dns/acl.h>
 #include <dns/db.h>
+#include <dns/ipkeylist.h>
 #include <dns/fixedname.h>
 #include <dns/log.h>
 #include <dns/name.h>
+#include <dns/masterdump.h>
 #include <dns/rdata.h>
 #include <dns/rdatatype.h>
 #include <dns/rdataset.h>
@@ -808,9 +797,6 @@ ns_zone_configure(const cfg_obj_t *config, const cfg_obj_t *vconfig,
 	const char *filename = NULL;
 	const char *dupcheck;
 	dns_notifytype_t notifytype = dns_notifytype_yes;
-	isc_sockaddr_t *addrs;
-	isc_dscp_t *dscps;
-	dns_name_t **keynames;
 	isc_uint32_t count;
 	unsigned int dbargc;
 	char **dbargv;
@@ -829,6 +815,7 @@ ns_zone_configure(const cfg_obj_t *config, const cfg_obj_t *vconfig,
 	isc_boolean_t warn = ISC_FALSE, ignore = ISC_FALSE;
 	isc_boolean_t ixfrdiff;
 	dns_masterformat_t masterformat;
+	const dns_master_style_t *masterstyle = &dns_master_style_default;
 	isc_stats_t *zoneqrystats;
 	dns_stats_t *rcvquerystats;
 	dns_zonestat_level_t statlevel;
@@ -951,7 +938,7 @@ ns_zone_configure(const cfg_obj_t *config, const cfg_obj_t *vconfig,
 	else
 		masterformat = dns_masterformat_text;
 	obj = NULL;
-	result= ns_config_get(maps, "masterfile-format", &obj);
+	result = ns_config_get(maps, "masterfile-format", &obj);
 	if (result == ISC_R_SUCCESS) {
 		const char *masterformatstr = cfg_obj_asstring(obj);
 
@@ -961,6 +948,27 @@ ns_zone_configure(const cfg_obj_t *config, const cfg_obj_t *vconfig,
 			masterformat = dns_masterformat_raw;
 		else if (strcasecmp(masterformatstr, "map") == 0)
 			masterformat = dns_masterformat_map;
+		else
+			INSIST(0);
+	}
+
+	obj = NULL;
+	result = ns_config_get(maps, "masterfile-style", &obj);
+	if (result == ISC_R_SUCCESS) {
+		const char *masterstylestr = cfg_obj_asstring(obj);
+
+		if (masterformat != dns_masterformat_text) {
+			cfg_obj_log(obj, ns_g_lctx, ISC_LOG_ERROR,
+				    "zone '%s': 'masterfile-style' "
+				    "can only be used with "
+				    "'masterfile-format text'", zname);
+			return (ISC_R_FAILURE);
+		}
+
+		if (strcasecmp(masterstylestr, "full") == 0)
+			masterstyle = &dns_master_style_full;
+		else if (strcasecmp(masterstylestr, "relative") == 0)
+			masterstyle = &dns_master_style_default;
 		else
 			INSIST(0);
 	}
@@ -988,19 +996,21 @@ ns_zone_configure(const cfg_obj_t *config, const cfg_obj_t *vconfig,
 		size_t signedlen = strlen(filename) + sizeof(SIGNED);
 		char *signedname;
 
-		RETERR(dns_zone_setfile2(raw, filename, masterformat));
+		RETERR(dns_zone_setfile3(raw, filename,
+					 masterformat, masterstyle));
 		signedname = isc_mem_get(mctx, signedlen);
 		if (signedname == NULL)
 			return (ISC_R_NOMEMORY);
 
 		(void)snprintf(signedname, signedlen, "%s" SIGNED, filename);
-		result = dns_zone_setfile2(zone, signedname,
-					   dns_masterformat_raw);
+		result = dns_zone_setfile3(zone, signedname,
+					   dns_masterformat_raw, NULL);
 		isc_mem_put(mctx, signedname, signedlen);
 		if (result != ISC_R_SUCCESS)
 			return (result);
 	} else
-		RETERR(dns_zone_setfile2(zone, filename, masterformat));
+		RETERR(dns_zone_setfile3(zone, filename,
+					 masterformat, masterstyle));
 
 	obj = NULL;
 	result = cfg_map_get(zoptions, "journal", &obj);
@@ -1128,23 +1138,17 @@ ns_zone_configure(const cfg_obj_t *config, const cfg_obj_t *vconfig,
 		     (notifytype == dns_notifytype_masteronly &&
 		      ztype == dns_zone_master)))
 		{
-			isc_uint32_t addrcount;
-			addrs = NULL;
-			keynames = NULL;
-			dscps = NULL;
+			dns_ipkeylist_t ipkl;
+			dns_ipkeylist_init(&ipkl);
+
 			RETERR(ns_config_getipandkeylist(config, obj, mctx,
-							 &addrs, &dscps,
-							 &keynames,
-							 &addrcount));
-			result = dns_zone_setalsonotifydscpkeys(zone, addrs,
-								dscps, keynames,
-								addrcount);
-			if (addrcount != 0)
-				ns_config_putipandkeylist(mctx, &addrs, &dscps,
-							  &keynames, addrcount);
-			else
-				INSIST(addrs == NULL && dscps == NULL &&
-				       keynames == NULL);
+							 &ipkl));
+			result = dns_zone_setalsonotifydscpkeys(zone,
+								ipkl.addrs,
+								ipkl.dscps,
+								ipkl.keys,
+								ipkl.count);
+			dns_ipkeylist_clear(mctx, &ipkl);
 			RETERR(result);
 		} else
 			RETERR(dns_zone_setalsonotify(zone, NULL, 0));
@@ -1241,6 +1245,11 @@ ns_zone_configure(const cfg_obj_t *config, const cfg_obj_t *vconfig,
 		} else
 			dns_zone_setoption(zone, DNS_ZONEOPT_IXFRFROMDIFFS,
 					   ixfrdiff);
+
+		obj = NULL;
+		result = ns_config_get(maps, "request-expire", &obj);
+		INSIST(result == ISC_R_SUCCESS);
+		dns_zone_setrequestexpire(zone, cfg_obj_asboolean(obj));
 
 		obj = NULL;
 		result = ns_config_get(maps, "request-ixfr", &obj);
@@ -1583,6 +1592,9 @@ ns_zone_configure(const cfg_obj_t *config, const cfg_obj_t *vconfig,
 		if (strcasecmp(cfg_obj_asstring(obj), "unixtime") == 0)
 			dns_zone_setserialupdatemethod(zone,
 						    dns_updatemethod_unixtime);
+		else if (strcasecmp(cfg_obj_asstring(obj), "date") == 0)
+			dns_zone_setserialupdatemethod(zone,
+						       dns_updatemethod_date);
 		else
 			dns_zone_setserialupdatemethod(zone,
 						  dns_updatemethod_increment);
@@ -1599,19 +1611,17 @@ ns_zone_configure(const cfg_obj_t *config, const cfg_obj_t *vconfig,
 		obj = NULL;
 		(void)cfg_map_get(zoptions, "masters", &obj);
 		if (obj != NULL) {
-			addrs = NULL;
-			dscps = NULL;
-			keynames = NULL;
+			dns_ipkeylist_t ipkl;
+			dns_ipkeylist_init(&ipkl);
+
 			RETERR(ns_config_getipandkeylist(config, obj, mctx,
-							 &addrs, &dscps,
-							 &keynames, &count));
-			result = dns_zone_setmasterswithkeys(mayberaw, addrs,
-							     keynames, count);
-			if (count != 0)
-				ns_config_putipandkeylist(mctx, &addrs, &dscps,
-							  &keynames, count);
-			else
-				INSIST(addrs == NULL && keynames == NULL);
+							 &ipkl));
+			result = dns_zone_setmasterswithkeys(mayberaw,
+							     ipkl.addrs,
+							     ipkl.keys,
+							     ipkl.count);
+			dns_ipkeylist_clear(mctx, &ipkl);
+			RETERR(result);
 		} else
 			result = dns_zone_setmasters(mayberaw, NULL, 0);
 		RETERR(result);

@@ -333,7 +333,7 @@ dlz_findzonedb(void *dbdata, const char *name,
 		fmt_address(src, addrbuf, sizeof(addrbuf));
 	}
 	state->log(ISC_LOG_INFO,
-		   "dlz_example: findzonedb connection from: %s\n", addrbuf);
+		   "dlz_example: findzonedb connection from: %s", addrbuf);
 
 	state->log(ISC_LOG_INFO,
 		   "dlz_example: dlz_findzonedb called with name '%s' "
@@ -385,6 +385,7 @@ dlz_lookup(const char *zone, const char *name, void *dbdata,
 	isc_result_t result;
 	struct dlz_example_data *state = (struct dlz_example_data *)dbdata;
 	isc_boolean_t found = ISC_FALSE;
+	void *dbversion = NULL;
 	isc_sockaddr_t *src;
 	char full_name[256];
 	char buf[512];
@@ -401,6 +402,30 @@ dlz_lookup(const char *zone, const char *name, void *dbdata,
 	} else
 		snprintf(full_name, 255, "%s.%s", name, state->zone_name);
 
+	/*
+	 * If we need to know the database version (as set in
+	 * the 'newversion' dlz function) we can pick it up from the
+	 * clientinfo.
+	 *
+	 * This allows a lookup to query the correct version of the DNS
+	 * data, if the DLZ can differentiate between versions.
+	 *
+	 * For example, if a new database transaction is created by
+	 * 'newversion', the lookup should query within the same
+	 * transaction scope if it can.
+	 *
+	 * If the DLZ only operates on 'live' data, then version
+	 * wouldn't necessarily be needed.
+	 */
+	if (clientinfo != NULL &&
+	    clientinfo->version >= DNS_CLIENTINFO_VERSION) {
+		dbversion = clientinfo->dbversion;
+		if (dbversion != NULL && *(isc_boolean_t *)dbversion)
+			state->log(ISC_LOG_INFO,
+				   "dlz_example: lookup against live "
+				   "transaction\n");
+	}
+
 	if (strcmp(name, "source-addr") == 0) {
 		strcpy(buf, "unknown");
 		if (methods != NULL &&
@@ -414,7 +439,7 @@ dlz_lookup(const char *zone, const char *name, void *dbdata,
 		}
 
 		state->log(ISC_LOG_INFO,
-			   "dlz_example: lookup connection from: %s\n", buf);
+			   "dlz_example: lookup connection from: %s", buf);
 
 		found = ISC_TRUE;
 		result = state->putrr(lookup, "TXT", 0, buf);

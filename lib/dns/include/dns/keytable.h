@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004, 2005, 2007, 2009, 2010  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 2000, 2001  Internet Software Consortium.
+ * Copyright (C) 2000, 2001, 2004, 2005, 2007, 2009, 2010, 2014-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id: keytable.h,v 1.23 2010/06/25 03:24:05 marka Exp $ */
@@ -52,33 +43,6 @@
 #include <dst/dst.h>
 
 ISC_LANG_BEGINDECLS
-
-struct dns_keytable {
-	/* Unlocked. */
-	unsigned int		magic;
-	isc_mem_t		*mctx;
-	isc_mutex_t		lock;
-	isc_rwlock_t		rwlock;
-	/* Locked by lock. */
-	isc_uint32_t		active_nodes;
-	/* Locked by rwlock. */
-	isc_uint32_t		references;
-	dns_rbt_t		*table;
-};
-
-#define KEYTABLE_MAGIC			ISC_MAGIC('K', 'T', 'b', 'l')
-#define VALID_KEYTABLE(kt)	 	ISC_MAGIC_VALID(kt, KEYTABLE_MAGIC)
-
-struct dns_keynode {
-	unsigned int		magic;
-	isc_refcount_t		refcount;
-	dst_key_t *		key;
-	isc_boolean_t           managed;
-	struct dns_keynode *	next;
-};
-
-#define KEYNODE_MAGIC			ISC_MAGIC('K', 'N', 'o', 'd')
-#define VALID_KEYNODE(kn)	 	ISC_MAGIC_VALID(kn, KEYNODE_MAGIC)
 
 isc_result_t
 dns_keytable_create(isc_mem_t *mctx, dns_keytable_t **keytablep);
@@ -386,7 +350,7 @@ dns_keytable_detachkeynode(dns_keytable_t *keytable,
 
 isc_result_t
 dns_keytable_issecuredomain(dns_keytable_t *keytable, dns_name_t *name,
-			    isc_boolean_t *wantdnssecp);
+			    dns_name_t *foundname, isc_boolean_t *wantdnssecp);
 /*%<
  * Is 'name' at or beneath a trusted key?
  *
@@ -396,12 +360,16 @@ dns_keytable_issecuredomain(dns_keytable_t *keytable, dns_name_t *name,
  *
  *\li	'name' is a valid absolute name.
  *
- *\li	'*wantsdnssecp' is a valid isc_boolean_t.
+ *\li	'foundanme' is NULL or is a pointer to an initialized dns_name_t
  *
+ *\li	'*wantsdnssecp' is a valid isc_boolean_t.
+
  * Ensures:
  *
  *\li	On success, *wantsdnssecp will be ISC_TRUE if and only if 'name'
- *	is at or beneath a trusted key.
+ *	is at or beneath a trusted key.  If 'foundname' is not NULL, then
+ *	it will be updated to contain the name of the closest enclosing
+ *	trust anchor.
  *
  * Returns:
  *
@@ -414,6 +382,12 @@ isc_result_t
 dns_keytable_dump(dns_keytable_t *keytable, FILE *fp);
 /*%<
  * Dump the keytable on fp.
+ */
+
+isc_result_t
+dns_keytable_totext(dns_keytable_t *keytable, isc_buffer_t **buf);
+/*%<
+ * Dump the keytable to buffer at 'buf'
  */
 
 dst_key_t *
@@ -452,6 +426,11 @@ dns_keynode_detachall(isc_mem_t *mctx, dns_keynode_t **target);
 /*%<
  * Detach a keynode and all its succesors.
  */
+
+isc_result_t
+dns_keytable_forall(dns_keytable_t *keytable,
+		    void (*func)(dns_keytable_t *, dns_keynode_t *, void *),
+		    void *arg);
 ISC_LANG_ENDDECLS
 
 #endif /* DNS_KEYTABLE_H */

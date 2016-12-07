@@ -1,20 +1,12 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <!--
- - Copyright (C) 2004-2011, 2013-2016 Internet Systems Consortium, Inc. ("ISC")
- - Copyright (C) 2000-2003 Internet Software Consortium.
+ - Copyright (C) 2000-2011, 2013-2016 Internet Systems Consortium, Inc. ("ISC")
  - 
- - Permission to use, copy, modify, and/or distribute this software for any
- - purpose with or without fee is hereby granted, provided that the above
- - copyright notice and this permission notice appear in all copies.
- - 
- - THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- - REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- - AND FITNESS. IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- - INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- - LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- - OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- - PERFORMANCE OF THIS SOFTWARE.
+ - This Source Code Form is subject to the terms of the Mozilla Public
+ - License, v. 2.0. If a copy of the MPL was not distributed with this
+ - file, You can obtain one at http://mozilla.org/MPL/2.0/.
 -->
-<html>
+<html lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
 <title>dig</title>
@@ -191,7 +183,7 @@
 <dt><span class="term">-p <em class="replaceable"><code>port</code></em></span></dt>
 <dd><p>
 	    Send the query to a non-standard port on the server,
-	    instead of the defaut port 53. This option would be used
+	    instead of the default port 53. This option would be used
 	    to test a name server that has been configured to listen
 	    for queries on a non-standard port number.
 	  </p></dd>
@@ -246,7 +238,8 @@
 	    <code class="literal">hmac-sha1</code>, <code class="literal">hmac-sha224</code>,
 	    <code class="literal">hmac-sha256</code>, <code class="literal">hmac-sha384</code>, or
 	    <code class="literal">hmac-sha512</code>.  If <em class="parameter"><code>hmac</code></em>
-	    is not specified, the default is <code class="literal">hmac-md5</code>.
+	    is not specified, the default is <code class="literal">hmac-md5</code>
+	    or if MD5 was disabled <code class="literal">hmac-sha256</code>.
 	  </p>
 <p>
 	    NOTE: You should use the <code class="option">-k</code> option and
@@ -323,6 +316,11 @@
 	      Display [do not display] the authority section of a
 	      reply.  The default is to display it.
 	    </p></dd>
+<dt><span class="term"><code class="option">+[no]badcookie</code></span></dt>
+<dd><p>
+	      Retry lookup with the new server cookie if a
+	      BADCOOKIE response is received.
+	    </p></dd>
 <dt><span class="term"><code class="option">+[no]besteffort</code></span></dt>
 <dd><p>
 	      Attempt to display the contents of messages which are
@@ -361,6 +359,20 @@
 	      Toggle the display of comment lines in the output.
 	      The default is to print comments.
 	    </p></dd>
+<dt><span class="term"><code class="option">+[no]cookie[<span class="optional">=####</span>]</code></span></dt>
+<dd>
+<p>
+	      Send a COOKIE EDNS option, with optional
+	      value.  Replaying a COOKIE from a previous response will
+	      allow the server to identify a previous client.  The
+	      default is <code class="option">+cookie</code>.
+	    </p>
+<p>
+	      <span class="command"><strong>+cookie</strong></span> is also set when +trace
+	      is set to better emulate the default queries from a
+	      nameserver.
+	    </p>
+</dd>
 <dt><span class="term"><code class="option">+[no]crypto</code></span></dt>
 <dd><p>
 	      Toggle the display of cryptographic fields in DNSSEC
@@ -392,6 +404,12 @@
 	      search list processing as if the
 	      <em class="parameter"><code>+search</code></em> option were given.
 	    </p></dd>
+<dt><span class="term"><code class="option">+dscp=value</code></span></dt>
+<dd><p>
+	      Set the DSCP code point to be used when sending the
+	      query.  Valid DSCP code points are in the range
+	      [0..63].  By default no code point is explicitly set.
+	    </p></dd>
 <dt><span class="term"><code class="option">+[no]edns[=#]</code></span></dt>
 <dd><p>
 	       Specify the EDNS version to query with.  Valid values
@@ -417,7 +435,7 @@
 	      Specify EDNS option with code point <code class="option">code</code>
 	      and optionally payload of <code class="option">value</code> as a
 	      hexadecimal string.  <code class="option">+noednsopt</code>
-	      clears the EDNS options to to be sent.
+	      clears the EDNS options to be sent.
 	    </p></dd>
 <dt><span class="term"><code class="option">+[no]expire</code></span></dt>
 <dd><p>
@@ -428,6 +446,12 @@
 	      Do not try the next server if you receive a SERVFAIL.
 	      The default is to not try the next server which is
 	      the reverse of normal stub resolver behavior.
+	    </p></dd>
+<dt><span class="term"><code class="option">+[no]header-only</code></span></dt>
+<dd><p>
+	      Send a query with a DNS header without a question section.
+	      The default is to add a question section.  The query type
+	      and query name are ignored when this is set.
 	    </p></dd>
 <dt><span class="term"><code class="option">+[no]identify</code></span></dt>
 <dd><p>
@@ -448,6 +472,11 @@
 	      Keep the TCP socket open between queries and reuse
 	      it rather than creating a new TCP socket for each
 	      lookup.  The default is <code class="option">+nokeepopen</code>.
+	    </p></dd>
+<dt><span class="term"><code class="option">+[no]mapped</code></span></dt>
+<dd><p>
+	      Allow mapped IPv4 over IPv6 addresses to be used.  The
+	      default is <code class="option">+mapped</code>.
 	    </p></dd>
 <dt><span class="term"><code class="option">+[no]multiline</code></span></dt>
 <dd><p>
@@ -564,14 +593,6 @@
 	      Chase DNSSEC signature chains.  Requires dig be
 	      compiled with -DDIG_SIGCHASE.
 	    </p></dd>
-<dt><span class="term"><code class="option">+[no]sit[<span class="optional">=####</span>]</code></span></dt>
-<dd><p>
-	      Send a Source Identity Token EDNS option, with optional
-	      value.  Replaying a SIT from a previous response will
-	      allow the server to identify a previous client.  The
-	      default is <code class="option">+nosit</code>.  Currently using
-	      experimental value 65001 for the option code.
-	    </p></dd>
 <dt><span class="term"><code class="option">+split=W</code></span></dt>
 <dd><p>
 	      Split long hex- or base64-formatted fields in resource
@@ -599,7 +620,7 @@
 <p>
               <span class="command"><strong>dig +subnet=0.0.0.0/0</strong></span>, or simply
               <span class="command"><strong>dig +subnet=0</strong></span> for short, sends an EDNS
-              client-subnet option with an empty address and a source
+              CLIENT-SUBNET option with an empty address and a source
               prefix-length of zero, which signals a resolver that
               the client's address information must
               <span class="emphasis"><em>not</em></span> be used when resolving
@@ -614,7 +635,7 @@
 	      case the default is TCP.  AXFR queries always use
 	      TCP.
 	    </p></dd>
-<dt><span class="term"><code class="option">+time=T</code></span></dt>
+<dt><span class="term"><code class="option">+timeout=T</code></span></dt>
 <dd><p>
 
 	      Sets the timeout for a query to
@@ -680,12 +701,29 @@
 	      Display [do not display] the TTL when printing the
 	      record.
 	    </p></dd>
+<dt><span class="term"><code class="option">+[no]ttlunits</code></span></dt>
+<dd><p>
+	      Display [do not display] the TTL in friendly human-readable
+	      time units of "s", "m", "h", "d", and "w", representing
+	      seconds, minutes, hours, days and weeks.  Implies +ttlid.
+	    </p></dd>
+<dt><span class="term"><code class="option">+[no]unknownformat</code></span></dt>
+<dd><p>
+	      Print all RDATA in unknown RR type presentation format
+	      (RFC 3597). The default is to print RDATA for known types
+	      in the type's presentation format.
+	    </p></dd>
 <dt><span class="term"><code class="option">+[no]vc</code></span></dt>
 <dd><p>
 	      Use [do not use] TCP when querying name servers.  This
 	      alternate syntax to <em class="parameter"><code>+[no]tcp</code></em>
 	      is provided for backwards compatibility.  The "vc"
 	      stands for "virtual circuit".
+	    </p></dd>
+<dt><span class="term"><code class="option">+[no]zflag</code></span></dt>
+<dd><p>
+	      Set [do not set] the last unassigned DNS header flag in a
+	      DNS query.  This flag is off by default.
 	    </p></dd>
 </dl></div>
 <p>

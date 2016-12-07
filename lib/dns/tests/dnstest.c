@@ -1,36 +1,30 @@
 /*
- * Copyright (C) 2011-2015  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2011-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-
-/* $Id$ */
 
 /*! \file */
 
 #include <config.h>
 
+#include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
 
 #include <isc/app.h>
 #include <isc/buffer.h>
 #include <isc/entropy.h>
+#include <isc/file.h>
 #include <isc/hash.h>
 #include <isc/mem.h>
 #include <isc/os.h>
+#include <isc/print.h>
 #include <isc/string.h>
 #include <isc/socket.h>
+#include <isc/stdio.h>
 #include <isc/task.h>
 #include <isc/timer.h>
 #include <isc/util.h>
@@ -42,8 +36,6 @@
 #include <dns/result.h>
 #include <dns/view.h>
 #include <dns/zone.h>
-
-#include <dst/dst.h>
 
 #include "dnstest.h"
 
@@ -170,8 +162,6 @@ dns_test_begin(FILE *logfile, isc_boolean_t start_managers) {
 
 void
 dns_test_end(void) {
-	if (lctx != NULL)
-		isc_log_destroy(&lctx);
 	if (dst_active) {
 		dst_lib_destroy();
 		dst_active = ISC_FALSE;
@@ -185,8 +175,30 @@ dns_test_end(void) {
 
 	cleanup_managers();
 
+	if (lctx != NULL)
+		isc_log_destroy(&lctx);
+
 	if (mctx != NULL)
 		isc_mem_destroy(&mctx);
+}
+
+/*
+ * Create a view.
+ */
+isc_result_t
+dns_test_makeview(const char *name, dns_view_t **viewp) {
+	isc_result_t result;
+	dns_view_t *view = NULL;
+
+	CHECK(dns_view_create(mctx, dns_rdataclass_in, name, &view));
+	*viewp = view;
+
+	return (ISC_R_SUCCESS);
+
+ cleanup:
+	if (view != NULL)
+		dns_view_detach(&view);
+	return (result);
 }
 
 /*
@@ -324,5 +336,75 @@ dns_test_loaddb(dns_db_t **db, dns_dbtype_t dbtype, const char *origin,
 		return (result);
 
 	result = dns_db_load(*db, testfile);
+	return (result);
+}
+
+static int
+fromhex(char c) {
+	if (c >= '0' && c <= '9')
+		return (c - '0');
+	else if (c >= 'a' && c <= 'f')
+		return (c - 'a' + 10);
+	else if (c >= 'A' && c <= 'F')
+		return (c - 'A' + 10);
+
+	printf("bad input format: %02x\n", c);
+	exit(3);
+	/* NOTREACHED */
+}
+
+isc_result_t
+dns_test_getdata(const char *file, unsigned char *buf,
+		 size_t bufsiz, size_t *sizep)
+{
+	isc_result_t result;
+	unsigned char *bp;
+	char *rp, *wp;
+	char s[BUFSIZ];
+	size_t len, i;
+	FILE *f = NULL;
+	int n;
+
+	result = isc_stdio_open(file, "r", &f);
+	if (result != ISC_R_SUCCESS)
+		return (result);
+
+	bp = buf;
+	while (fgets(s, sizeof(s), f) != NULL) {
+		rp = s;
+		wp = s;
+		len = 0;
+		while (*rp != '\0') {
+			if (*rp == '#')
+				break;
+			if (*rp != ' ' && *rp != '\t' &&
+			    *rp != '\r' && *rp != '\n') {
+				*wp++ = *rp;
+				len++;
+			}
+			rp++;
+		}
+		if (len == 0U)
+			continue;
+		if (len % 2 != 0U)
+			CHECK(ISC_R_UNEXPECTEDEND);
+		if (len > bufsiz * 2)
+			CHECK(ISC_R_NOSPACE);
+		rp = s;
+		for (i = 0; i < len; i += 2) {
+			n = fromhex(*rp++);
+			n *= 16;
+			n += fromhex(*rp++);
+			*bp++ = n;
+		}
+	}
+
+
+	*sizep = bp - buf;
+
+	result = ISC_R_SUCCESS;
+
+ cleanup:
+	isc_stdio_close(f);
 	return (result);
 }

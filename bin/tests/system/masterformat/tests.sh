@@ -1,20 +1,10 @@
 #!/bin/sh
 #
-# Copyright (C) 2005, 2007, 2011-2014  Internet Systems Consortium, Inc. ("ISC")
+# Copyright (C) 2005, 2007, 2011-2014, 2016  Internet Systems Consortium, Inc. ("ISC")
 #
-# Permission to use, copy, modify, and/or distribute this software for any
-# purpose with or without fee is hereby granted, provided that the above
-# copyright notice and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-# AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
-# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
-# OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-# PERFORMANCE OF THIS SOFTWARE.
-
-# $Id$
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 SYSTEMTESTTOP=..
 . $SYSTEMTESTTOP/conf.sh
@@ -33,6 +23,15 @@ israw () {
              ($style, $version) = unpack("NN", $input);
              exit 1 if ($style != 2 || $version > 1);' < $1
     return $?
+}
+
+isfull () {
+    # there should be no whitespace at the beginning of a line
+    if grep '^[ 	][ 	]*' $1 > /dev/null 2>&1; then
+	return 1
+    else
+	return 0
+    fi
 }
 
 rawversion () {
@@ -133,6 +132,13 @@ status=`expr $status + $ret`
 echo "I:checking that slave was saved in text format when configured"
 ret=0
 israw ns2/transfer.db.txt && ret=1
+isfull ns2/transfer.db.txt && ret=1
+[ $ret -eq 0 ] || echo "I:failed"
+status=`expr $status + $ret`
+
+echo "I:checking that slave was saved in 'full' style when configured"
+ret=0
+isfull ns2/transfer.db.full > /dev/null 2>&1 || ret=1
 [ $ret -eq 0 ] || echo "I:failed"
 status=`expr $status + $ret`
 
@@ -276,4 +282,4 @@ grep 'next resign' rndc.out > /dev/null 2>&1 || ret=1
 status=`expr $status + $ret`
 
 echo "I:exit status: $status"
-exit $status
+[ $status -eq 0 ] || exit 1

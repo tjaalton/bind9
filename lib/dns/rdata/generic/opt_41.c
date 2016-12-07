@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004, 2005, 2007, 2009, 2011-2016  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1998-2002  Internet Software Consortium.
+ * Copyright (C) 1998-2002, 2004, 2005, 2007, 2009, 2011-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* Reviewed: Thu Mar 16 14:06:44 PST 2000 by gson */
@@ -134,9 +125,6 @@ fromwire_opt(ARGS_FROMWIRE) {
 			scope = uint8_fromregion(&sregion);
 			isc_region_consume(&sregion, 1);
 
-			if (addrlen == 0U && family != 0U)
-				return (DNS_R_OPTERR);
-
 			switch (family) {
 			case 0:
 				/*
@@ -167,7 +155,7 @@ fromwire_opt(ARGS_FROMWIRE) {
 				return (DNS_R_OPTERR);
 
 			if (addrbytes != 0U && (addrlen % 8) != 0) {
-				isc_uint8_t bits = ~0 << (8 - (addrlen % 8));
+				isc_uint8_t bits = ~0U << (8 - (addrlen % 8));
 				bits &= sregion.base[addrbytes - 1];
 				if (bits != sregion.base[addrbytes - 1])
 					return (DNS_R_OPTERR);

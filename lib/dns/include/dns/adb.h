@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2008, 2011, 2013-2015  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1999-2003  Internet Software Consortium.
+ * Copyright (C) 1999-2008, 2011, 2013-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id: adb.h,v 1.88 2011/12/05 17:10:51 each Exp $ */
@@ -755,11 +746,11 @@ dns_adb_flushnames(dns_adb_t *adb, dns_name_t *name);
  */
 
 void
-dns_adb_setsit(dns_adb_t *adb, dns_adbaddrinfo_t *addr,
-	       const unsigned char *sit, size_t len);
+dns_adb_setcookie(dns_adb_t *adb, dns_adbaddrinfo_t *addr,
+		  const unsigned char *cookie, size_t len);
 /*%<
- * Record the Source Identity Token (SIT) associated with this addresss.  If
- * sit is NULL or len is zero. The recorded SIT is cleared.
+ * Record the COOKIE associated with this addresss.  If
+ * cookie is NULL or len is zero the recorded COOKIE is cleared.
  *
  * Requires:
  *\li	'adb' is valid.
@@ -767,17 +758,18 @@ dns_adb_setsit(dns_adb_t *adb, dns_adbaddrinfo_t *addr,
  */
 
 size_t
-dns_adb_getsit(dns_adb_t *adb, dns_adbaddrinfo_t *addr,
-	       unsigned char *sit, size_t len);
+dns_adb_getcookie(dns_adb_t *adb, dns_adbaddrinfo_t *addr,
+		  unsigned char *cookie, size_t len);
 /*
- * Retieve the saved SIT value and store it in 'sit' which has size 'len'.
+ * Retieve the saved COOKIE value and store it in 'cookie' which has
+ * size 'len'.
  *
  * Requires:
  *\li	'adb' is valid.
  *\li	'addr' is valid.
  *
  * Returns:
- *	The size of the sit token or zero if it doesn't fit in the buffer
+ *	The size of the cookie or zero if it doesn't fit in the buffer
  *	or it doesn't exist.
  */
 

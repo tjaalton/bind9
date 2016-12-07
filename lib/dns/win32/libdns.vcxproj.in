@@ -110,9 +110,11 @@
     <ClCompile Include="..\acache.c" />
     <ClCompile Include="..\acl.c" />
     <ClCompile Include="..\adb.c" />
+    <ClCompile Include="..\badcache.c" />
     <ClCompile Include="..\byaddr.c" />
     <ClCompile Include="..\cache.c" />
     <ClCompile Include="..\callbacks.c" />
+    <ClCompile Include="..\catz.c" />
     <ClCompile Include="..\client.c" />
     <ClCompile Include="..\clientinfo.c" />
     <ClCompile Include="..\compress.c" />
@@ -129,6 +131,7 @@
     <ClCompile Include="..\dst_lib.c" />
     <ClCompile Include="..\dst_parse.c" />
     <ClCompile Include="..\dst_result.c" />
+    <ClCompile Include="..\dyndb.c" />
     <ClCompile Include="..\ecdb.c" />
     <ClCompile Include="..\forward.c" />
 @IF GEOIP
@@ -137,6 +140,7 @@
     <ClCompile Include="..\gssapictx.c" />
     <ClCompile Include="..\gssapi_link.c" />
     <ClCompile Include="..\hmac_link.c" />
+    <ClCompile Include="..\ipkeylist.c" />
     <ClCompile Include="..\iptable.c" />
     <ClCompile Include="..\journal.c" />
     <ClCompile Include="..\key.c" />
@@ -152,6 +156,7 @@
     <ClCompile Include="..\ncache.c" />
     <ClCompile Include="..\nsec.c" />
     <ClCompile Include="..\nsec3.c" />
+    <ClCompile Include="..\nta.c" />
 @IF OPENSSL
     <ClCompile Include="..\openssldh_link.c" />
     <ClCompile Include="..\openssldsa_link.c" />
@@ -226,10 +231,12 @@
     <ClInclude Include="..\include\dns\acache.h" />
     <ClInclude Include="..\include\dns\acl.h" />
     <ClInclude Include="..\include\dns\adb.h" />
+    <ClInclude Include="..\include\dns\badcache.h" />
     <ClInclude Include="..\include\dns\bit.h" />
     <ClInclude Include="..\include\dns\byaddr.h" />
     <ClInclude Include="..\include\dns\cache.h" />
     <ClInclude Include="..\include\dns\callbacks.h" />
+    <ClInclude Include="..\include\dns\catz.h" />
     <ClInclude Include="..\include\dns\cert.h" />
     <ClInclude Include="..\include\dns\client.h" />
     <ClInclude Include="..\include\dns\clientinfo.h" />
@@ -242,8 +249,10 @@
     <ClInclude Include="..\include\dns\dlz.h" />
     <ClInclude Include="..\include\dns\dns64.h" />
     <ClInclude Include="..\include\dns\dnssec.h" />
+    <ClInclude Include="..\include\dns\dnstap.h" />
     <ClInclude Include="..\include\dns\ds.h" />
     <ClInclude Include="..\include\dns\dsdigest.h" />
+    <ClInclude Include="..\include\dns\dyndb.h" />
     <ClInclude Include="..\include\dns\ecdb.h" />
     <ClInclude Include="..\include\dns\edns.h" />
     <ClInclude Include="..\include\dns\enumclass.h" />
@@ -254,6 +263,7 @@
 @IF GEOIP
     <ClInclude Include="..\include\dns\geoip.h" />
 @END GEOIP
+    <ClInclude Include="..\include\dns\ipkeylist.h" />
     <ClInclude Include="..\include\dns\iptable.h" />
     <ClInclude Include="..\include\dns\journal.h" />
     <ClInclude Include="..\include\dns\keydata.h" />
@@ -270,6 +280,7 @@
     <ClInclude Include="..\include\dns\ncache.h" />
     <ClInclude Include="..\include\dns\nsec.h" />
     <ClInclude Include="..\include\dns\nsec3.h" />
+    <ClInclude Include="..\include\dns\nta.h" />
     <ClInclude Include="..\include\dns\opcode.h" />
     <ClInclude Include="..\include\dns\order.h" />
     <ClInclude Include="..\include\dns\peer.h" />

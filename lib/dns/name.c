@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2016  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1998-2003  Internet Software Consortium.
+ * Copyright (C) 1998-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id$ */
@@ -114,17 +105,17 @@ static unsigned char maptolower[] = {
 #define CONVERTTOASCII(c)
 #define CONVERTFROMASCII(c)
 
-#define INIT_OFFSETS(name, var, default) \
-	if (name->offsets != NULL) \
-		var = name->offsets; \
+#define INIT_OFFSETS(name, var, default_offsets) \
+	if ((name)->offsets != NULL)		 \
+		var = (name)->offsets;		 \
 	else \
-		var = default;
+		var = (default_offsets);
 
-#define SETUP_OFFSETS(name, var, default) \
-	if (name->offsets != NULL) \
-		var = name->offsets; \
+#define SETUP_OFFSETS(name, var, default_offsets) \
+	if ((name)->offsets != NULL)		  \
+		var = (name)->offsets;		  \
 	else { \
-		var = default; \
+		var = (default_offsets);      \
 		set_offsets(name, var, NULL); \
 	}
 
@@ -1389,7 +1380,7 @@ totext_filter_proc_key_init(void) {
 #endif
 
 isc_result_t
-dns_name_totext(dns_name_t *name, isc_boolean_t omit_final_dot,
+dns_name_totext(const dns_name_t *name, isc_boolean_t omit_final_dot,
 		isc_buffer_t *target)
 {
 	unsigned int options = DNS_NAME_MASTERFILE;
@@ -1400,12 +1391,13 @@ dns_name_totext(dns_name_t *name, isc_boolean_t omit_final_dot,
 }
 
 isc_result_t
-dns_name_toprincipal(dns_name_t *name, isc_buffer_t *target) {
+dns_name_toprincipal(const dns_name_t *name, isc_buffer_t *target) {
 	return (dns_name_totext2(name, DNS_NAME_OMITFINALDOT, target));
 }
 
 isc_result_t
-dns_name_totext2(dns_name_t *name, unsigned int options, isc_buffer_t *target)
+dns_name_totext2(const dns_name_t *name, unsigned int options,
+		 isc_buffer_t *target)
 {
 	unsigned char *ndata;
 	char *tdata;
@@ -1565,9 +1557,13 @@ dns_name_totext2(dns_name_t *name, unsigned int options, isc_buffer_t *target)
 	if (nlen != 0 && trem == 0)
 		return (ISC_R_NOSPACE);
 
-	if (!saw_root || omit_final_dot)
+	if (!saw_root || omit_final_dot) {
 		trem++;
-
+		tdata--;
+	}
+	if (trem > 0) {
+		*tdata = 0;
+	}
 	isc_buffer_add(target, tlen - trem);
 
 #ifdef ISC_PLATFORM_USETHREADS
@@ -2171,7 +2167,7 @@ dns_name_split(dns_name_t *name, unsigned int suffixlabels,
 
 	REQUIRE(VALID_NAME(name));
 	REQUIRE(suffixlabels > 0);
-	REQUIRE(suffixlabels < name->labels);
+	REQUIRE(suffixlabels <= name->labels);
 	REQUIRE(prefix != NULL || suffix != NULL);
 	REQUIRE(prefix == NULL ||
 		(VALID_NAME(prefix) &&
@@ -2402,7 +2398,7 @@ dns_name_settotextfilter(dns_name_totextfilter_t proc) {
 }
 
 void
-dns_name_format(dns_name_t *name, char *cp, unsigned int size) {
+dns_name_format(const dns_name_t *name, char *cp, unsigned int size) {
 	isc_result_t result;
 	isc_buffer_t buf;
 
@@ -2497,7 +2493,7 @@ dns_name_fromstring2(dns_name_t *target, const char *src,
 }
 
 isc_result_t
-dns_name_copy(dns_name_t *source, dns_name_t *dest, isc_buffer_t *target) {
+dns_name_copy(const dns_name_t *source, dns_name_t *dest, isc_buffer_t *target) {
 	unsigned char *ndata;
 
 	/*

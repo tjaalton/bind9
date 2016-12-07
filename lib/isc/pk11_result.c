@@ -1,17 +1,9 @@
 /*
- * Copyright (C) 2014  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2014-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 #include <config.h>
@@ -33,6 +25,14 @@ static const char *text[PK11_R_NRESULTS] = {
 	"PKCS#11 provider has no random service",	/*%< 2 */
 	"PKCS#11 provider has no digest service",	/*%< 3 */
 	"PKCS#11 provider has no AES service",		/*%< 4 */
+};
+
+static const char *ids[PK11_R_NRESULTS] = {
+	"PK11_R_INITFAILED",
+	"PK11_R_NOPROVIDER",
+	"PK11_R_NORANDOMSERVICE",
+	"PK11_R_NODIGESTSERVICE",
+	"PK11_R_NOAESSERVICE",
 };
 
 #define PK11_RESULT_RESULTSET			2
@@ -64,6 +64,13 @@ initialize_action(void) {
 	if (result != ISC_R_SUCCESS)
 		UNEXPECTED_ERROR(__FILE__, __LINE__,
 				 "isc_result_register() failed: %u", result);
+
+	result = isc_result_registerids(ISC_RESULTCLASS_PK11, PK11_R_NRESULTS,
+					ids, pk11_msgcat,
+					PK11_RESULT_RESULTSET);
+	if (result != ISC_R_SUCCESS)
+		UNEXPECTED_ERROR(__FILE__, __LINE__,
+				 "isc_result_registerids() failed: %u", result);
 }
 
 static void

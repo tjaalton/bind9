@@ -1,19 +1,12 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <!--
  - Copyright (C) 2004-2016 Internet Systems Consortium, Inc. ("ISC")
  - 
- - Permission to use, copy, modify, and/or distribute this software for any
- - purpose with or without fee is hereby granted, provided that the above
- - copyright notice and this permission notice appear in all copies.
- - 
- - THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- - REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- - AND FITNESS. IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- - INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- - LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- - OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- - PERFORMANCE OF THIS SOFTWARE.
+ - This Source Code Form is subject to the terms of the Mozilla Public
+ - License, v. 2.0. If a copy of the MPL was not distributed with this
+ - file, You can obtain one at http://mozilla.org/MPL/2.0/.
 -->
-<html>
+<html lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
 <title>named.conf</title>
@@ -23,7 +16,7 @@
 <a name="man.named.conf"></a><div class="titlepage"></div>
 <div class="refnamediv">
 <h2>Name</h2>
-<p><code class="filename">named.conf</code> &#8212; configuration file for named</p>
+<p><code class="filename">named.conf</code> &#8212; configuration file for <span class="command"><strong>named</strong></span></p>
 </div>
 <div class="refsynopsisdiv">
 <h2>Synopsis</h2>
@@ -81,6 +74,7 @@ server ( <em class="replaceable"><code>ipv4_address[<span class="optional">/pref
 	edns <em class="replaceable"><code>boolean</code></em>;<br>
 	edns-udp-size <em class="replaceable"><code>integer</code></em>;<br>
 	max-udp-size <em class="replaceable"><code>integer</code></em>;<br>
+	tcp-only <em class="replaceable"><code>boolean</code></em>;<br>
 	provide-ixfr <em class="replaceable"><code>boolean</code></em>;<br>
 	request-ixfr <em class="replaceable"><code>boolean</code></em>;<br>
 	keys <em class="replaceable"><code>server_key</code></em>;<br>
@@ -151,6 +145,8 @@ lwres {<br>
 	view <em class="replaceable"><code>string</code></em> <em class="replaceable"><code>optional_class</code></em>;<br>
 	search { <em class="replaceable"><code>string</code></em>; ... };<br>
 	ndots <em class="replaceable"><code>integer</code></em>;<br>
+	lwres-tasks <em class="replaceable"><code>integer</code></em>;<br>
+	lwres-clients <em class="replaceable"><code>integer</code></em>;<br>
 };<br>
 </p></div>
 </div>
@@ -164,13 +160,25 @@ options {<br>
 	coresize <em class="replaceable"><code>size</code></em>;<br>
 	datasize <em class="replaceable"><code>size</code></em>;<br>
 	directory <em class="replaceable"><code>quoted_string</code></em>;<br>
+	dnstap { <em class="replaceable"><code>message_type</code></em>; ... };<br>
+	dnstap-output ( <code class="literal">file</code> | <code class="literal">unix</code> ) <em class="replaceable"><code>path_name</code></em>;<br>
+	dnstap-identity ( <em class="replaceable"><code>string</code></em> | <code class="literal">hostname</code> | <code class="literal">none</code> );<br>
+	dnstap-version ( <em class="replaceable"><code>string</code></em> | <code class="literal">none</code> );<br>
 	dump-file <em class="replaceable"><code>quoted_string</code></em>;<br>
 	files <em class="replaceable"><code>size</code></em>;<br>
+	fstrm-set-buffer-hint <em class="replaceable"><code>number</code></em>;<br>
+	fstrm-set-flush-timeout <em class="replaceable"><code>number</code></em>;<br>
+	fstrm-set-input-queue-size <em class="replaceable"><code>number</code></em>;<br>
+	fstrm-set-output-notify-threshold <em class="replaceable"><code>number</code></em>;<br>
+	fstrm-set-output-queue-model ( <em class="replaceable"><code>mpsc</code></em> | <em class="replaceable"><code>spsc</code></em> ) ;<br>
+	fstrm-set-output-queue-size <em class="replaceable"><code>number</code></em>;<br>
+	fstrm-set-reopen-interval <em class="replaceable"><code>number</code></em>;<br>
 	heartbeat-interval <em class="replaceable"><code>integer</code></em>;<br>
 	host-statistics <em class="replaceable"><code>boolean</code></em>; // not implemented<br>
 	host-statistics-max <em class="replaceable"><code>number</code></em>; // not implemented<br>
 	hostname ( <em class="replaceable"><code>quoted_string</code></em> | none );<br>
 	interface-interval <em class="replaceable"><code>integer</code></em>;<br>
+	keep-response-order { <em class="replaceable"><code>address_match_element</code></em>; ... };<br>
 	listen-on [<span class="optional"> port <em class="replaceable"><code>integer</code></em> </span>] { <em class="replaceable"><code>address_match_element</code></em>; ... };<br>
 	listen-on-v6 [<span class="optional"> port <em class="replaceable"><code>integer</code></em> </span>] { <em class="replaceable"><code>address_match_element</code></em>; ... };<br>
 	match-mapped-addresses <em class="replaceable"><code>boolean</code></em>;<br>
@@ -193,6 +201,7 @@ options {<br>
 	tkey-gssapi-credential <em class="replaceable"><code>quoted_string</code></em>;<br>
 	tkey-gssapi-keytab <em class="replaceable"><code>quoted_string</code></em>;<br>
 	tkey-domain <em class="replaceable"><code>quoted_string</code></em>;<br>
+	transfer-message-size <em class="replaceable"><code>integer</code></em>;<br>
 	transfers-per-ns <em class="replaceable"><code>integer</code></em>;<br>
 	transfers-in <em class="replaceable"><code>integer</code></em>;<br>
 	transfers-out <em class="replaceable"><code>integer</code></em>;<br>
@@ -202,7 +211,8 @@ options {<br>
 	sortlist { <em class="replaceable"><code>address_match_element</code></em>; ... };<br>
 	topology { <em class="replaceable"><code>address_match_element</code></em>; ... }; // not implemented<br>
 	auth-nxdomain <em class="replaceable"><code>boolean</code></em>; // default changed<br>
-	minimal-responses <em class="replaceable"><code>boolean</code></em>;<br>
+	minimal-any <em class="replaceable"><code>boolean</code></em>;<br>
+	minimal-responses ( <em class="replaceable"><code>boolean</code></em> | no-auth | no-auth-recursive );<br>
 	recursion <em class="replaceable"><code>boolean</code></em>;<br>
 	rrset-order {<br>
 		[<span class="optional"> class <em class="replaceable"><code>string</code></em> </span>] [<span class="optional"> type <em class="replaceable"><code>string</code></em> </span>]<br>
@@ -236,6 +246,16 @@ options {<br>
 	check-mx-cname ( fail | warn | ignore );<br>
 	check-srv-cname ( fail | warn | ignore );<br>
 	cache-file <em class="replaceable"><code>quoted_string</code></em>; // test option<br>
+	catalog-zones {<br>
+	    zone <em class="replaceable"><code>quoted_string</code></em><br>
+		[<span class="optional"> default-masters<br>
+		[<span class="optional">port <em class="replaceable"><code>ip_port</code></em></span>]<br>
+		[<span class="optional">dscp <em class="replaceable"><code>ip_dscp</code></em></span>]<br>
+		{ ( <em class="replaceable"><code>masters_list</code></em> | <em class="replaceable"><code>ip_addr</code></em> [<span class="optional">port <em class="replaceable"><code>ip_port</code></em></span>] [<span class="optional">key <em class="replaceable"><code>key</code></em></span>] ) ; [<span class="optional">...</span>] }</span>]<br>
+	    [<span class="optional">in-memory <em class="replaceable"><code>yes_or_no</code></em></span>]<br>
+	    [<span class="optional">min-update-interval <em class="replaceable"><code>interval</code></em></span>]<br>
+	    ; ... };<br>
+	;<br>
 	suppress-initial-notify <em class="replaceable"><code>boolean</code></em>; // not yet implemented<br>
 	preferred-glue <em class="replaceable"><code>string</code></em>;<br>
 	dual-stack-servers [<span class="optional"> port <em class="replaceable"><code>integer</code></em> </span>] {<br>
@@ -257,9 +277,9 @@ options {<br>
 	dns64-server <em class="replaceable"><code>string</code></em>;<br>
 	dns64-contact <em class="replaceable"><code>string</code></em>;<br>
 	dns64 <em class="replaceable"><code>prefix</code></em> {<br>
-		clients { <span style="color: red">&lt;replacable&gt;acl&lt;/replacable&gt;</span>; };<br>
-		exclude { <span style="color: red">&lt;replacable&gt;acl&lt;/replacable&gt;</span>; };<br>
-		mapped { <span style="color: red">&lt;replacable&gt;acl&lt;/replacable&gt;</span>; };<br>
+		clients { <em class="replaceable"><code>acl</code></em>; };<br>
+		exclude { <em class="replaceable"><code>acl</code></em>; };<br>
+		mapped { <em class="replaceable"><code>acl</code></em>; };<br>
 		break-dnssec <em class="replaceable"><code>boolean</code></em>;<br>
 		recursive-only <em class="replaceable"><code>boolean</code></em>;<br>
 		suffix <em class="replaceable"><code>ipv6_address</code></em>;<br>
@@ -337,6 +357,12 @@ options {<br>
 	dnssec-secure-to-insecure <em class="replaceable"><code>boolean</code></em>;<br>
 	automatic-interface-scan <em class="replaceable"><code>boolean</code></em>;<br>
 <br>
+	cookie-algorithm ( <em class="replaceable"><code>aes</code></em> | <em class="replaceable"><code>sha1</code></em> | <em class="replaceable"><code>sha256</code></em> );<br>
+	cookie-secret <em class="replaceable"><code>string</code></em>;<br>
+	require-server-cookie <em class="replaceable"><code>boolean</code></em>;<br>
+	send-cookie <em class="replaceable"><code>boolean</code></em>;<br>
+	nocookie-udp-size <em class="replaceable"><code>integer</code></em>;<br>
+<br>
 	deny-answer-addresses {<br>
 		<em class="replaceable"><code>address_match_list</code></em><br>
 	} [<span class="optional"> except-from { <em class="replaceable"><code>namelist</code></em> } </span>];<br>
@@ -393,6 +419,7 @@ view <em class="replaceable"><code>string</code></em> <em class="replaceable"><c
 	sortlist { <em class="replaceable"><code>address_match_element</code></em>; ... };<br>
 	topology { <em class="replaceable"><code>address_match_element</code></em>; ... }; // not implemented<br>
 	auth-nxdomain <em class="replaceable"><code>boolean</code></em>; // default changed<br>
+	minimal-any <em class="replaceable"><code>boolean</code></em>;<br>
 	minimal-responses <em class="replaceable"><code>boolean</code></em>;<br>
 	recursion <em class="replaceable"><code>boolean</code></em>;<br>
 	rrset-order {<br>
@@ -448,9 +475,9 @@ view <em class="replaceable"><code>string</code></em> <em class="replaceable"><c
 	dns64-server <em class="replaceable"><code>string</code></em>;<br>
 	dns64-contact <em class="replaceable"><code>string</code></em>;<br>
 	dns64 <em class="replaceable"><code>prefix</code></em> {<br>
-		clients { <span style="color: red">&lt;replacable&gt;acl&lt;/replacable&gt;</span>; };<br>
-		exclude { <span style="color: red">&lt;replacable&gt;acl&lt;/replacable&gt;</span>; };<br>
-		mapped { <span style="color: red">&lt;replacable&gt;acl&lt;/replacable&gt;</span>; };<br>
+		clients { <em class="replaceable"><code>acl</code></em>; };<br>
+		exclude { <em class="replaceable"><code>acl</code></em>; };<br>
+		mapped { <em class="replaceable"><code>acl</code></em>; };<br>
 		break-dnssec <em class="replaceable"><code>boolean</code></em>;<br>
 		recursive-only <em class="replaceable"><code>boolean</code></em>;<br>
 		suffix <em class="replaceable"><code>ipv6_address</code></em>;<br>
@@ -520,6 +547,10 @@ view <em class="replaceable"><code>string</code></em> <em class="replaceable"><c
 	zero-no-soa-ttl-cache <em class="replaceable"><code>boolean</code></em>;<br>
 	dnssec-secure-to-insecure <em class="replaceable"><code>boolean</code></em>;<br>
 <br>
+	require-server-cookie <em class="replaceable"><code>boolean</code></em>;<br>
+	send-cookie <em class="replaceable"><code>boolean</code></em>;<br>
+	nocookie-udp-size <em class="replaceable"><code>integer</code></em>;<br>
+<br>
 	allow-v6-synthesis { <em class="replaceable"><code>address_match_element</code></em>; ... }; // obsolete<br>
 	fetch-glue <em class="replaceable"><code>boolean</code></em>; // obsolete<br>
 	maintain-ixfr-base <em class="replaceable"><code>boolean</code></em>; // obsolete<br>
@@ -562,7 +593,7 @@ zone <em class="replaceable"><code>string</code></em> <em class="replaceable"><c
 	update-policy <em class="replaceable"><code>local</code></em> | <em class="replaceable"><code> {<br>
 		( grant | deny ) <em class="replaceable"><code>string</code></em><br>
 		( name | subdomain | wildcard | self | selfsub | selfwild |<br>
-                  krb5-self | ms-self | krb5-subdomain | ms-subdomain |<br>
+		  krb5-self | ms-self | krb5-subdomain | ms-subdomain |<br>
 		  tcp-self | zonesub | 6to4-self ) <em class="replaceable"><code>string</code></em><br>
 		<em class="replaceable"><code>rrtypelist</code></em>;<br>
 		[<span class="optional">...</span>]<br>

@@ -1,19 +1,10 @@
 #!/bin/sh -e
 #
-# Copyright (C) 2004, 2006-2016  Internet Systems Consortium, Inc. ("ISC")
-# Copyright (C) 2000-2002  Internet Software Consortium.
+# Copyright (C) 2000-2002, 2004, 2006-2016  Internet Systems Consortium, Inc. ("ISC")
 #
-# Permission to use, copy, modify, and/or distribute this software for any
-# purpose with or without fee is hereby granted, provided that the above
-# copyright notice and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-# AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
-# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
-# OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-# PERFORMANCE OF THIS SOFTWARE.
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 SYSTEMTESTTOP=../..
 . $SYSTEMTESTTOP/conf.sh
@@ -493,6 +484,21 @@ zonefile=siginterval.example.db
 kskname=`$KEYGEN -q -3 -r $RANDFILE -fk $zone`
 zskname=`$KEYGEN -q -3 -r $RANDFILE $zone`
 cp $infile $zonefile
+
+#
+# A zone with a bad DS in the parent
+# (sourced from bogus.example.db.in)
+#
+zone=badds.example.
+infile=bogus.example.db.in
+zonefile=badds.example.db
+
+keyname=`$KEYGEN -q -r $RANDFILE -a RSAMD5 -b 768 -n zone $zone`
+
+cat $infile $keyname.key >$zonefile
+
+$SIGNER -P -r $RANDFILE -o $zone $zonefile > /dev/null 2>&1
+sed -e 's/bogus/badds/g' < dsset-bogus.example. > dsset-badds.example.
 
 #
 # A zone with future signatures.

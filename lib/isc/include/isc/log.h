@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2007, 2009, 2014  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1999-2002  Internet Software Consortium.
+ * Copyright (C) 1999-2002, 2004-2007, 2009, 2014, 2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id: log.h,v 1.59 2009/02/16 02:01:16 marka Exp $ */
@@ -70,6 +61,7 @@
 #define ISC_LOG_PRINTTAG	0x0010		/* tag and ":" */
 #define ISC_LOG_PRINTPREFIX	0x0020		/* tag only, no colon */
 #define ISC_LOG_PRINTALL	0x003F
+#define ISC_LOG_BUFFERED	0x0040
 #define ISC_LOG_DEBUGONLY	0x1000
 #define ISC_LOG_OPENERR		0x8000		/* internal */
 /*@}*/
@@ -427,8 +419,8 @@ isc_log_createchannel(isc_logconfig_t *lcfg, const char *name,
  *	call by defining a new channel and then calling isc_log_usechannel()
  *	for #ISC_LOGCATEGORY_DEFAULT.)
  *
- *\li	Specifying #ISC_LOG_PRINTTIME or #ISC_LOG_PRINTTAG for syslog is allowed,
- *	but probably not what you wanted to do.
+ *\li	Specifying #ISC_LOG_PRINTTIME or #ISC_LOG_PRINTTAG for syslog is
+ *	allowed, but probably not what you wanted to do.
  *
  *	#ISC_LOG_DEBUGONLY will mark the channel as usable only when the
  *	debug level of the logging context (see isc_log_setdebuglevel)
@@ -446,8 +438,8 @@ isc_log_createchannel(isc_logconfig_t *lcfg, const char *name,
  *
  *\li	level is >= #ISC_LOG_CRITICAL (the most negative logging level).
  *
- *\li	flags does not include any bits aside from the ISC_LOG_PRINT* bits
- *	or #ISC_LOG_DEBUGONLY.
+ *\li	flags does not include any bits aside from the ISC_LOG_PRINT* bits,
+ *	#ISC_LOG_DEBUGONLY or #ISC_LOG_BUFFERED.
  *
  * Ensures:
  *\li	#ISC_R_SUCCESS
@@ -909,6 +901,15 @@ isc_log_setcontext(isc_log_t *lctx);
  *
  * Requires:
  *\li	lctx be a valid context.
+ */
+
+isc_result_t
+isc_logfile_roll(isc_logfile_t *file);
+/*%<
+ * Roll a logfile.
+ *
+ * Requires:
+ *\li	file is not NULL.
  */
 
 ISC_LANG_ENDDECLS

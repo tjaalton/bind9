@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2015  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 2001-2003  Internet Software Consortium.
+ * Copyright (C) 2001-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /*! \file */
@@ -30,6 +21,8 @@
 #include <isc/sockaddr.h>
 #include <isc/string.h>
 #include <isc/util.h>
+
+#include <pk11/site.h>
 
 #include <isccfg/namedconf.h>
 
@@ -51,7 +44,13 @@
 static char defaultconf[] = "\
 options {\n\
 	automatic-interface-scan yes;\n\
+	bindkeys-file \"" NS_SYSCONFDIR "/bind.keys\";\n\
 #	blackhole {none;};\n"
+#if defined(HAVE_OPENSSL_AES) || defined(HAVE_OPENSSL_EVP_AES)
+"	cookie-algorithm aes;\n"
+#else
+"	cookie-algorithm sha256;\n"
+#endif
 #ifndef WIN32
 "	coresize default;\n\
 	datasize default;\n\
@@ -61,23 +60,27 @@ options {\n\
 "#	session-keyfile \"" NS_LOCALSTATEDIR "/run/named/session.key\";\n\
 	session-keyname local-ddns;\n\
 	session-keyalg hmac-sha256;\n\
-	deallocate-on-exit true;\n\
+#	deallocate-on-exit <obsolete>;\n\
 #	directory <none>\n\
 	dump-file \"named_dump.db\";\n\
-	fake-iquery no;\n\
-	has-old-clients false;\n\
+#	fake-iquery <obsolete>;\n\
+#	has-old-clients <obsolete>;\n\
 	heartbeat-interval 60;\n\
-	host-statistics no;\n\
+#	host-statistics <obsolete>;\n\
 	interface-interval 60;\n\
+#	keep-response-order {none;};\n\
 	listen-on {any;};\n\
 	listen-on-v6 {any;};\n\
 	match-mapped-addresses no;\n\
 	max-rsa-exponent-size 0; /* no limit */\n\
 	memstatistics-file \"named.memstats\";\n\
-	multiple-cnames no;\n\
+#	multiple-cnames <obsolete>;\n\
 #	named-xfer <obsolete>;\n\
+	nta-lifetime 3600;\n\
+	nta-recheck 300;\n\
+	notify-rate 20;\n\
 #	pid-file \"" NS_LOCALSTATEDIR "/run/named/named.pid\"; /* or /lwresd.pid */\n\
-	bindkeys-file \"" NS_SYSCONFDIR "/bind.keys\";\n\
+#	lock-file \"" NS_LOCALSTATEDIR "/run/named/named.lock\";\n\
 	port 53;\n\
 	prefetch 2 9;\n\
 	recursing-file \"named.recursing\";\n\
@@ -92,32 +95,29 @@ options {\n\
 	recursive-clients 1000;\n\
 	resolver-query-timeout 10;\n\
 	rrset-order { order random; };\n\
-	serial-queries 20;\n\
+#	serial-queries <obsolete>;\n\
 	serial-query-rate 20;\n\
 	server-id none;\n\
+	startup-notify-rate 20;\n\
 	statistics-file \"named.stats\";\n\
-	statistics-interval 60;\n\
-	tcp-clients 100;\n\
+#	statistics-interval <obsolete>;\n\
+	tcp-clients 150;\n\
 	tcp-listen-queue 10;\n\
 #	tkey-dhkey <none>\n\
 #	tkey-gssapi-credential <none>\n\
 #	tkey-domain <none>\n\
+	transfer-message-size 20480;\n\
 	transfers-per-ns 2;\n\
 	transfers-in 10;\n\
 	transfers-out 10;\n\
 #	treat-cr-as-space <obsolete>;\n\
+	trust-anchor-telemetry yes;\n\
 #	use-id-pool <obsolete>;\n\
 #	use-ixfr <obsolete>;\n\
 	edns-udp-size 4096;\n\
 	max-udp-size 4096;\n\
-"
-#ifdef ISC_PLATFORM_USESIT
-"\
-	nosit-udp-size 4096;\n\
-	request-sit true;\n\
-"
-#endif
-"\
+	nocookie-udp-size 4096;\n\
+	send-cookie true;\n\
 	request-nsid false;\n\
 	reserved-sockets 512;\n\
 \n\
@@ -135,12 +135,14 @@ options {\n\
 #	sortlist <none>\n\
 #	topology <none>\n\
 	auth-nxdomain false;\n\
+	minimal-any false;\n\
 	minimal-responses false;\n\
 	recursion true;\n\
 	provide-ixfr true;\n\
 	request-ixfr true;\n\
-	fetch-glue no;\n\
-	rfc2308-type1 no;\n\
+	request-expire true;\n\
+#	fetch-glue <obsolete>;\n\
+#	rfc2308-type1 <obsolete>;\n\
 	additional-from-auth true;\n\
 	additional-from-cache true;\n\
 	query-source address *;\n\
@@ -148,12 +150,13 @@ options {\n\
 	notify-source *;\n\
 	notify-source-v6 *;\n\
 	cleaning-interval 0;  /* now meaningless */\n\
-	min-roots 2;\n\
+#	min-roots <obsolete>;\n\
 	lame-ttl 600;\n\
+	servfail-ttl 1;\n\
 	max-ncache-ttl 10800; /* 3 hours */\n\
 	max-cache-ttl 604800; /* 1 week */\n\
 	transfer-format many-answers;\n\
-	max-cache-size 0;\n\
+	max-cache-size 90%;\n\
 	check-names master fail;\n\
 	check-names slave warn;\n\
 	check-names response ignore;\n\
@@ -166,21 +169,30 @@ options {\n\
 	dnssec-enable yes;\n\
 	dnssec-validation yes; \n\
 	dnssec-accept-expired no;\n\
-"
-#ifdef ENABLE_FETCHLIMIT
-" 	fetches-per-server 0;\n\
 	fetches-per-zone 0;\n\
 	fetch-quota-params 100 0.1 0.3 0.7;\n\
-"
-#endif /* ENABLE_FETCHLIMIT */
-"	clients-per-query 10;\n\
+	clients-per-query 10;\n\
 	max-clients-per-query 100;\n\
 	max-recursion-depth 7;\n\
 	max-recursion-queries 75;\n\
 	zero-no-soa-ttl-cache no;\n\
 	nsec3-test-zone no;\n\
 	allow-new-zones no;\n\
+	fetches-per-server 0;\n\
+	require-server-cookie no;\n\
+	v6-bias 50;\n\
+	message-compression yes;\n\
 "
+#ifdef HAVE_DNSTAP
+"\
+	dnstap-identity hostname;\n\
+"
+#endif
+#ifdef HAVE_GEOIP
+"\
+	geoip-use-ecs yes;\n\
+"
+#endif
 #ifdef ALLOW_FILTER_AAAA
 "	filter-aaaa-on-v4 no;\n\
 	filter-aaaa-on-v6 no;\n\
@@ -199,7 +211,7 @@ options {\n\
 	dialup no;\n\
 #	forward <none>\n\
 #	forwarders <none>\n\
-	maintain-ixfr-base no;\n\
+#	maintain-ixfr-base <obsolete>;\n\
 #	max-ixfr-log-size <obsolete>\n\
 	transfer-source *;\n\
 	transfer-source-v6 *;\n\
@@ -293,7 +305,8 @@ ns_config_parsedefaults(cfg_parser_t *parser, cfg_obj_t **conf) {
 
 	isc_buffer_init(&b, defaultconf, sizeof(defaultconf) - 1);
 	isc_buffer_add(&b, sizeof(defaultconf) - 1);
-	return (cfg_parse_buffer(parser, &b, &cfg_type_namedconf, conf));
+	return (cfg_parse_buffer2(parser, &b, __FILE__,
+				  &cfg_type_namedconf, conf));
 }
 
 isc_result_t
@@ -557,9 +570,7 @@ get_masters_def(const cfg_obj_t *cctx, const char *name,
 
 isc_result_t
 ns_config_getipandkeylist(const cfg_obj_t *config, const cfg_obj_t *list,
-			  isc_mem_t *mctx, isc_sockaddr_t **addrsp,
-			  isc_dscp_t **dscpsp, dns_name_t ***keysp,
-			  isc_uint32_t *countp)
+			  isc_mem_t *mctx, dns_ipkeylist_t *ipkl)
 {
 	isc_uint32_t addrcount = 0, dscpcount = 0, keycount = 0, i = 0;
 	isc_uint32_t listcount = 0, l = 0, j;
@@ -582,10 +593,13 @@ ns_config_getipandkeylist(const cfg_obj_t *config, const cfg_obj_t *list,
 		isc_dscp_t dscp;
 	} *stack = NULL;
 
-	REQUIRE(addrsp != NULL && *addrsp == NULL);
-	REQUIRE(dscpsp != NULL && *dscpsp == NULL);
-	REQUIRE(keysp != NULL && *keysp == NULL);
-	REQUIRE(countp != NULL);
+	REQUIRE(ipkl != NULL);
+	REQUIRE(ipkl->count == 0);
+	REQUIRE(ipkl->addrs == NULL);
+	REQUIRE(ipkl->keys == NULL);
+	REQUIRE(ipkl->dscps == NULL);
+	REQUIRE(ipkl->labels == NULL);
+	REQUIRE(ipkl->allocated == 0);
 
 	/*
 	 * Get system defaults.
@@ -838,10 +852,11 @@ ns_config_getipandkeylist(const cfg_obj_t *config, const cfg_obj_t *list,
 
 	INSIST(keycount == addrcount);
 
-	*addrsp = addrs;
-	*dscpsp = dscps;
-	*keysp = keys;
-	*countp = addrcount;
+	ipkl->addrs = addrs;
+	ipkl->dscps = dscps;
+	ipkl->keys = keys;
+	ipkl->count = addrcount;
+	ipkl->allocated = addrcount;
 
 	return (ISC_R_SUCCESS);
 
@@ -865,37 +880,6 @@ ns_config_getipandkeylist(const cfg_obj_t *config, const cfg_obj_t *list,
 	if (stack != NULL)
 		isc_mem_put(mctx, stack, stackcount * sizeof(*stack));
 	return (result);
-}
-
-void
-ns_config_putipandkeylist(isc_mem_t *mctx, isc_sockaddr_t **addrsp,
-			  isc_dscp_t **dscpsp, dns_name_t ***keysp,
-			  isc_uint32_t count)
-{
-	unsigned int i;
-	dns_name_t **keys;
-
-	REQUIRE(addrsp != NULL && *addrsp != NULL);
-	REQUIRE(dscpsp == NULL || *dscpsp != NULL);
-	REQUIRE(keysp != NULL && *keysp != NULL);
-
-	keys = *keysp;
-
-	isc_mem_put(mctx, *addrsp, count * sizeof(isc_sockaddr_t));
-	if (dscpsp != NULL)
-		isc_mem_put(mctx, *dscpsp, count * sizeof(isc_dscp_t));
-	for (i = 0; i < count; i++) {
-		if (keys[i] == NULL)
-			continue;
-		if (dns_name_dynamic(keys[i]))
-			dns_name_free(keys[i], mctx);
-		isc_mem_put(mctx, keys[i], sizeof(dns_name_t));
-	}
-	isc_mem_put(mctx, *keysp, count * sizeof(dns_name_t *));
-	*addrsp = NULL;
-	if (dscpsp != NULL)
-		*dscpsp = NULL;
-	*keysp = NULL;
 }
 
 isc_result_t
@@ -957,9 +941,11 @@ struct keyalgorithms {
 	unsigned int type;
 	isc_uint16_t size;
 } algorithms[] = {
+#ifndef PK11_MD5_DISABLE
 	{ "hmac-md5", hmacmd5, DST_ALG_HMACMD5, 128 },
 	{ "hmac-md5.sig-alg.reg.int", hmacmd5, DST_ALG_HMACMD5, 0 },
 	{ "hmac-md5.sig-alg.reg.int.", hmacmd5, DST_ALG_HMACMD5, 0 },
+#endif
 	{ "hmac-sha1", hmacsha1, DST_ALG_HMACSHA1, 160 },
 	{ "hmac-sha224", hmacsha224, DST_ALG_HMACSHA224, 224 },
 	{ "hmac-sha256", hmacsha256, DST_ALG_HMACSHA256, 256 },
@@ -1006,7 +992,9 @@ ns_config_getkeyalgorithm2(const char *str, dns_name_t **name,
 
 	if (name != NULL) {
 		switch (algorithms[i].hmac) {
+#ifndef PK11_MD5_DISABLE
 		case hmacmd5: *name = dns_tsig_hmacmd5_name; break;
+#endif
 		case hmacsha1: *name = dns_tsig_hmacsha1_name; break;
 		case hmacsha224: *name = dns_tsig_hmacsha224_name; break;
 		case hmacsha256: *name = dns_tsig_hmacsha256_name; break;

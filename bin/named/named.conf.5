@@ -1,16 +1,8 @@
 .\" Copyright (C) 2004-2016 Internet Systems Consortium, Inc. ("ISC")
 .\" 
-.\" Permission to use, copy, modify, and/or distribute this software for any
-.\" purpose with or without fee is hereby granted, provided that the above
-.\" copyright notice and this permission notice appear in all copies.
-.\" 
-.\" THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
-.\" REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-.\" AND FITNESS. IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
-.\" INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-.\" LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
-.\" OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-.\" PERFORMANCE OF THIS SOFTWARE.
+.\" This Source Code Form is subject to the terms of the Mozilla Public
+.\" License, v. 2.0. If a copy of the MPL was not distributed with this
+.\" file, You can obtain one at http://mozilla.org/MPL/2.0/.
 .\"
 .hy 0
 .ad l
@@ -44,7 +36,7 @@
 .\" * MAIN CONTENT STARTS HERE *
 .\" -----------------------------------------------------------------
 .SH "NAME"
-named.conf \- configuration file for named
+named.conf \- configuration file for \fBnamed\fR
 .SH "SYNOPSIS"
 .HP \w'\fBnamed\&.conf\fR\ 'u
 \fBnamed\&.conf\fR
@@ -109,6 +101,7 @@ server ( \fIipv4_address\fR\fI[/prefixlen]\fR | \fIipv6_address\fR\fI[/prefixlen
 	edns \fIboolean\fR;
 	edns\-udp\-size \fIinteger\fR;
 	max\-udp\-size \fIinteger\fR;
+	tcp\-only \fIboolean\fR;
 	provide\-ixfr \fIboolean\fR;
 	request\-ixfr \fIboolean\fR;
 	keys \fIserver_key\fR;
@@ -203,6 +196,8 @@ lwres {
 	view \fIstring\fR \fIoptional_class\fR;
 	search { \fIstring\fR; \&.\&.\&. };
 	ndots \fIinteger\fR;
+	lwres\-tasks \fIinteger\fR;
+	lwres\-clients \fIinteger\fR;
 };
 .fi
 .if n \{\
@@ -221,13 +216,25 @@ options {
 	coresize \fIsize\fR;
 	datasize \fIsize\fR;
 	directory \fIquoted_string\fR;
+	dnstap { \fImessage_type\fR; \&.\&.\&. };
+	dnstap\-output ( file | unix ) \fIpath_name\fR;
+	dnstap\-identity ( \fIstring\fR | hostname | none );
+	dnstap\-version ( \fIstring\fR | none );
 	dump\-file \fIquoted_string\fR;
 	files \fIsize\fR;
+	fstrm\-set\-buffer\-hint \fInumber\fR;
+	fstrm\-set\-flush\-timeout \fInumber\fR;
+	fstrm\-set\-input\-queue\-size \fInumber\fR;
+	fstrm\-set\-output\-notify\-threshold \fInumber\fR;
+	fstrm\-set\-output\-queue\-model ( \fImpsc\fR | \fIspsc\fR ) ;
+	fstrm\-set\-output\-queue\-size \fInumber\fR;
+	fstrm\-set\-reopen\-interval \fInumber\fR;
 	heartbeat\-interval \fIinteger\fR;
 	host\-statistics \fIboolean\fR; // not implemented
 	host\-statistics\-max \fInumber\fR; // not implemented
 	hostname ( \fIquoted_string\fR | none );
 	interface\-interval \fIinteger\fR;
+	keep\-response\-order { \fIaddress_match_element\fR; \&.\&.\&. };
 	listen\-on [ port \fIinteger\fR ] { \fIaddress_match_element\fR; \&.\&.\&. };
 	listen\-on\-v6 [ port \fIinteger\fR ] { \fIaddress_match_element\fR; \&.\&.\&. };
 	match\-mapped\-addresses \fIboolean\fR;
@@ -250,6 +257,7 @@ options {
 	tkey\-gssapi\-credential \fIquoted_string\fR;
 	tkey\-gssapi\-keytab \fIquoted_string\fR;
 	tkey\-domain \fIquoted_string\fR;
+	transfer\-message\-size \fIinteger\fR;
 	transfers\-per\-ns \fIinteger\fR;
 	transfers\-in \fIinteger\fR;
 	transfers\-out \fIinteger\fR;
@@ -259,7 +267,8 @@ options {
 	sortlist { \fIaddress_match_element\fR; \&.\&.\&. };
 	topology { \fIaddress_match_element\fR; \&.\&.\&. }; // not implemented
 	auth\-nxdomain \fIboolean\fR; // default changed
-	minimal\-responses \fIboolean\fR;
+	minimal\-any \fIboolean\fR;
+	minimal\-responses ( \fIboolean\fR | no\-auth | no\-auth\-recursive );
 	recursion \fIboolean\fR;
 	rrset\-order {
 		[ class \fIstring\fR ] [ type \fIstring\fR ]
@@ -293,6 +302,16 @@ options {
 	check\-mx\-cname ( fail | warn | ignore );
 	check\-srv\-cname ( fail | warn | ignore );
 	cache\-file \fIquoted_string\fR; // test option
+	catalog\-zones {
+	    zone \fIquoted_string\fR
+		[ default\-masters
+		[port \fIip_port\fR]
+		[dscp \fIip_dscp\fR]
+		{ ( \fImasters_list\fR | \fIip_addr\fR [port \fIip_port\fR] [key \fIkey\fR] ) ; [\&.\&.\&.] }]
+	    [in\-memory \fIyes_or_no\fR]
+	    [min\-update\-interval \fIinterval\fR]
+	    ; \&.\&.\&. };
+	;
 	suppress\-initial\-notify \fIboolean\fR; // not yet implemented
 	preferred\-glue \fIstring\fR;
 	dual\-stack\-servers [ port \fIinteger\fR ] {
@@ -313,9 +332,9 @@ options {
 	dns64\-server \fIstring\fR;
 	dns64\-contact \fIstring\fR;
 	dns64 \fIprefix\fR {
-		clients { <replacable>acl</replacable>; };
-		exclude { <replacable>acl</replacable>; };
-		mapped { <replacable>acl</replacable>; };
+		clients { \fIacl\fR; };
+		exclude { \fIacl\fR; };
+		mapped { \fIacl\fR; };
 		break\-dnssec \fIboolean\fR;
 		recursive\-only \fIboolean\fR;
 		suffix \fIipv6_address\fR;
@@ -382,6 +401,11 @@ options {
 	zero\-no\-soa\-ttl\-cache \fIboolean\fR;
 	dnssec\-secure\-to\-insecure \fIboolean\fR;
 	automatic\-interface\-scan \fIboolean\fR;
+	cookie\-algorithm ( \fIaes\fR | \fIsha1\fR | \fIsha256\fR );
+	cookie\-secret \fIstring\fR;
+	require\-server\-cookie \fIboolean\fR;
+	send\-cookie \fIboolean\fR;
+	nocookie\-udp\-size \fIinteger\fR;
 	deny\-answer\-addresses {
 		\fIaddress_match_list\fR
 	} [ except\-from { \fInamelist\fR } ];
@@ -436,6 +460,7 @@ view \fIstring\fR \fIoptional_class\fR {
 	sortlist { \fIaddress_match_element\fR; \&.\&.\&. };
 	topology { \fIaddress_match_element\fR; \&.\&.\&. }; // not implemented
 	auth\-nxdomain \fIboolean\fR; // default changed
+	minimal\-any \fIboolean\fR;
 	minimal\-responses \fIboolean\fR;
 	recursion \fIboolean\fR;
 	rrset\-order {
@@ -490,9 +515,9 @@ view \fIstring\fR \fIoptional_class\fR {
 	dns64\-server \fIstring\fR;
 	dns64\-contact \fIstring\fR;
 	dns64 \fIprefix\fR {
-		clients { <replacable>acl</replacable>; };
-		exclude { <replacable>acl</replacable>; };
-		mapped { <replacable>acl</replacable>; };
+		clients { \fIacl\fR; };
+		exclude { \fIacl\fR; };
+		mapped { \fIacl\fR; };
 		break\-dnssec \fIboolean\fR;
 		recursive\-only \fIboolean\fR;
 		suffix \fIipv6_address\fR;
@@ -552,6 +577,9 @@ view \fIstring\fR \fIoptional_class\fR {
 	zero\-no\-soa\-ttl \fIboolean\fR;
 	zero\-no\-soa\-ttl\-cache \fIboolean\fR;
 	dnssec\-secure\-to\-insecure \fIboolean\fR;
+	require\-server\-cookie \fIboolean\fR;
+	send\-cookie \fIboolean\fR;
+	nocookie\-udp\-size \fIinteger\fR;
 	allow\-v6\-synthesis { \fIaddress_match_element\fR; \&.\&.\&. }; // obsolete
 	fetch\-glue \fIboolean\fR; // obsolete
 	maintain\-ixfr\-base \fIboolean\fR; // obsolete
@@ -596,7 +624,7 @@ zone \fIstring\fR \fIoptional_class\fR {
 	update\-policy \fIlocal\fR | \fI {
 		( grant | deny ) \fR\fI\fIstring\fR\fR\fI
 		( name | subdomain | wildcard | self | selfsub | selfwild |
-                  krb5\-self | ms\-self | krb5\-subdomain | ms\-subdomain |
+		  krb5\-self | ms\-self | krb5\-subdomain | ms\-subdomain |
 		  tcp\-self | zonesub | 6to4\-self ) \fR\fI\fIstring\fR\fR\fI
 		\fR\fI\fIrrtypelist\fR\fR\fI;
 		\fR\fI[\&.\&.\&.]\fR\fI

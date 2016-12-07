@@ -1,19 +1,10 @@
 #!/bin/sh
 #
-# Copyright (C) 2004, 2005, 2007, 2011-2016  Internet Systems Consortium, Inc. ("ISC")
-# Copyright (C) 2000, 2001  Internet Software Consortium.
+# Copyright (C) 2000, 2001, 2004, 2005, 2007, 2011-2016  Internet Systems Consortium, Inc. ("ISC")
 #
-# Permission to use, copy, modify, and/or distribute this software for any
-# purpose with or without fee is hereby granted, provided that the above
-# copyright notice and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-# AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
-# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
-# OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-# PERFORMANCE OF THIS SOFTWARE.
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 # $Id: tests.sh,v 1.37 2012/02/22 23:47:35 tbox Exp $
 
@@ -378,6 +369,36 @@ $DIGCMD nil. TXT | grep 'incorrect key AXFR' >/dev/null && {
 }
 
 n=`expr $n + 1`
+echo "I:check that we ask for and get a EDNS EXPIRE response ($n)"
+# force a refresh query
+$RNDC -s 10.53.0.7 -p 9953 -c ../common/rndc.conf refresh edns-expire 2>&1 | sed 's/^/I:ns7 /'
+sleep 10
+
+# there may be multiple log entries so get the last one.
+expire=`awk '/edns-expire\/IN: got EDNS EXPIRE of/ { x=$9 } END { print x }' ns7/named.run`
+test ${expire:-0} -gt 0 -a ${expire:-0} -lt 1814400 || {
+    echo "I:failed (expire=${expire:-0})"
+    status=1
+}
+
+n=`expr $n + 1`
+echo "I:test smaller transfer TCP message size ($n)"
+$DIG $DIGOPTS example. @10.53.0.8 axfr -p 5300 \
+	-y key1.:1234abcd8765 > dig.out.msgsize || status=1
+
+bytes=`wc -c < dig.out.msgsize`
+if [ $bytes -ne 459357 ]; then
+	echo "I:failed axfr size check"
+	status=1
+fi
+
+num_messages=`cat ns8/named.run | grep "sending TCP message of" | wc -l`
+if [ $num_messages -le 300 ]; then
+	echo "I:failed transfer message count check"
+	status=1
+fi
+
+n=`expr $n + 1`
 echo "I:test mapped zone with out of zone data ($n)"
 tmp=0
 $DIG -p 5300 txt mapped @10.53.0.3 > dig.out.1.$n
@@ -392,4 +413,4 @@ if test $tmp != 0 ; then echo "I:failed"; fi
 status=`expr $status + $tmp`
 
 echo "I:exit status: $status"
-exit $status
+[ $status -eq 0 ] || exit 1

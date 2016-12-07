@@ -1,18 +1,9 @@
 /*
- * Portions Copyright (C) 2004-2009, 2011-2015  Internet Systems Consortium, Inc. ("ISC")
- * Portions Copyright (C) 1999-2002  Internet Software Consortium.
+ * Portions Copyright (C) 1999-2002, 2004-2009, 2011-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC AND NETWORK ASSOCIATES DISCLAIMS
- * ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE
- * FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
- * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
- * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR
- * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * Portions Copyright (C) 1995-2000 by Network Associates, Inc.
  *
@@ -35,6 +26,10 @@
 #endif
 
 #include <config.h>
+
+#include <pk11/site.h>
+
+#ifndef PK11_DSA_DISABLE
 
 #include <string.h>
 
@@ -686,6 +681,7 @@ dst__openssldsa_init(dst_func_t **funcp) {
 		*funcp = &openssldsa_functions;
 	return (ISC_R_SUCCESS);
 }
+#endif /* !PK11_DSA_DISABLE */
 
 #else /* OPENSSL */
 

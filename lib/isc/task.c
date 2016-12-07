@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2015  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1998-2003  Internet Software Consortium.
+ * Copyright (C) 1998-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /*! \file
@@ -39,6 +30,7 @@
 #include <isc/string.h>
 #include <isc/task.h>
 #include <isc/thread.h>
+#include <isc/time.h>
 #include <isc/util.h>
 #include <isc/xml.h>
 
@@ -114,6 +106,7 @@ struct isc__task {
 	unsigned int			quantum;
 	unsigned int			flags;
 	isc_stdtime_t			now;
+	isc_time_t			tnow;
 	char				name[16];
 	void *				tag;
 	/* Locked by task manager lock. */
@@ -226,6 +219,8 @@ void *
 isc__task_gettag(isc_task_t *task0);
 void
 isc__task_getcurrenttime(isc_task_t *task0, isc_stdtime_t *t);
+void
+isc__task_getcurrenttimex(isc_task_t *task0, isc_time_t *t);
 isc_result_t
 isc__taskmgr_create(isc_mem_t *mctx, unsigned int workers,
 		    unsigned int default_quantum, isc_taskmgr_t **managerp);
@@ -263,7 +258,8 @@ static struct isc__taskmethods {
 	/*%
 	 * The following are defined just for avoiding unused static functions.
 	 */
-	void *purgeevent, *unsendrange, *getname, *gettag, *getcurrenttime;
+	void *purgeevent, *unsendrange, *getname, *gettag,
+	     *getcurrenttime, *getcurrenttimex;
 } taskmethods = {
 	{
 		isc__task_attach,
@@ -286,7 +282,8 @@ static struct isc__taskmethods {
 	(void *)isc__task_unsendrange,
 	(void *)isc__task_getname,
 	(void *)isc__task_gettag,
-	(void *)isc__task_getcurrenttime
+	(void *)isc__task_getcurrenttime,
+	(void *)isc__task_getcurrenttimex
 };
 
 static isc_taskmgrmethods_t taskmgrmethods = {
@@ -365,6 +362,7 @@ isc__task_create(isc_taskmgr_t *manager0, unsigned int quantum,
 	task->quantum = quantum;
 	task->flags = 0;
 	task->now = 0;
+	isc_time_settoepoch(&task->tnow);
 	memset(task->name, 0, sizeof(task->name));
 	task->tag = NULL;
 	INIT_LINK(task, link);
@@ -921,6 +919,18 @@ isc__task_getcurrenttime(isc_task_t *task0, isc_stdtime_t *t) {
 	UNLOCK(&task->lock);
 }
 
+void
+isc__task_getcurrenttimex(isc_task_t *task0, isc_time_t *t) {
+	isc__task_t *task = (isc__task_t *)task0;
+
+	REQUIRE(VALID_TASK(task));
+	REQUIRE(t != NULL);
+
+	LOCK(&task->lock);
+	*t = task->tnow;
+	UNLOCK(&task->lock);
+}
+
 /***
  *** Task Manager.
  ***/
@@ -1109,7 +1119,8 @@ dispatch(isc__taskmgr_t *manager) {
 			task->state = task_state_running;
 			XTRACE(isc_msgcat_get(isc_msgcat, ISC_MSGSET_GENERAL,
 					      ISC_MSG_RUNNING, "running"));
-			isc_stdtime_get(&task->now);
+			TIME_NOW(&task->tnow);
+			task->now = isc_time_seconds(&task->tnow);
 			do {
 				if (!EMPTY(task->events)) {
 					event = HEAD(task->events);
@@ -1703,7 +1714,10 @@ isc__task_beginexclusive(isc_task_t *task0) {
 	isc__taskmgr_t *manager = task->manager;
 
 	REQUIRE(task->state == task_state_running);
-	/* XXX: Require task == manager->excl? */
+/*
+ *  TODO REQUIRE(task == task->manager->excl);
+ *  it should be here, it fails on shutdown server->task
+ */
 
 	LOCK(&manager->lock);
 	if (manager->exclusive_requested) {
@@ -2278,6 +2292,14 @@ isc_task_getcurrenttime(isc_task_t *task, isc_stdtime_t *t) {
 		return;
 
 	isc__task_getcurrenttime(task, t);
+}
+
+void
+isc_task_getcurrenttimex(isc_task_t *task, isc_time_t *t) {
+	if (!isc_bind9)
+		return;
+
+	isc__task_getcurrenttimex(task, t);
 }
 
 /*%

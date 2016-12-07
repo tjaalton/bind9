@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2007, 2009, 2011-2015  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1999-2001, 2003  Internet Software Consortium.
+ * Copyright (C) 1999-2001, 2003-2007, 2009, 2011-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /*! \file dns/log.h
@@ -44,6 +35,7 @@ LIBDNS_EXTERNAL_DATA extern isc_logmodule_t dns_modules[];
 #define DNS_LOGCATEGORY_RRL		(&dns_categories[13])
 #define DNS_LOGCATEGORY_CNAME		(&dns_categories[14])
 #define DNS_LOGCATEGORY_SPILL		(&dns_categories[15])
+#define DNS_LOGCATEGORY_DNSTAP		(&dns_categories[16])
 
 /* Backwards compatibility. */
 #define DNS_LOGCATEGORY_GENERAL		ISC_LOGCATEGORY_GENERAL
@@ -78,6 +70,9 @@ LIBDNS_EXTERNAL_DATA extern isc_logmodule_t dns_modules[];
 #define DNS_LOGMODULE_DNSSEC		(&dns_modules[27])
 #define DNS_LOGMODULE_CRYPTO		(&dns_modules[28])
 #define DNS_LOGMODULE_PACKETS		(&dns_modules[29])
+#define DNS_LOGMODULE_NTA		(&dns_modules[30])
+#define DNS_LOGMODULE_DYNDB		(&dns_modules[31])
+#define DNS_LOGMODULE_DNSTAP		(&dns_modules[32])
 
 ISC_LANG_BEGINDECLS
 

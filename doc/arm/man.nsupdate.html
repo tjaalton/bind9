@@ -1,20 +1,12 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <!--
- - Copyright (C) 2004-2015 Internet Systems Consortium, Inc. ("ISC")
- - Copyright (C) 2000-2003 Internet Software Consortium.
+ - Copyright (C) 2000-2015 Internet Systems Consortium, Inc. ("ISC")
  - 
- - Permission to use, copy, modify, and/or distribute this software for any
- - purpose with or without fee is hereby granted, provided that the above
- - copyright notice and this permission notice appear in all copies.
- - 
- - THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- - REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- - AND FITNESS. IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- - INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- - LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- - OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- - PERFORMANCE OF THIS SOFTWARE.
+ - This Source Code Form is subject to the terms of the Mozilla Public
+ - License, v. 2.0. If a copy of the MPL was not distributed with this
+ - file, You can obtain one at http://mozilla.org/MPL/2.0/.
 -->
-<html>
+<html lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
 <title>nsupdate</title>
@@ -49,7 +41,7 @@
 <div class="cmdsynopsis"><p><code class="command">nsupdate</code>  [<code class="option">-d</code>] [<code class="option">-D</code>] [<code class="option">-L <em class="replaceable"><code>level</code></em></code>] [[<code class="option">-g</code>] |  [<code class="option">-o</code>] |  [<code class="option">-l</code>] |  [<code class="option">-y <em class="replaceable"><code>[<span class="optional">hmac:</span>]keyname:secret</code></em></code>] |  [<code class="option">-k <em class="replaceable"><code>keyfile</code></em></code>]] [<code class="option">-t <em class="replaceable"><code>timeout</code></em></code>] [<code class="option">-u <em class="replaceable"><code>udptimeout</code></em></code>] [<code class="option">-r <em class="replaceable"><code>udpretries</code></em></code>] [<code class="option">-R <em class="replaceable"><code>randomdev</code></em></code>] [<code class="option">-v</code>] [<code class="option">-T</code>] [<code class="option">-P</code>] [<code class="option">-V</code>] [filename]</p></div>
 </div>
 <div class="refsection">
-<a name="id-1.14.22.7"></a><h2>DESCRIPTION</h2>
+<a name="id-1.14.26.7"></a><h2>DESCRIPTION</h2>
 <p><span class="command"><strong>nsupdate</strong></span>
       is used to submit Dynamic DNS Update requests as defined in RFC 2136
       to a name server.
@@ -107,7 +99,7 @@
     </p>
 </div>
 <div class="refsection">
-<a name="id-1.14.22.8"></a><h2>OPTIONS</h2>
+<a name="id-1.14.26.8"></a><h2>OPTIONS</h2>
 <div class="variablelist"><dl class="variablelist">
 <dt><span class="term">-d</span></dt>
 <dd><p>
@@ -228,7 +220,8 @@
 	    <code class="literal">hmac-sha1</code>, <code class="literal">hmac-sha224</code>,
 	    <code class="literal">hmac-sha256</code>, <code class="literal">hmac-sha384</code>, or
 	    <code class="literal">hmac-sha512</code>.  If <em class="parameter"><code>hmac</code></em>
-	    is not specified, the default is <code class="literal">hmac-md5</code>.
+	    is not specified, the default is <code class="literal">hmac-md5</code>
+	    or if MD5 was disabled <code class="literal">hmac-sha256</code>.
 	  </p>
 <p>
 	    NOTE: Use of the <code class="option">-y</code> option is discouraged because the
@@ -241,7 +234,7 @@
 </dl></div>
 </div>
 <div class="refsection">
-<a name="id-1.14.22.9"></a><h2>INPUT FORMAT</h2>
+<a name="id-1.14.26.9"></a><h2>INPUT FORMAT</h2>
 <p><span class="command"><strong>nsupdate</strong></span>
       reads input from
       <em class="parameter"><code>filename</code></em>
@@ -353,7 +346,8 @@
 	      <em class="parameter"><code>keyname</code></em> <em class="parameter"><code>secret</code></em> pair.
 	      If <em class="parameter"><code>hmac</code></em> is specified, then it sets the
 	      signing algorithm in use; the default is
-	      <code class="literal">hmac-md5</code>.  The <span class="command"><strong>key</strong></span>
+	      <code class="literal">hmac-md5</code> or if MD5 was disabled
+	      <code class="literal">hmac-sha256</code>.  The <span class="command"><strong>key</strong></span>
 	      command overrides any key specified on the command line via
 	      <code class="option">-y</code> or <code class="option">-k</code>.
 	    </p></dd>
@@ -362,7 +356,7 @@
 	  </span></dt>
 <dd><p>
 	      Use GSS-TSIG to sign the updated.  This is equivalent to
-	      specifying <code class="option">-g</code> on the commandline.
+	      specifying <code class="option">-g</code> on the command line.
 	    </p></dd>
 <dt><span class="term">
 	    <span class="command"><strong>oldgsstsig</strong></span>
@@ -370,7 +364,7 @@
 <dd><p>
 	      Use the Windows 2000 version of GSS-TSIG to sign the updated.
 	      This is equivalent to specifying <code class="option">-o</code> on the
-	      commandline.
+	      command line.
 	    </p></dd>
 <dt><span class="term">
 	    <span class="command"><strong>realm</strong></span>
@@ -380,6 +374,17 @@
 	      When using GSS-TSIG use <em class="parameter"><code>realm_name</code></em> rather
 	      than the default realm in <code class="filename">krb5.conf</code>.  If no
 	      realm is specified the saved realm is cleared.
+	    </p></dd>
+<dt><span class="term">
+	    <span class="command"><strong>check-names</strong></span>
+	     {[<span class="optional">yes_or_no</span>]}
+	  </span></dt>
+<dd><p>
+	      Turn on or off check-names processing on records to
+	      be added.  Check-names has no effect on prerequisites
+	      or records to be deleted.  By default check-names
+	      processing is on.  If check-names processing fails
+	      the record will not be added to the UPDATE message.
 	    </p></dd>
 <dt><span class="term">
 	      <span class="command"><strong>[<span class="optional">prereq</span>] nxdomain</strong></span>
@@ -543,7 +548,7 @@
     </p>
 </div>
 <div class="refsection">
-<a name="id-1.14.22.10"></a><h2>EXAMPLES</h2>
+<a name="id-1.14.26.10"></a><h2>EXAMPLES</h2>
 <p>
       The examples below show how
       <span class="command"><strong>nsupdate</strong></span>
@@ -597,7 +602,7 @@
     </p>
 </div>
 <div class="refsection">
-<a name="id-1.14.22.11"></a><h2>FILES</h2>
+<a name="id-1.14.26.11"></a><h2>FILES</h2>
 <div class="variablelist"><dl class="variablelist">
 <dt><span class="term"><code class="constant">/etc/resolv.conf</code></span></dt>
 <dd><p>
@@ -620,7 +625,7 @@
 </dl></div>
 </div>
 <div class="refsection">
-<a name="id-1.14.22.12"></a><h2>SEE ALSO</h2>
+<a name="id-1.14.26.12"></a><h2>SEE ALSO</h2>
 <p>
       <em class="citetitle">RFC 2136</em>,
       <em class="citetitle">RFC 3007</em>,
@@ -635,7 +640,7 @@
     </p>
 </div>
 <div class="refsection">
-<a name="id-1.14.22.13"></a><h2>BUGS</h2>
+<a name="id-1.14.26.13"></a><h2>BUGS</h2>
 <p>
       The TSIG key is redundantly stored in two separate files.
       This is a consequence of nsupdate using the DST library
@@ -663,6 +668,6 @@
 </tr>
 </table>
 </div>
-<p xmlns:db="http://docbook.org/ns/docbook" style="text-align: center;">BIND 9.10.4-P2</p>
+<p xmlns:db="http://docbook.org/ns/docbook" style="text-align: center;">BIND 9.11.0</p>
 </body>
 </html>

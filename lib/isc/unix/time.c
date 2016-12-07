@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2008, 2011, 2012, 2014, 2015  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1998-2001, 2003  Internet Software Consortium.
+ * Copyright (C) 1998-2001, 2003-2008, 2011, 2012, 2014-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id$ */
@@ -39,6 +30,7 @@
 
 #define NS_PER_S	1000000000	/*%< Nanoseconds per second. */
 #define NS_PER_US	1000		/*%< Nanoseconds per microsecond. */
+#define NS_PER_MS	1000000		/*%< Nanoseconds per millisecond. */
 #define US_PER_S	1000000		/*%< Microseconds per second. */
 
 /*
@@ -392,9 +384,11 @@ isc_time_formattimestamp(const isc_time_t *t, char *buf, unsigned int len) {
 	INSIST(flen < len);
 	if (flen != 0)
 		snprintf(buf + flen, len - flen,
-			 ".%03u", t->nanoseconds / 1000000);
-	else
-		snprintf(buf, len, "99-Bad-9999 99:99:99.999");
+			 ".%03u", t->nanoseconds / NS_PER_MS);
+	else {
+		strncpy(buf, "99-Bad-9999 99:99:99.999", len);
+		buf[len - 1] = 0;
+	}
 }
 
 void
@@ -440,4 +434,21 @@ isc_time_formatISO8601(const isc_time_t *t, char *buf, unsigned int len) {
 	now = (time_t)t->seconds;
 	flen = strftime(buf, len, "%Y-%m-%dT%H:%M:%SZ", gmtime(&now));
 	INSIST(flen < len);
+}
+
+void
+isc_time_formatISO8601ms(const isc_time_t *t, char *buf, unsigned int len) {
+	time_t now;
+	unsigned int flen;
+
+	REQUIRE(len > 0);
+
+	now = (time_t)t->seconds;
+	flen = strftime(buf, len, "%Y-%m-%dT%H:%M:%SZ", gmtime(&now));
+	INSIST(flen < len);
+	if (flen == len - 5) {
+		flen -= 1; /* rewind one character */
+		snprintf(buf + flen, len - flen, ".%03uZ",
+			 t->nanoseconds / NS_PER_MS);
+	}
 }

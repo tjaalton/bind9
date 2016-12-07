@@ -1,17 +1,8 @@
-.\" Copyright (C) 2004, 2005, 2007, 2013-2015 Internet Systems Consortium, Inc. ("ISC")
-.\" Copyright (C) 2000, 2001 Internet Software Consortium.
+.\" Copyright (C) 2000, 2001, 2004, 2005, 2007, 2013-2016 Internet Systems Consortium, Inc. ("ISC")
 .\" 
-.\" Permission to use, copy, modify, and/or distribute this software for any
-.\" purpose with or without fee is hereby granted, provided that the above
-.\" copyright notice and this permission notice appear in all copies.
-.\" 
-.\" THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
-.\" REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-.\" AND FITNESS. IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
-.\" INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-.\" LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
-.\" OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-.\" PERFORMANCE OF THIS SOFTWARE.
+.\" This Source Code Form is subject to the terms of the Mozilla Public
+.\" License, v. 2.0. If a copy of the MPL was not distributed with this
+.\" file, You can obtain one at http://mozilla.org/MPL/2.0/.
 .\"
 .hy 0
 .ad l
@@ -48,7 +39,7 @@
 rndc \- name server control utility
 .SH "SYNOPSIS"
 .HP \w'\fBrndc\fR\ 'u
-\fBrndc\fR [\fB\-b\ \fR\fB\fIsource\-address\fR\fR] [\fB\-c\ \fR\fB\fIconfig\-file\fR\fR] [\fB\-k\ \fR\fB\fIkey\-file\fR\fR] [\fB\-s\ \fR\fB\fIserver\fR\fR] [\fB\-p\ \fR\fB\fIport\fR\fR] [\fB\-q\fR] [\fB\-V\fR] [\fB\-y\ \fR\fB\fIkey_id\fR\fR] {command}
+\fBrndc\fR [\fB\-b\ \fR\fB\fIsource\-address\fR\fR] [\fB\-c\ \fR\fB\fIconfig\-file\fR\fR] [\fB\-k\ \fR\fB\fIkey\-file\fR\fR] [\fB\-s\ \fR\fB\fIserver\fR\fR] [\fB\-p\ \fR\fB\fIport\fR\fR] [\fB\-q\fR] [\fB\-r\fR] [\fB\-V\fR] [\fB\-y\ \fR\fB\fIkey_id\fR\fR] {command}
 .SH "DESCRIPTION"
 .PP
 \fBrndc\fR
@@ -116,6 +107,15 @@ instead of BIND 9\*(Aqs default control channel port, 953\&.
 Quiet mode: Message text returned by the server will not be printed except when there is an error\&.
 .RE
 .PP
+\-r
+.RS 4
+Instructs
+\fBrndc\fR
+to print the result code returned by
+\fBnamed\fR
+after executing the requested command (e\&.g\&., ISC_R_SUCCESS, ISC_R_FAILURE, etc)\&.
+.RE
+.PP
 \-V
 .RS 4
 Enable verbose logging\&.
@@ -156,9 +156,9 @@ string specified on the command line is the zone configuration text that would o
 named\&.conf\&.
 .sp
 The configuration is saved in a file called
-\fIhash\fR\&.nzf, where
-\fIhash\fR
-is a cryptographic hash generated from the name of the view\&. When
+\fIname\fR\&.nzf, where
+\fIname\fR
+is the name of the view, or if it contains characters that are incompatible with use as a file name, a cryptographic hash generated from the name of the view\&. When
 \fBnamed\fR
 is restarted, the file will be loaded into the view configuration, so that zones that were added can persist after a restart\&.
 .sp
@@ -173,28 +173,48 @@ $\fBrndc addzone example\&.com \*(Aq{ type master; file "example\&.com\&.db"; };
 (Note the brackets and semi\-colon around the zone configuration text\&.)
 .sp
 See also
-\fBrndc delzone\fR\&.
+\fBrndc delzone\fR
+and
+\fBrndc modzone\fR\&.
 .RE
 .PP
 \fBdelzone \fR\fB[\-clean]\fR\fB \fR\fB\fIzone\fR\fR\fB \fR\fB[\fIclass\fR [\fIview\fR]]\fR\fB \fR
 .RS 4
-Delete a zone while the server is running\&. Only zones that were originally added via
-\fBrndc addzone\fR
-can be deleted in this manner\&.
+Delete a zone while the server is running\&.
 .sp
 If the
 \fB\-clean\fR
-is specified, the zone\*(Aqs master file (and journal file, if any) will be deleted along with the zone\&. Without the
+argument is specified, the zone\*(Aqs master file (and journal file, if any) will be deleted along with the zone\&. Without the
 \fB\-clean\fR
 option, zone files must be cleaned up by hand\&. (If the zone is of type "slave" or "stub", the files needing to be cleaned up will be reported in the output of the
 \fBrndc delzone\fR
 command\&.)
 .sp
+If the zone was originally added via
+\fBrndc addzone\fR, then it will be removed permanently\&. However, if it was originally configured in
+named\&.conf, then that original configuration is still in place; when the server is restarted or reconfigured, the zone will come back\&. To remove it permanently, it must also be removed from
+named\&.conf
+.sp
 See also
-\fBrndc addzone\fR\&.
+\fBrndc addzone\fR
+and
+\fBrndc modzone\fR\&.
 .RE
 .PP
-\fBdumpdb \fR\fB[\-all|\-cache|\-zone|\-adb|\-bad]\fR\fB \fR\fB[\fIview \&.\&.\&.\fR]\fR
+\fBdnstap ( \-reopen | \-roll \fR\fB[\fInumber\fR]\fR\fB )\fR
+.RS 4
+Close and re\-open DNSTAP output files\&.
+\fBrndc dnstap \-reopen\fR
+allows the output file to be renamed externally, so that
+\fBnamed\fR
+can truncate and re\-open it\&.
+\fBrndc dnstap \-roll\fR
+causes the output file to be rolled automatically, similar to log files; the most recent output file has "\&.0" appended to its name; the previous most recent output file is moved to "\&.1", and so on\&. If
+\fInumber\fR
+is specified, then the number of backup log files is limited to that number\&.
+.RE
+.PP
+\fBdumpdb \fR\fB[\-all|\-cache|\-zone|\-adb|\-bad|\-fail]\fR\fB \fR\fB[\fIview \&.\&.\&.\fR]\fR
 .RS 4
 Dump the server\*(Aqs caches (default) and/or zones to the dump file for the specified views\&. If no view is specified, all views are dumped\&. (See the
 \fBdump\-file\fR
@@ -208,12 +228,12 @@ Flushes the server\*(Aqs cache\&.
 .PP
 \fBflushname\fR \fIname\fR [\fIview\fR]
 .RS 4
-Flushes the given name from the server\*(Aqs DNS cache and, if applicable, from the server\*(Aqs nameserver address database or bad\-server cache\&.
+Flushes the given name from the view\*(Aqs DNS cache and, if applicable, from the view\*(Aqs nameserver address database, bad server cache and SERVFAIL cache\&.
 .RE
 .PP
 \fBflushtree\fR \fIname\fR [\fIview\fR]
 .RS 4
-Flushes the given name, and all of its subdomains, from the server\*(Aqs DNS cache, the address database, and the bad server cache\&.
+Flushes the given name, and all of its subdomains, from the view\*(Aqs DNS cache, address database, bad server cache, and SERVFAIL cache\&.
 .RE
 .PP
 \fBfreeze \fR\fB[\fIzone\fR [\fIclass\fR [\fIview\fR]]]\fR
@@ -246,9 +266,35 @@ This command requires that the
 \fBauto\-dnssec\fR
 zone option be set to
 maintain, and also requires the zone to be configured to allow dynamic DNS\&. (See "Dynamic Update Policies" in the Administrator Reference Manual for more details\&.)
+.RE
+.PP
+\fBmanaged\-keys \fR\fB\fI(status | refresh | sync)\fR\fR\fB \fR\fB[\fIclass\fR [\fIview\fR]]\fR
+.RS 4
+When run with the "status" keyword, print the current status of the managed\-keys database for the specified view, or for all views if none is specified\&. When run with the "refresh" keyword, force an immediate refresh of all the managed\-keys in the specified view, or all views\&. When run with the "sync" keyword, force an immediate dump of the managed\-keys database to disk (in the file
+managed\-keys\&.bind
+or (\fIviewname\fR\&.mkeys)\&.
+.RE
+.PP
+\fBmodzone \fR\fB\fIzone\fR\fR\fB \fR\fB[\fIclass\fR [\fIview\fR]]\fR\fB \fR\fB\fIconfiguration\fR\fR\fB \fR
+.RS 4
+Modify the configuration of a zone while the server is running\&. This command requires the
+\fBallow\-new\-zones\fR
+option to be set to
+\fByes\fR\&. As with
+\fBaddzone\fR, the
+\fIconfiguration\fR
+string specified on the command line is the zone configuration text that would ordinarily be placed in
+named\&.conf\&.
+.sp
+If the zone was originally added via
+\fBrndc addzone\fR, the configuration changes will be recorded permanently and will still be in effect after the server is restarted or reconfigured\&. However, if it was originally configured in
+named\&.conf, then that original configuration is still in place; when the server is restarted or reconfigured, the zone will revert to its original configuration\&. To make the changes permanent, it must also be modified in
+named\&.conf
 .sp
 See also
-\fBrndc loadkeys\fR\&.
+\fBrndc addzone\fR
+and
+\fBrndc delzone\fR\&.
 .RE
 .PP
 \fBnotify \fR\fB\fIzone\fR\fR\fB \fR\fB[\fIclass\fR [\fIview\fR]]\fR
@@ -262,6 +308,57 @@ Sets the server\*(Aqs debugging level to 0\&.
 .sp
 See also
 \fBrndc trace\fR\&.
+.RE
+.PP
+\fBnta \fR\fB[( \-d | \-f | \-r | \-l \fIduration\fR)]\fR\fB \fR\fB\fIdomain\fR\fR\fB \fR\fB[\fIview\fR]\fR\fB \fR
+.RS 4
+Sets a DNSSEC negative trust anchor (NTA) for
+\fBdomain\fR, with a lifetime of
+\fBduration\fR\&. The default lifetime is configured in
+named\&.conf
+via the
+\fBnta\-lifetime\fR
+option, and defaults to one hour\&. The lifetime cannot exceed one week\&.
+.sp
+A negative trust anchor selectively disables DNSSEC validation for zones that are known to be failing because of misconfiguration rather than an attack\&. When data to be validated is at or below an active NTA (and above any other configured trust anchors),
+\fBnamed\fR
+will abort the DNSSEC validation process and treat the data as insecure rather than bogus\&. This continues until the NTA\*(Aqs lifetime is elapsed\&.
+.sp
+NTAs persist across restarts of the
+\fBnamed\fR
+server\&. The NTAs for a view are saved in a file called
+\fIname\fR\&.nta, where
+\fIname\fR
+is the name of the view, or if it contains characters that are incompatible with use as a file name, a cryptographic hash generated from the name of the view\&.
+.sp
+An existing NTA can be removed by using the
+\fB\-remove\fR
+option\&.
+.sp
+An NTA\*(Aqs lifetime can be specified with the
+\fB\-lifetime\fR
+option\&. TTL\-style suffixes can be used to specify the lifetime in seconds, minutes, or hours\&. If the specified NTA already exists, its lifetime will be updated to the new value\&. Setting
+\fBlifetime\fR
+to zero is equivalent to
+\fB\-remove\fR\&.
+.sp
+If
+\fB\-dump\fR
+is used, any other arguments are ignored, and a list of existing NTAs is printed (note that this may include NTAs that are expired but have not yet been cleaned up)\&.
+.sp
+Normally,
+\fBnamed\fR
+will periodically test to see whether data below an NTA can now be validated (see the
+\fBnta\-recheck\fR
+option in the Administrator Reference Manual for details)\&. If data can be validated, then the NTA is regarded as no longer necessary, and will be allowed to expire early\&. The
+\fB\-force\fR
+overrides this behavior and forces an NTA to persist for its entire lifetime, regardless of whether data could be validated if the NTA were not present\&.
+.sp
+All of these options can be shortened, i\&.e\&., to
+\fB\-l\fR,
+\fB\-r\fR,
+\fB\-d\fR, and
+\fB\-f\fR\&.
 .RE
 .PP
 \fBquerylog\fR [on|off]
@@ -332,9 +429,28 @@ or waiting for the
 timer\&.
 .RE
 .PP
-\fBsecroots \fR\fB[\fIview \&.\&.\&.\fR]\fR
+\fBsecroots \fR\fB[\-]\fR\fB \fR\fB[\fIview \&.\&.\&.\fR]\fR
 .RS 4
-Dump the server\*(Aqs security roots to the secroots file for the specified views\&. If no view is specified, security roots for all views are dumped\&.
+Dump the server\*(Aqs security roots and negative trust anchors for the specified views\&. If no view is specified, all views are dumped\&.
+.sp
+If the first argument is "\-", then the output is returned via the
+\fBrndc\fR
+response channel and printed to the standard output\&. Otherwise, it is written to the secroots dump file, which defaults to
+named\&.secroots, but can be overridden via the
+\fBsecroots\-file\fR
+option in
+named\&.conf\&.
+.sp
+See also
+\fBrndc managed\-keys\fR\&.
+.RE
+.PP
+\fBshowzone \fR\fB\fIzone\fR\fR\fB \fR\fB[\fIclass\fR [\fIview\fR]]\fR\fB \fR
+.RS 4
+Print the configuration of a running zone\&.
+.sp
+See also
+\fBrndc zonestatus\fR\&.
 .RE
 .PP
 \fBsign \fR\fB\fIzone\fR\fR\fB \fR\fB[\fIclass\fR [\fIview\fR]]\fR
@@ -354,7 +470,7 @@ See also
 \fBrndc loadkeys\fR\&.
 .RE
 .PP
-\fBsigning \fR\fB[( \-list | \-clear \fIkeyid/algorithm\fR | \-clear all | \-nsec3param ( \fIparameters\fR | none ) ) ]\fR\fB \fR\fB\fIzone\fR\fR\fB \fR\fB[\fIclass\fR [\fIview\fR]]\fR\fB \fR
+\fBsigning \fR\fB[( \-list | \-clear \fIkeyid/algorithm\fR | \-clear all | \-nsec3param ( \fIparameters\fR | none ) | \-serial \fIvalue\fR ) ]\fR\fB \fR\fB\fIzone\fR\fR\fB \fR\fB[\fIclass\fR [\fIview\fR]]\fR\fB \fR
 .RS 4
 List, edit, or remove the DNSSEC signing state records for the specified zone\&. The status of ongoing DNSSEC operations (such as signing or generating NSEC3 chains) is stored in the zone in the form of DNS resource records of type
 \fBsig\-signing\-type\fR\&.
@@ -392,6 +508,9 @@ So, for example, to create an NSEC3 chain using the SHA\-1 hash algorithm, no op
 .sp
 \fBrndc signing \-nsec3param none\fR
 removes an existing NSEC3 chain and replaces it with NSEC\&.
+.sp
+\fBrndc signing \-serial value\fR
+sets the serial number of the zone to value\&. If the value would cause the serial number to go backwards it will be rejected\&. The primary use is to set the serial on inline signed zones\&.
 .RE
 .PP
 \fBstats\fR
@@ -477,6 +596,9 @@ to be effective\&. It defaults to enabled\&.
 \fBzonestatus \fR\fB\fIzone\fR\fR\fB \fR\fB[\fIclass\fR [\fIview\fR]]\fR
 .RS 4
 Displays the current status of the given zone, including the master file name and any include files from which it was loaded, when it was most recently loaded, the current serial number, the number of nodes, whether the zone supports dynamic updates, whether the zone is DNSSEC signed, whether it uses automatic DNSSEC key management or inline signing, and the scheduled refresh or expiry times for the zone\&.
+.sp
+See also
+\fBrndc showzone\fR\&.
 .RE
 .SH "LIMITATIONS"
 .PP
@@ -498,7 +620,5 @@ BIND 9 Administrator Reference Manual\&.
 \fBInternet Systems Consortium, Inc\&.\fR
 .SH "COPYRIGHT"
 .br
-Copyright \(co 2004, 2005, 2007, 2013-2015 Internet Systems Consortium, Inc. ("ISC")
-.br
-Copyright \(co 2000, 2001 Internet Software Consortium.
+Copyright \(co 2000, 2001, 2004, 2005, 2007, 2013-2016 Internet Systems Consortium, Inc. ("ISC")
 .br

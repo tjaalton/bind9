@@ -1,17 +1,9 @@
 /*
- * Copyright (C) 2014  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2014, 2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 #ifndef PK11_PK11_H
@@ -28,6 +20,7 @@
 		 ((pk11_error_fatalcheck)(__FILE__, __LINE__, #func, rv), 0)))
 
 #include <pkcs11/cryptoki.h>
+#include <pk11/site.h>
 
 ISC_LANG_BEGINDECLS
 
@@ -53,7 +46,9 @@ struct pk11_context {
 	CK_SESSION_HANDLE	session;
 	CK_BBOOL		ontoken;
 	CK_OBJECT_HANDLE	object;
-#ifndef PKCS11CRYPTOWITHHMAC
+#if defined(PK11_MD5_HMAC_REPLACE) ||  defined(PK11_SHA_1_HMAC_REPLACE) || \
+    defined(PK11_SHA224_HMAC_REPLACE) || defined(PK11_SHA256_HMAC_REPLACE) || \
+    defined(PK11_SHA384_HMAC_REPLACE) || defined(PK11_SHA512_HMAC_REPLACE)
 	unsigned char		*key;
 #endif
 };
@@ -72,6 +67,11 @@ typedef enum {
 	OP_AES = 8,
 	OP_MAX = 9
 } pk11_optype_t;
+
+/*%
+ * Global flag to make choose_slots() verbose
+ */
+LIBISC_EXTERNAL_DATA extern isc_boolean_t pk11_verbose_init;
 
 /*%
  * Function prototypes
@@ -149,6 +149,8 @@ void pk11_dump_tokens(void);
 
 CK_RV
 pkcs_C_Initialize(CK_VOID_PTR pReserved);
+
+char *pk11_get_load_error_message(void);
 
 CK_RV
 pkcs_C_Finalize(CK_VOID_PTR pReserved);

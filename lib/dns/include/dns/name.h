@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2007, 2009-2013, 2015, 2016  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1998-2003  Internet Software Consortium.
+ * Copyright (C) 1998-2007, 2009-2013, 2015, 2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id: name.h,v 1.137 2011/01/13 04:59:26 tbox Exp $ */
@@ -151,6 +142,22 @@ struct dns_name {
 
 LIBDNS_EXTERNAL_DATA extern dns_name_t *dns_rootname;
 LIBDNS_EXTERNAL_DATA extern dns_name_t *dns_wildcardname;
+
+#define DNS_NAME_INITNONABSOLUTE(A,B) { \
+	DNS_NAME_MAGIC, \
+	A, (sizeof(A) - 1), sizeof(B), \
+	DNS_NAMEATTR_READONLY, \
+	B, NULL, { (void *)-1, (void *)-1}, \
+	{NULL, NULL} \
+}
+
+#define DNS_NAME_INITABSOLUTE(A,B) { \
+	DNS_NAME_MAGIC, \
+	A, sizeof(A), sizeof(B), \
+	DNS_NAMEATTR_READONLY | DNS_NAME_ABSOLUTE, \
+	B, NULL, { (void *)-1, (void *)-1}, \
+	{NULL, NULL} \
+}
 
 /*%
  * Standard size of a wire format name
@@ -811,14 +818,15 @@ dns_name_fromtext(dns_name_t *name, isc_buffer_t *source,
 #define DNS_NAME_MASTERFILE	0x02U	/* escape $ and @ */
 
 isc_result_t
-dns_name_toprincipal(dns_name_t *name, isc_buffer_t *target);
+dns_name_toprincipal(const dns_name_t *name, isc_buffer_t *target);
 
 isc_result_t
-dns_name_totext(dns_name_t *name, isc_boolean_t omit_final_dot,
+dns_name_totext(const dns_name_t *name, isc_boolean_t omit_final_dot,
 		isc_buffer_t *target);
 
 isc_result_t
-dns_name_totext2(dns_name_t *name, unsigned int options, isc_buffer_t *target);
+dns_name_totext2(const dns_name_t *name, unsigned int options,
+		 isc_buffer_t *target);
 /*%<
  * Convert 'name' into text format, storing the result in 'target'.
  *
@@ -1121,7 +1129,7 @@ dns_name_print(dns_name_t *name, FILE *stream);
  */
 
 void
-dns_name_format(dns_name_t *name, char *cp, unsigned int size);
+dns_name_format(const dns_name_t *name, char *cp, unsigned int size);
 /*%<
  * Format 'name' as text appropriate for use in log messages.
  *
@@ -1219,7 +1227,7 @@ dns_name_settotextfilter(dns_name_totextfilter_t proc);
  */
 
 isc_result_t
-dns_name_copy(dns_name_t *source, dns_name_t *dest, isc_buffer_t *target);
+dns_name_copy(const dns_name_t *source, dns_name_t *dest, isc_buffer_t *target);
 /*%<
  * Makes 'dest' refer to a copy of the name in 'source'.  The data are
  * either copied to 'target' or the dedicated buffer in 'dest'.

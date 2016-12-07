@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2010, 2012-2016  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1999-2003  Internet Software Consortium.
+ * Copyright (C) 1999-2010, 2012-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 #ifndef DNS_MESSAGE_H
@@ -36,7 +27,7 @@
  *
  * How this beast works:
  *
- * When a dns message is received in a buffer, dns_message_fromwire() is called
+ * When a dns message is received in a buffer, dns_message_parse() is called
  * on the memory region.  Various items are checked including the format
  * of the message (if counts are right, if counts consume the entire sections,
  * and if sections consume the entire message) and known pseudo-RRs in the
@@ -108,8 +99,10 @@
 #define DNS_OPT_COOKIE		10		/*%< COOKIE opt code */
 #define DNS_OPT_PAD		12		/*%< PAD opt code */
 
+/*%< Experimental options [65001...65534] as per RFC6891 */
+
 /*%< The number of EDNS options we know about. */
-#define DNS_EDNSOPTIONS	4
+#define DNS_EDNSOPTIONS	5
 
 #define DNS_MESSAGE_REPLYPRESERVE	(DNS_MESSAGEFLAG_RD|DNS_MESSAGEFLAG_CD)
 #define DNS_MESSAGEEXTFLAG_REPLYPRESERVE (DNS_MESSAGEEXTFLAG_DO)
@@ -216,8 +209,8 @@ struct dns_message {
 	unsigned int			verify_attempted : 1;
 	unsigned int			free_query : 1;
 	unsigned int			free_saved : 1;
-	unsigned int			sitok : 1;
-	unsigned int			sitbad : 1;
+	unsigned int			cc_ok : 1;
+	unsigned int			cc_bad : 1;
 	unsigned int			tkey : 1;
 	unsigned int			rdclass_set : 1;
 
@@ -1371,14 +1364,39 @@ dns_message_logpacket(dns_message_t *message, const char *description,
 		      isc_logcategory_t *category, isc_logmodule_t *module,
 		      int level, isc_mem_t *mctx);
 void
+dns_message_logpacket2(dns_message_t *message,
+		       const char *description, isc_sockaddr_t *address,
+		       isc_logcategory_t *category, isc_logmodule_t *module,
+		       int level, isc_mem_t *mctx);
+void
 dns_message_logfmtpacket(dns_message_t *message, const char *description,
 			 isc_logcategory_t *category, isc_logmodule_t *module,
 			 const dns_master_style_t *style, int level,
 			 isc_mem_t *mctx);
+void
+dns_message_logfmtpacket2(dns_message_t *message,
+			  const char *description, isc_sockaddr_t *address,
+			  isc_logcategory_t *category, isc_logmodule_t *module,
+			  const dns_master_style_t *style, int level,
+			  isc_mem_t *mctx);
 /*%<
  * Log 'message' at the specified logging parameters.
- * 'description' will be emitted at the start of the message and will
- * normally end with a newline.
+ *
+ * For dns_message_logpacket and dns_message_logfmtpacket expect the
+ * 'description' to end in a newline.
+ *
+ * For dns_message_logpacket2 and dns_message_logfmtpacket2
+ * 'description' will be emitted at the start of the message followed
+ * by the formatted address and a newline.
+ *
+ * Requires:
+ * \li   message be a valid.
+ * \li   description to be non NULL.
+ * \li   address to be non NULL.
+ * \li   category to be valid.
+ * \li   module to be valid.
+ * \li   style to be valid.
+ * \li   mctx to be a valid.
  */
 
 isc_result_t

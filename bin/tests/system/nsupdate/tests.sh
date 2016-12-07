@@ -1,19 +1,10 @@
 #!/bin/sh
 #
-# Copyright (C) 2004, 2007, 2009-2016  Internet Systems Consortium, Inc. ("ISC")
-# Copyright (C) 2000, 2001  Internet Software Consortium.
+# Copyright (C) 2000, 2001, 2004, 2007, 2009-2016  Internet Systems Consortium, Inc. ("ISC")
 #
-# Permission to use, copy, modify, and/or distribute this software for any
-# purpose with or without fee is hereby granted, provided that the above
-# copyright notice and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-# AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
-# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
-# OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-# PERFORMANCE OF THIS SOFTWARE.
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 # $Id: tests.sh,v 1.42 2011/12/16 23:01:17 each Exp $
 
@@ -582,6 +573,81 @@ if [ $ret -ne 0 ]; then
 fi
 
 n=`expr $n + 1`
+echo "I:check that yyyymmddvv serial number is correctly generated ($n)"
+oldserial=`$DIG +short yyyymmddvv.nil. soa @10.53.0.1 -p 5300 | awk '{print $3}'` || ret=1
+$NSUPDATE <<END > /dev/null 2>&1 || ret=1
+    server 10.53.0.1 5300
+    ttl 600
+    update add new.yyyymmddvv.nil in a 1.2.3.4
+    send
+END
+now=`$PERL -e '@lt=localtime(); printf "%.4d%0.2d%0.2d00\n",$lt[5]+1900,$lt[4]+1,$lt[3];'`
+sleep 1
+serial=`$DIG +short yyyymmddvv.nil. soa @10.53.0.1 -p 5300 | awk '{print $3}'` || ret=1
+[ "$oldserial" -ne "$serial" ] || ret=1
+[ "$serial" -eq "$now" ] || ret=1
+[ $ret = 0 ] || { echo I:failed; status=1; }
+
+#
+#  Refactor to use perl to launch the parallel updates.
+#
+if false
+then
+n=`expr $n + 1`
+echo "I:send many simultaneous updates via a update forwarder ($n)"
+ret=0
+for i in 0 1 2 3 4 5 6 7
+do
+(
+    for j in 0 1 2 3 4 5 6 7
+    do
+    (
+	$NSUPDATE << EOF
+server 10.53.0.3 5300
+zone many.test
+update add $i-$j.many.test 0 IN A 1.2.3.4
+send
+EOF
+    ) &
+    done
+    wait
+) &
+done
+wait
+dig axfr many.test @10.53.0.1 -p 5300 > dig.out.test$n
+lines=`awk '$4 == "A" { l++ } END { print l }' dig.out.test$n`
+test ${lines:-0} -eq 64 || ret=1
+[ $ret = 0 ] || { echo I:failed; status=1; }
+fi
+
+n=`expr $n + 1`
+echo "I:check check-names processing ($n)"
+ret=0
+$NSUPDATE << EOF > nsupdate.out1-$n 2>&1
+update add # 0 in a 1.2.3.4
+EOF
+grep "bad owner" nsupdate.out1-$n > /dev/null || ret=1
+
+$NSUPDATE << EOF > nsupdate.out2-$n 2>&1
+check-names off
+update add # 0 in a 1.2.3.4
+EOF
+grep "bad owner" nsupdate.out2-$n > /dev/null && ret=1
+
+$NSUPDATE << EOF > nsupdate.out3-$n 2>&1
+update add . 0 in mx 0 #
+EOF
+grep "bad name" nsupdate.out3-$n > /dev/null || ret=1
+
+$NSUPDATE << EOF > nsupdate.out4-$n 2>&1
+check-names off
+update add . 0 in mx 0 #
+EOF
+grep "bad name" nsupdate.out4-$n > /dev/null && ret=1
+
+[ $ret = 0 ] || { echo I:failed; status=1; }
+
+n=`expr $n + 1`
 echo "I:check adding of delegating NS records processing ($n)"
 ret=0
 $NSUPDATE -v << EOF > nsupdate.out-$n 2>&1 || ret=1
@@ -611,4 +677,4 @@ grep "status: NXDOMAIN" dig.out.ns1.test$n > /dev/null 2>&1 || ret=1
 [ $ret = 0 ] || { echo I:failed; status=1; }
 
 echo "I:exit status: $status"
-exit $status
+[ $status -eq 0 ] || exit 1

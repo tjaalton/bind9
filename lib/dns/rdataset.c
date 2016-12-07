@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2012, 2014, 2015  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1999-2003  Internet Software Consortium.
+ * Copyright (C) 1999-2012, 2014-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id$ */
@@ -29,11 +20,12 @@
 #include <isc/serial.h>
 #include <isc/util.h>
 
+#include <dns/compress.h>
+#include <dns/fixedname.h>
 #include <dns/name.h>
 #include <dns/ncache.h>
 #include <dns/rdata.h>
 #include <dns/rdataset.h>
-#include <dns/compress.h>
 
 static const char *trustnames[] = {
 	"none",
@@ -207,6 +199,8 @@ static dns_rdatasetmethods_t question_methods = {
 	NULL,
 	NULL,
 	NULL,
+	NULL,
+	NULL,
 	NULL
 };
 
@@ -329,6 +323,8 @@ towiresorted(dns_rdataset_t *rdataset, const dns_name_t *owner_name,
 	isc_boolean_t shuffle = ISC_FALSE;
 	dns_rdata_t *shuffled = NULL, shuffled_fixed[MAX_SHUFFLE];
 	struct towire_sort *sorted = NULL, sorted_fixed[MAX_SHUFFLE];
+	dns_fixedname_t fixed;
+	dns_name_t *name;
 
 	UNUSED(state);
 
@@ -467,6 +463,11 @@ towiresorted(dns_rdataset_t *rdataset, const dns_name_t *owner_name,
 	i = 0;
 	added = 0;
 
+	dns_fixedname_init(&fixed);
+	name = dns_fixedname_name(&fixed);
+	dns_name_copy(owner_name, name, NULL);
+	dns_rdataset_getownercase(rdataset, name);
+
 	do {
 		/*
 		 * Copy out the name, type, class, ttl.
@@ -474,7 +475,7 @@ towiresorted(dns_rdataset_t *rdataset, const dns_name_t *owner_name,
 
 		rrbuffer = *target;
 		dns_compress_setmethods(cctx, DNS_COMPRESS_GLOBAL14);
-		result = dns_name_towire(owner_name, cctx, target);
+		result = dns_name_towire(name, cctx, target);
 		if (result != ISC_R_SUCCESS)
 			goto rollback;
 		headlen = sizeof(dns_rdataclass_t) + sizeof(dns_rdatatype_t);
@@ -782,6 +783,24 @@ dns_rdataset_clearprefetch(dns_rdataset_t *rdataset) {
 
 	if (rdataset->methods->clearprefetch != NULL)
 		(rdataset->methods->clearprefetch)(rdataset);
+}
+
+void
+dns_rdataset_setownercase(dns_rdataset_t *rdataset, const dns_name_t *name) {
+	REQUIRE(DNS_RDATASET_VALID(rdataset));
+	REQUIRE(rdataset->methods != NULL);
+
+	if (rdataset->methods->setownercase != NULL)
+		(rdataset->methods->setownercase)(rdataset, name);
+}
+
+void
+dns_rdataset_getownercase(const dns_rdataset_t *rdataset, dns_name_t *name) {
+	REQUIRE(DNS_RDATASET_VALID(rdataset));
+	REQUIRE(rdataset->methods != NULL);
+
+	if (rdataset->methods->getownercase != NULL)
+		(rdataset->methods->getownercase)(rdataset, name);
 }
 
 void

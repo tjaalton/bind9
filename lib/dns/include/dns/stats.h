@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2009, 2012, 2014, 2015  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 2000, 2001  Internet Software Consortium.
+ * Copyright (C) 2000, 2001, 2004-2009, 2012, 2014-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id$ */
@@ -66,14 +57,16 @@ enum {
 	dns_resstatscounter_dispreqtcp = 32,
 	dns_resstatscounter_buckets = 33,
 	dns_resstatscounter_refused = 34,
-	dns_resstatscounter_sitcc = 35,
-	dns_resstatscounter_sitout = 36,
-	dns_resstatscounter_sitin = 37,
-	dns_resstatscounter_sitok = 38,
+	dns_resstatscounter_cookienew = 35,
+	dns_resstatscounter_cookieout = 36,
+	dns_resstatscounter_cookiein = 37,
+	dns_resstatscounter_cookieok = 38,
 	dns_resstatscounter_badvers = 39,
-	dns_resstatscounter_zonequota = 40,
-	dns_resstatscounter_serverquota = 41,
-	dns_resstatscounter_max = 42,
+	dns_resstatscounter_badcookie = 40,
+	dns_resstatscounter_zonequota = 41,
+	dns_resstatscounter_serverquota = 42,
+	dns_resstatscounter_nextitem = 43,
+	dns_resstatscounter_max = 44,
 
 	/*
 	 * DNSSEC stats.
@@ -136,7 +129,14 @@ enum {
 	dns_statscounter_recursion = 4,  /*%< Recursion was used */
 	dns_statscounter_failure = 5,    /*%< Some other failure */
 	dns_statscounter_duplicate = 6,  /*%< Duplicate query */
-	dns_statscounter_dropped = 7	 /*%< Duplicate query (dropped) */
+	dns_statscounter_dropped = 7,	 /*%< Duplicate query (dropped) */
+
+	/*%
+	 * DNSTAP statistics counters.
+	 */
+	dns_dnstapcounter_success = 0,
+	dns_dnstapcounter_drop =  1,
+	dns_dnstapcounter_max = 2
 };
 
 #define DNS_STATS_NCOUNTERS 8
@@ -198,6 +198,8 @@ typedef void (*dns_rdatatypestats_dumper_t)(dns_rdatastatstype_t, isc_uint64_t,
 					    void *);
 typedef void (*dns_opcodestats_dumper_t)(dns_opcode_t, isc_uint64_t, void *);
 
+typedef void (*dns_rcodestats_dumper_t)(dns_rcode_t, isc_uint64_t, void *);
+
 ISC_LANG_BEGINDECLS
 
 isc_result_t
@@ -255,6 +257,22 @@ isc_result_t
 dns_opcodestats_create(isc_mem_t *mctx, dns_stats_t **statsp);
 /*%<
  * Create a statistics counter structure per opcode.
+ *
+ * Requires:
+ *\li	'mctx' must be a valid memory context.
+ *
+ *\li	'statsp' != NULL && '*statsp' == NULL.
+ *
+ * Returns:
+ *\li	ISC_R_SUCCESS	-- all ok
+ *
+ *\li	anything else	-- failure
+ */
+
+isc_result_t
+dns_rcodestats_create(isc_mem_t *mctx, dns_stats_t **statsp);
+/*%<
+ * Create a statistics counter structure per assigned rcode.
  *
  * Requires:
  *\li	'mctx' must be a valid memory context.
@@ -340,6 +358,15 @@ dns_opcodestats_increment(dns_stats_t *stats, dns_opcode_t code);
  */
 
 void
+dns_rcodestats_increment(dns_stats_t *stats, dns_opcode_t code);
+/*%<
+ * Increment the statistics counter for 'code'.
+ *
+ * Requires:
+ *\li	'stats' is a valid dns_stats_t created by dns_rcodestats_create().
+ */
+
+void
 dns_generalstats_dump(dns_stats_t *stats, dns_generalstats_dumper_t dump_fn,
 		      void *arg, unsigned int options);
 /*%<
@@ -389,6 +416,20 @@ dns_opcodestats_dump(dns_stats_t *stats, dns_opcodestats_dumper_t dump_fn,
 /*%<
  * Dump the current statistics counters in a specified way.  For each counter
  * in stats, dump_fn is called with the corresponding opcode, the current
+ * counter value and the given argument arg.  By default counters that have a
+ * value of 0 is skipped; if options has the ISC_STATSDUMP_VERBOSE flag, even
+ * such counters are dumped.
+ *
+ * Requires:
+ *\li	'stats' is a valid dns_stats_t created by dns_generalstats_create().
+ */
+
+void
+dns_rcodestats_dump(dns_stats_t *stats, dns_rcodestats_dumper_t dump_fn,
+		    void *arg, unsigned int options);
+/*%<
+ * Dump the current statistics counters in a specified way.  For each counter
+ * in stats, dump_fn is called with the corresponding rcode, the current
  * counter value and the given argument arg.  By default counters that have a
  * value of 0 is skipped; if options has the ISC_STATSDUMP_VERBOSE flag, even
  * such counters are dumped.

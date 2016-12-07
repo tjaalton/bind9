@@ -1,17 +1,9 @@
 /*
- * Copyright (C) 2009, 2012-2015  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2009, 2012-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id: keygen.c,v 1.4 2009/11/12 14:02:38 marka Exp $ */
@@ -33,6 +25,8 @@
 #include <isc/result.h>
 #include <isc/string.h>
 
+#include <pk11/site.h>
+
 #include <dns/keyvalues.h>
 #include <dns/name.h>
 
@@ -48,8 +42,10 @@
 const char *
 alg_totext(dns_secalg_t alg) {
 	switch (alg) {
+#ifndef PK11_MD5_DISABLE
 	    case DST_ALG_HMACMD5:
 		return "hmac-md5";
+#endif
 	    case DST_ALG_HMACSHA1:
 		return "hmac-sha1";
 	    case DST_ALG_HMACSHA224:
@@ -74,8 +70,10 @@ alg_fromtext(const char *name) {
 	if (strncasecmp(p, "hmac-", 5) == 0)
 		p = &name[5];
 
+#ifndef PK11_MD5_DISABLE
 	if (strcasecmp(p, "md5") == 0)
 		return DST_ALG_HMACMD5;
+#endif
 	if (strcasecmp(p, "sha1") == 0)
 		return DST_ALG_HMACSHA1;
 	if (strcasecmp(p, "sha224") == 0)
@@ -130,7 +128,9 @@ generate_key(isc_mem_t *mctx, const char *randomfile, dns_secalg_t alg,
 	dst_key_t *key = NULL;
 
 	switch (alg) {
+#ifndef PK11_MD5_DISABLE
 	    case DST_ALG_HMACMD5:
+#endif
 	    case DST_ALG_HMACSHA1:
 	    case DST_ALG_HMACSHA224:
 	    case DST_ALG_HMACSHA256:

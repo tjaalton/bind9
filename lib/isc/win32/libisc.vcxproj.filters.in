@@ -70,6 +70,9 @@
     <ClInclude Include="..\include\isc\entropy.h">
       <Filter>Library Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\isc\errno.h">
+      <Filter>Library Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\include\isc\error.h">
       <Filter>Library Header Files</Filter>
     </ClInclude>
@@ -101,6 +104,9 @@
       <Filter>Library Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\isc\hmacsha.h">
+      <Filter>Library Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\isc\ht.h">
       <Filter>Library Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\isc\httpd.h">
@@ -141,6 +147,9 @@
     </ClInclude>
     <ClInclude Include="..\include\isc\mem.h">
       <Filter>Library Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\isc\meminfo.h">
+      <Filter>Win32 Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\isc\msgcat.h">
       <Filter>Library Header Files</Filter>
@@ -401,6 +410,9 @@
     <ClCompile Include="entropy.c">
       <Filter>Win32 Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="errno.c">
+      <Filter>Win32 Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="errno2result.c">
       <Filter>Win32 Source Files</Filter>
     </ClCompile>
@@ -417,6 +429,9 @@
       <Filter>Win32 Source Files</Filter>
     </ClCompile>
     <ClCompile Include="keyboard.c">
+      <Filter>Win32 Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meminfo.c">
       <Filter>Win32 Source Files</Filter>
     </ClCompile>
     <ClCompile Include="net.c">
@@ -523,6 +538,9 @@
       <Filter>Library Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\hmacsha.c">
+      <Filter>Library Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ht.c">
       <Filter>Library Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\httpd.c">

@@ -1,21 +1,10 @@
 #!/bin/sh
 #
-# Copyright (C) 2004, 2007, 2011-2016  Internet Systems Consortium, Inc. ("ISC")
-# Copyright (C) 2000, 2001  Internet Software Consortium.
+# Copyright (C) 2000, 2001, 2004, 2007, 2011-2016  Internet Systems Consortium, Inc. ("ISC")
 #
-# Permission to use, copy, modify, and/or distribute this software for any
-# purpose with or without fee is hereby granted, provided that the above
-# copyright notice and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-# AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
-# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
-# OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-# PERFORMANCE OF THIS SOFTWARE.
-
-# $Id: tests.sh,v 1.36 2011/10/17 01:33:27 marka Exp $
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 SYSTEMTESTTOP=..
 . $SYSTEMTESTTOP/conf.sh
@@ -35,6 +24,8 @@ do
 	$DIG +tcp example @10.53.0.3 soa -p 5300 > dig.out.ns3.test$n || ret=1
 	grep "status: NOERROR" dig.out.ns3.test$n > /dev/null || ret=1
 	grep "flags:.* aa[ ;]" dig.out.ns3.test$n > /dev/null || ret=1
+        nr=`grep 'x[0-9].*sending notify to' ns2/named.run | wc -l`
+        [ $nr -eq 20 ] || ret=1
 	[ $ret = 0 ] && break
 	sleep 1
 done
@@ -52,6 +43,18 @@ grep "10.0.0.1" dig.out.ns3.test$n > /dev/null || ret=1
 
 $PERL ../digcomp.pl dig.out.ns2.test$n dig.out.ns3.test$n || ret=1
 
+[ $ret = 0 ] || echo "I:failed"
+status=`expr $ret + $status`
+
+n=`expr $n + 1`
+echo "I:checking startup notify rate limit ($n)"
+ret=0
+grep 'x[0-9].*sending notify to' ns2/named.run |
+    sed 's/.*:\([0-9][0-9]\)\..*/\1/' | uniq -c | awk '{print $1}' > log.out
+# the notifies should span at least 4 seconds
+wc -l log.out | awk '$1 < 4 { exit(1) }' || ret=1
+# ... with no more than 5 in any one second
+awk '$1 > 5 { exit(1) }' log.out || ret=1
 [ $ret = 0 ] || echo "I:failed"
 status=`expr $ret + $status`
 
@@ -201,4 +204,4 @@ grep "test string" dig.out.c.ns5.test$n > /dev/null || ret=1
 status=`expr $ret + $status`
 
 echo "I:exit status: $status"
-exit $status
+[ $status -eq 0 ] || exit 1

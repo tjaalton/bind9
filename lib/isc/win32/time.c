@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004, 2006-2009, 2012-2014  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1998-2001, 2003  Internet Software Consortium.
+ * Copyright (C) 1998-2001, 2003, 2004, 2006-2009, 2012-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id: time.c,v 1.52 2009/08/14 07:51:08 marka Exp $ */
@@ -83,14 +74,14 @@ isc_interval_iszero(const isc_interval_t *i) {
 
 void
 isc_time_set(isc_time_t *t, unsigned int seconds, unsigned int nanoseconds) {
-	SYSTEMTIME epoch = { 1970, 1, 4, 1, 0, 0, 0, 0 };
+	SYSTEMTIME epoch1970 = { 1970, 1, 4, 1, 0, 0, 0, 0 };
 	FILETIME temp;
 	ULARGE_INTEGER i1;
 
 	REQUIRE(t != NULL);
 	REQUIRE(nanoseconds < NS_PER_S);
 
-	SystemTimeToFileTime(&epoch, &temp);
+	SystemTimeToFileTime(&epoch1970, &temp);
 
 	i1.LowPart = temp.dwLowDateTime;
 	i1.HighPart = temp.dwHighDateTime;
@@ -227,12 +218,12 @@ isc_time_microdiff(const isc_time_t *t1, const isc_time_t *t2) {
 
 isc_uint32_t
 isc_time_seconds(const isc_time_t *t) {
-	SYSTEMTIME epoch = { 1970, 1, 4, 1, 0, 0, 0, 0 };
+	SYSTEMTIME epoch1970 = { 1970, 1, 4, 1, 0, 0, 0, 0 };
 	FILETIME temp;
 	ULARGE_INTEGER i1, i2;
 	LONGLONG i3;
 
-	SystemTimeToFileTime(&epoch, &temp);
+	SystemTimeToFileTime(&epoch1970, &temp);
 
 	i1.LowPart  = t->absolute.dwLowDateTime;
 	i1.HighPart = t->absolute.dwHighDateTime;
@@ -280,8 +271,6 @@ isc_time_formattimestamp(const isc_time_t *t, char *buf, unsigned int len) {
 	char DateBuf[50];
 	char TimeBuf[50];
 
-	static const char badtime[] = "99-Bad-9999 99:99:99.999";
-
 	REQUIRE(len > 0);
 	if (FileTimeToLocalFileTime(&t->absolute, &localft) &&
 	    FileTimeToSystemTime(&localft, &st)) {
@@ -293,8 +282,10 @@ isc_time_formattimestamp(const isc_time_t *t, char *buf, unsigned int len) {
 		snprintf(buf, len, "%s %s.%03u", DateBuf, TimeBuf,
 			 st.wMilliseconds);
 
-	} else
-		snprintf(buf, len, badtime);
+	} else {
+		strncpy(buf, "99-Bad-9999 99:99:99.999", len);
+		buf[len - 1] = 0;
+	}
 }
 
 void
@@ -343,7 +334,7 @@ isc_time_formatISO8601(const isc_time_t *t, char *buf, unsigned int len) {
 	char DateBuf[50];
 	char TimeBuf[50];
 
-/* strtime() format: "%Y-%m-%dT%H:%M:%SZ" */
+	/* strtime() format: "%Y-%m-%dT%H:%M:%SZ" */
 
 	REQUIRE(len > 0);
 	if (FileTimeToSystemTime(&t->absolute, &st)) {
@@ -353,6 +344,28 @@ isc_time_formatISO8601(const isc_time_t *t, char *buf, unsigned int len) {
 			      TIME_NOTIMEMARKER | TIME_FORCE24HOURFORMAT,
 			      &st, "hh':'mm':'ss", TimeBuf, 50);
 		snprintf(buf, len, "%sT%sZ", DateBuf, TimeBuf);
+	} else {
+		buf[0] = 0;
+	}
+}
+
+void
+isc_time_formatISO8601ms(const isc_time_t *t, char *buf, unsigned int len) {
+	SYSTEMTIME st;
+	char DateBuf[50];
+	char TimeBuf[50];
+
+	/* strtime() format: "%Y-%m-%dT%H:%M:%S.SSSZ" */
+
+	REQUIRE(len > 0);
+	if (FileTimeToSystemTime(&t->absolute, &st)) {
+		GetDateFormat(LOCALE_NEUTRAL, 0, &st, "yyyy-MM-dd",
+			      DateBuf, 50);
+		GetTimeFormat(LOCALE_NEUTRAL,
+			      TIME_NOTIMEMARKER | TIME_FORCE24HOURFORMAT,
+			      &st, "hh':'mm':'ss", TimeBuf, 50);
+		snprintf(buf, len, "%sT%s.%03uZ", DateBuf, TimeBuf,
+			 st.wMilliseconds);
 	} else {
 		buf[0] = 0;
 	}

@@ -1,17 +1,9 @@
 /*
- * Copyright (C) 2009, 2010  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2009, 2010, 2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id: tsec.c,v 1.7 2010/12/09 00:54:34 marka Exp $ */
@@ -19,6 +11,8 @@
 #include <config.h>
 
 #include <isc/mem.h>
+
+#include <pk11/site.h>
 
 #include <dns/tsec.h>
 #include <dns/tsig.h>
@@ -65,9 +59,11 @@ dns_tsec_create(isc_mem_t *mctx, dns_tsectype_t type, dst_key_t *key,
 	switch (type) {
 	case dns_tsectype_tsig:
 		switch (dst_key_alg(key)) {
+#ifndef PK11_MD5_DISABLE
 		case DST_ALG_HMACMD5:
 			algname = dns_tsig_hmacmd5_name;
 			break;
+#endif
 		case DST_ALG_HMACSHA1:
 			algname = dns_tsig_hmacsha1_name;
 			break;

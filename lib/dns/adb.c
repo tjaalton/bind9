@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2015  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1999-2003  Internet Software Consortium.
+ * Copyright (C) 1999-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /*! \file
@@ -164,13 +155,11 @@ struct dns_adb {
 	isc_event_t			grownames;
 	isc_boolean_t			grownames_sent;
 
-#ifdef ENABLE_FETCHLIMIT
 	isc_uint32_t			quota;
 	isc_uint32_t			atr_freq;
 	double				atr_low;
 	double				atr_high;
 	double				atr_discount;
-#endif /* ENABLE_FETCHLIMIT */
 };
 
 /*
@@ -252,20 +241,17 @@ struct dns_adbentry {
 	unsigned int                    flags;
 	unsigned int                    srtt;
 	isc_uint16_t			udpsize;
+	unsigned int			completed;
+	unsigned int			timeouts;
 	unsigned char			plain;
 	unsigned char			plainto;
 	unsigned char			edns;
 	unsigned char			to4096;		/* Our max. */
 
-#ifdef ENABLE_FETCHLIMIT
-	unsigned int			completed;
-	unsigned int			timeouts;
-
 	isc_uint8_t			mode;
 	isc_uint32_t			quota;
 	isc_uint32_t			active;
 	double				atr;
-#endif /* ENABLE_FETCHLIMIT */
 
 	/*
 	 * Allow for encapsulated IPv4/IPv6 UDP packet over ethernet.
@@ -275,8 +261,8 @@ struct dns_adbentry {
 	unsigned char			to1232;		/* IPv6 nofrag */
 	unsigned char			to512;		/* plain DNS */
 	isc_sockaddr_t                  sockaddr;
-	unsigned char *			sit;
-	isc_uint16_t			sitlen;
+	unsigned char *			cookie;
+	isc_uint16_t			cookielen;
 
 	isc_stdtime_t                   expires;
 	isc_stdtime_t			lastage;
@@ -360,10 +346,8 @@ static void dump_entry(FILE *, dns_adb_t *, dns_adbentry_t *,
 static void adjustsrtt(dns_adbaddrinfo_t *addr, unsigned int rtt,
 		       unsigned int factor, isc_stdtime_t now);
 static void shutdown_task(isc_task_t *task, isc_event_t *ev);
-#ifdef ENABLE_FETCHLIMIT
 static void log_quota(dns_adbentry_t *entry, const char *fmt, ...)
      ISC_FORMAT_PRINTF(2, 3);
-#endif /* ENABLE_FETCHLIMIT */
 
 /*
  * MUST NOT overlap DNS_ADBFIND_* flags!
@@ -1836,26 +1820,24 @@ new_adbentry(dns_adb_t *adb) {
 	e->flags = 0;
 	e->udpsize = 0;
 	e->edns = 0;
+	e->completed = 0;
+	e->timeouts = 0;
 	e->plain = 0;
 	e->plainto = 0;
 	e->to4096 = 0;
 	e->to1432 = 0;
 	e->to1232 = 0;
 	e->to512 = 0;
-	e->sit = NULL;
-	e->sitlen = 0;
+	e->cookie = NULL;
+	e->cookielen = 0;
 	isc_random_get(&r);
 	e->srtt = (r & 0x1f) + 1;
 	e->lastage = 0;
 	e->expires = 0;
-#ifdef ENABLE_FETCHLIMIT
-	e->completed = 0;
-	e->timeouts = 0;
 	e->active = 0;
 	e->mode = 0;
 	e->quota = adb->quota;
 	e->atr = 0.0;
-#endif /* ENABLE_FETCHLIMIT */
 	ISC_LIST_INIT(e->lameinfo);
 	ISC_LINK_INIT(e, plink);
 	LOCK(&adb->entriescntlock);
@@ -1889,8 +1871,8 @@ free_adbentry(dns_adb_t *adb, dns_adbentry_t **entry) {
 
 	e->magic = 0;
 
-	if (e->sit != NULL)
-		isc_mem_put(adb->mctx, e->sit, e->sitlen);
+	if (e->cookie != NULL)
+		isc_mem_put(adb->mctx, e->cookie, e->cookielen);
 
 	li = ISC_LIST_HEAD(e->lameinfo);
 	while (li != NULL) {
@@ -2171,7 +2153,6 @@ entry_is_lame(dns_adb_t *adb, dns_adbentry_t *entry, dns_name_t *qname,
 	return (is_bad);
 }
 
-#ifdef ENABLE_FETCHLIMIT
 static void
 log_quota(dns_adbentry_t *entry, const char *fmt, ...) {
 	va_list ap;
@@ -2190,7 +2171,6 @@ log_quota(dns_adbentry_t *entry, const char *fmt, ...) {
 		      ISC_LOG_INFO, "adb: quota %s (%d/%d): %s",
 		      addrbuf, entry->active, entry->quota, msgbuf);
 }
-#endif /* ENABLE_FETCHLIMIT */
 
 static void
 copy_namehook_lists(dns_adb_t *adb, dns_adbfind_t *find, dns_name_t *qname,
@@ -2212,7 +2192,6 @@ copy_namehook_lists(dns_adb_t *adb, dns_adbfind_t *find, dns_name_t *qname,
 			INSIST(bucket != DNS_ADB_INVALIDBUCKET);
 			LOCK(&adb->entrylocks[bucket]);
 
-#ifdef ENABLE_FETCHLIMIT
 			if (entry->quota != 0 &&
 			    entry->active >= entry->quota)
 			{
@@ -2221,7 +2200,6 @@ copy_namehook_lists(dns_adb_t *adb, dns_adbfind_t *find, dns_name_t *qname,
 					 DNS_ADBFIND_OVERQUOTA);
 				goto nextv4;
 			}
-#endif /* ENABLE_FETCHLIMIT */
 
 			if (!FIND_RETURNLAME(find)
 			    && entry_is_lame(adb, entry, qname, qtype, now)) {
@@ -2254,7 +2232,6 @@ copy_namehook_lists(dns_adb_t *adb, dns_adbfind_t *find, dns_name_t *qname,
 			INSIST(bucket != DNS_ADB_INVALIDBUCKET);
 			LOCK(&adb->entrylocks[bucket]);
 
-#ifdef ENABLE_FETCHLIMIT
 			if (entry->quota != 0 &&
 			    entry->active >= entry->quota)
 			{
@@ -2263,7 +2240,6 @@ copy_namehook_lists(dns_adb_t *adb, dns_adbfind_t *find, dns_name_t *qname,
 					 DNS_ADBFIND_OVERQUOTA);
 				goto nextv6;
 			}
-#endif /* ENABLE_FETCHLIMIT */
 
 			if (!FIND_RETURNLAME(find)
 			    && entry_is_lame(adb, entry, qname, qtype, now)) {
@@ -2597,13 +2573,11 @@ dns_adb_create(isc_mem_t *mem, dns_view_t *view, isc_timermgr_t *timermgr,
 		       adb, NULL, NULL);
 	adb->growentries_sent = ISC_FALSE;
 
-#ifdef ENABLE_FETCHLIMIT
 	adb->quota = 0;
 	adb->atr_freq = 0;
 	adb->atr_low = 0.0;
 	adb->atr_high = 0.0;
 	adb->atr_discount = 0.0;
-#endif /* ENABLE_FETCHLIMIT */
 
 	adb->nnames = nbuckets[0];
 	adb->namescnt = 0;
@@ -2867,7 +2841,7 @@ dns_adb_detach(dns_adb_t **adbx) {
 
 void
 dns_adb_whenshutdown(dns_adb_t *adb, isc_task_t *task, isc_event_t **eventp) {
-	isc_task_t *clone;
+	isc_task_t *tclone;
 	isc_event_t *event;
 	isc_boolean_t zeroirefcnt = ISC_FALSE;
 
@@ -2894,9 +2868,9 @@ dns_adb_whenshutdown(dns_adb_t *adb, isc_task_t *task, isc_event_t **eventp) {
 		event->ev_sender = adb;
 		isc_task_send(task, &event);
 	} else {
-		clone = NULL;
-		isc_task_attach(task, &clone);
-		event->ev_sender = clone;
+		tclone = NULL;
+		isc_task_attach(task, &tclone);
+		event->ev_sender = tclone;
 		ISC_LIST_APPEND(adb->whenshutdown, event, ev_link);
 	}
 
@@ -3556,10 +3530,6 @@ dump_entry(FILE *f, dns_adb_t *adb, dns_adbentry_t *entry,
 	isc_netaddr_t netaddr;
 	dns_adblameinfo_t *li;
 
-#ifndef ENABLE_FETCHLIMIT
-	UNUSED(adb);
-#endif /* !ENABLE_FETCHLIMIT */
-
 	isc_netaddr_fromsockaddr(&netaddr, &entry->sockaddr);
 	isc_netaddr_format(&netaddr, addrbuf, sizeof(addrbuf));
 
@@ -3572,25 +3542,20 @@ dump_entry(FILE *f, dns_adb_t *adb, dns_adbentry_t *entry,
 		entry->to512, entry->plain, entry->plainto);
 	if (entry->udpsize != 0U)
 		fprintf(f, " [udpsize %u]", entry->udpsize);
-#ifdef ISC_PLATFORM_USESIT
-	if (entry->sit != NULL) {
+	if (entry->cookie != NULL) {
 		unsigned int i;
-		fprintf(f, " [sit=");
-		for (i = 0; i < entry->sitlen; i++)
-			fprintf(f, "%02x", entry->sit[i]);
+		fprintf(f, " [cookie=");
+		for (i = 0; i < entry->cookielen; i++)
+			fprintf(f, "%02x", entry->cookie[i]);
 		fprintf(f, "]");
 	}
-#endif
-
 	if (entry->expires != 0)
 		fprintf(f, " [ttl %d]", entry->expires - now);
 
-#ifdef ENABLE_FETCHLIMIT
 	if (adb != NULL && adb->quota != 0 && adb->atr_freq != 0) {
 		fprintf(f, " [atr %0.2f] [quota %d]",
 			entry->atr, entry->quota);
 	}
-#endif /* ENABLE_FETCHLIMIT */
 
 	fprintf(f, "\n");
 	for (li = ISC_LIST_HEAD(entry->lameinfo);
@@ -4245,7 +4210,6 @@ dns_adb_changeflags(dns_adb_t *adb, dns_adbaddrinfo_t *addr,
 	UNLOCK(&adb->entrylocks[bucket]);
 }
 
-#ifdef ENABLE_FETCHLIMIT
 /*
  * (10000 / ((10 + n) / 10)^(3/2)) for n in 0..99.
  * These will be used to make quota adjustments.
@@ -4314,7 +4278,6 @@ maybe_adjust_quota(dns_adb_t *adb, dns_adbaddrinfo_t *addr,
 	if (addr->entry->quota == 0)
 		addr->entry->quota = 1;
 }
-#endif /* ENABLE_FETCHLIMIT */
 
 #define EDNSTOS 3U
 isc_boolean_t
@@ -4362,9 +4325,7 @@ dns_adb_plainresponse(dns_adb_t *adb, dns_adbaddrinfo_t *addr) {
 	bucket = addr->entry->lock_bucket;
 	LOCK(&adb->entrylocks[bucket]);
 
-#ifdef ENABLE_FETCHLIMIT
 	maybe_adjust_quota(adb, addr, ISC_FALSE);
-#endif /* ENABLE_FETCHLIMIT */
 
 	addr->entry->plain++;
 	if (addr->entry->plain == 0xff) {
@@ -4389,9 +4350,7 @@ dns_adb_timeout(dns_adb_t *adb, dns_adbaddrinfo_t *addr) {
 	bucket = addr->entry->lock_bucket;
 	LOCK(&adb->entrylocks[bucket]);
 
-#ifdef ENABLE_FETCHLIMIT
 	maybe_adjust_quota(adb, addr, ISC_TRUE);
-#endif /* ENABLE_FETCHLIMIT */
 
 	/*
 	 * If we have not had a successful query then clear all
@@ -4428,9 +4387,7 @@ dns_adb_ednsto(dns_adb_t *adb, dns_adbaddrinfo_t *addr, unsigned int size) {
 	bucket = addr->entry->lock_bucket;
 	LOCK(&adb->entrylocks[bucket]);
 
-#ifdef ENABLE_FETCHLIMIT
 	maybe_adjust_quota(adb, addr, ISC_TRUE);
-#endif /* ENABLE_FETCHLIMIT */
 
 	if (size <= 512U) {
 		if (addr->entry->to512 <= EDNSTOS) {
@@ -4481,9 +4438,7 @@ dns_adb_setudpsize(dns_adb_t *adb, dns_adbaddrinfo_t *addr, unsigned int size) {
 	if (size > addr->entry->udpsize)
 		addr->entry->udpsize = size;
 
-#ifdef ENABLE_FETCHLIMIT
 	maybe_adjust_quota(adb, addr, ISC_FALSE);
-#endif /* ENABLE_FETCHLIMIT */
 
 	addr->entry->edns++;
 	if (addr->entry->edns == 0xff) {
@@ -4550,8 +4505,8 @@ dns_adb_probesize2(dns_adb_t *adb, dns_adbaddrinfo_t *addr, int lookups) {
 }
 
 void
-dns_adb_setsit(dns_adb_t *adb, dns_adbaddrinfo_t *addr,
-	       const unsigned char *sit, size_t len)
+dns_adb_setcookie(dns_adb_t *adb, dns_adbaddrinfo_t *addr,
+		  const unsigned char *cookie, size_t len)
 {
 	int bucket;
 
@@ -4561,27 +4516,28 @@ dns_adb_setsit(dns_adb_t *adb, dns_adbaddrinfo_t *addr,
 	bucket = addr->entry->lock_bucket;
 	LOCK(&adb->entrylocks[bucket]);
 
-	if (addr->entry->sit != NULL &&
-	    (sit == NULL || len != addr->entry->sitlen)) {
-		isc_mem_put(adb->mctx, addr->entry->sit, addr->entry->sitlen);
-		addr->entry->sit = NULL;
-		addr->entry->sitlen = 0;
+	if (addr->entry->cookie != NULL &&
+	    (cookie == NULL || len != addr->entry->cookielen)) {
+		isc_mem_put(adb->mctx, addr->entry->cookie,
+			    addr->entry->cookielen);
+		addr->entry->cookie = NULL;
+		addr->entry->cookielen = 0;
 	}
 
-	if (addr->entry->sit == NULL && sit != NULL && len != 0U) {
-		addr->entry->sit = isc_mem_get(adb->mctx, len);
-		if (addr->entry->sit != NULL)
-			addr->entry->sitlen = (isc_uint16_t)len;
+	if (addr->entry->cookie == NULL && cookie != NULL && len != 0U) {
+		addr->entry->cookie = isc_mem_get(adb->mctx, len);
+		if (addr->entry->cookie != NULL)
+			addr->entry->cookielen = (isc_uint16_t)len;
 	}
 
-	if (addr->entry->sit != NULL)
-		memmove(addr->entry->sit, sit, len);
+	if (addr->entry->cookie != NULL)
+		memmove(addr->entry->cookie, cookie, len);
 	UNLOCK(&adb->entrylocks[bucket]);
 }
 
 size_t
-dns_adb_getsit(dns_adb_t *adb, dns_adbaddrinfo_t *addr,
-	       unsigned char *sit, size_t len)
+dns_adb_getcookie(dns_adb_t *adb, dns_adbaddrinfo_t *addr,
+		  unsigned char *cookie, size_t len)
 {
 	int bucket;
 
@@ -4590,11 +4546,11 @@ dns_adb_getsit(dns_adb_t *adb, dns_adbaddrinfo_t *addr,
 
 	bucket = addr->entry->lock_bucket;
 	LOCK(&adb->entrylocks[bucket]);
-	if (sit != NULL && addr->entry->sit != NULL &&
-	    len >= addr->entry->sitlen)
+	if (cookie != NULL && addr->entry->cookie != NULL &&
+	    len >= addr->entry->cookielen)
 	{
-		memmove(sit, addr->entry->sit, addr->entry->sitlen);
-		len = addr->entry->sitlen;
+		memmove(cookie, addr->entry->cookie, addr->entry->cookielen);
+		len = addr->entry->cookielen;
 	} else
 		len = 0;
 	UNLOCK(&adb->entrylocks[bucket]);
@@ -4816,7 +4772,6 @@ void
 dns_adb_setquota(dns_adb_t *adb, isc_uint32_t quota, isc_uint32_t freq,
 		 double low, double high, double discount)
 {
-#ifdef ENABLE_FETCHLIMIT
 	REQUIRE(DNS_ADB_VALID(adb));
 
 	adb->quota = quota;
@@ -4824,35 +4779,18 @@ dns_adb_setquota(dns_adb_t *adb, isc_uint32_t quota, isc_uint32_t freq,
 	adb->atr_low = low;
 	adb->atr_high = high;
 	adb->atr_discount = discount;
-#else
-	UNUSED(adb);
-	UNUSED(quota);
-	UNUSED(freq);
-	UNUSED(low);
-	UNUSED(high);
-	UNUSED(discount);
-
-	return;
-#endif /* !ENABLE_FETCHLIMIT */
 }
 
 isc_boolean_t
 dns_adbentry_overquota(dns_adbentry_t *entry) {
-#ifdef ENABLE_FETCHLIMIT
 	isc_boolean_t block;
 	REQUIRE(DNS_ADBENTRY_VALID(entry));
 	block = ISC_TF(entry->quota != 0 && entry->active >= entry->quota);
 	return (block);
-#else
-	UNUSED(entry);
-
-	return (ISC_FALSE);
-#endif /* !ENABLE_FETCHLIMIT */
 }
 
 void
 dns_adb_beginudpfetch(dns_adb_t *adb, dns_adbaddrinfo_t *addr) {
-#ifdef ENABLE_FETCHLIMIT
 	int bucket;
 
 	REQUIRE(DNS_ADB_VALID(adb));
@@ -4863,17 +4801,10 @@ dns_adb_beginudpfetch(dns_adb_t *adb, dns_adbaddrinfo_t *addr) {
 	LOCK(&adb->entrylocks[bucket]);
 	addr->entry->active++;
 	UNLOCK(&adb->entrylocks[bucket]);
-#else
-	UNUSED(adb);
-	UNUSED(addr);
-
-	return;
-#endif /* !ENABLE_FETCHLIMIT */
 }
 
 void
 dns_adb_endudpfetch(dns_adb_t *adb, dns_adbaddrinfo_t *addr) {
-#ifdef ENABLE_FETCHLIMIT
 	int bucket;
 
 	REQUIRE(DNS_ADB_VALID(adb));
@@ -4885,10 +4816,4 @@ dns_adb_endudpfetch(dns_adb_t *adb, dns_adbaddrinfo_t *addr) {
 	if (addr->entry->active > 0)
 		addr->entry->active--;
 	UNLOCK(&adb->entrylocks[bucket]);
-#else
-	UNUSED(adb);
-	UNUSED(addr);
-
-	return;
-#endif /* !ENABLE_FETCHLIMIT */
 }

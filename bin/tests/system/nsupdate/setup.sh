@@ -1,19 +1,10 @@
 #!/bin/sh
 #
-# Copyright (C) 2004, 2007, 2009-2012, 2014  Internet Systems Consortium, Inc. ("ISC")
-# Copyright (C) 2000, 2001  Internet Software Consortium.
+# Copyright (C) 2000, 2001, 2004, 2007, 2009-2012, 2014, 2016  Internet Systems Consortium, Inc. ("ISC")
 #
-# Permission to use, copy, modify, and/or distribute this software for any
-# purpose with or without fee is hereby granted, provided that the above
-# copyright notice and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-# AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
-# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
-# OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-# PERFORMANCE OF THIS SOFTWARE.
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 SYSTEMTESTTOP=..
 . $SYSTEMTESTTOP/conf.sh
@@ -31,6 +22,7 @@ rm -f ns3/example.db.jnl
 cp -f ns1/example1.db ns1/example.db
 sed 's/example.nil/other.nil/g' ns1/example1.db > ns1/other.db
 sed 's/example.nil/unixtime.nil/g' ns1/example1.db > ns1/unixtime.db
+sed 's/example.nil/yyyymmddvv.nil/g' ns1/example1.db > ns1/yyyymmddvv.db
 sed 's/example.nil/keytests.nil/g' ns1/example1.db > ns1/keytests.db
 cp -f ns3/example.db.in ns3/example.db
 
@@ -61,3 +53,6 @@ $DDNSCONFGEN -q -r $RANDFILE -a hmac-sha384 -k sha384-key -z keytests.nil > ns1/
 $DDNSCONFGEN -q -r $RANDFILE -a hmac-sha512 -k sha512-key -z keytests.nil > ns1/sha512.key
 
 (cd ns3; $SHELL -e sign.sh)
+
+cp -f ns1/many.test.db.in ns1/many.test.db
+rm -f ns1/many.test.db.jnl

@@ -1,26 +1,16 @@
 /*
- * Copyright (C) 2004-2007, 2009, 2013-2016  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 2003  Internet Software Consortium.
+ * Copyright (C) 2003-2007, 2009, 2013-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-
-/* $Id: hash.h,v 1.12 2009/01/17 23:47:43 tbox Exp $ */
 
 #ifndef ISC_HASH_H
 #define ISC_HASH_H 1
 
 #include <isc/types.h>
+#include <isc/util.h>
 
 /*****
  ***** Module Info
@@ -83,6 +73,8 @@
  ***/
 ISC_LANG_BEGINDECLS
 
+LIBISC_EXTERNAL_DATA extern isc_hash_t *isc_hashctx;
+
 isc_result_t
 isc_hash_ctxcreate(isc_mem_t *mctx, isc_entropy_t *entropy, size_t limit,
 		   isc_hash_t **hctx);
@@ -105,7 +97,8 @@ isc_hash_create(isc_mem_t *mctx, isc_entropy_t *entropy, size_t limit);
  */
 
 void
-isc_hash_ctxattach(isc_hash_t *hctx, isc_hash_t **hctxp);
+isc_hash_ctxattach(isc_hash_t *hctx, isc_hash_t **hctxp)
+	ISC_DEPRECATED;
 /*!<
  * \brief Attach to a hash object.
  *
@@ -113,7 +106,8 @@ isc_hash_ctxattach(isc_hash_t *hctx, isc_hash_t **hctxp);
  */
 
 void
-isc_hash_ctxdetach(isc_hash_t **hctxp);
+isc_hash_ctxdetach(isc_hash_t **hctxp)
+	ISC_DEPRECATED;
 /*!<
  * \brief Detach from a hash object.
  *
@@ -158,10 +152,12 @@ isc_hash_init(void);
 /*@{*/
 unsigned int
 isc_hash_ctxcalc(isc_hash_t *hctx, const unsigned char *key,
-		 unsigned int keylen, isc_boolean_t case_sensitive);
+		 unsigned int keylen, isc_boolean_t case_sensitive)
+	ISC_DEPRECATED;
 unsigned int
 isc_hash_calc(const unsigned char *key, unsigned int keylen,
-	      isc_boolean_t case_sensitive);
+	      isc_boolean_t case_sensitive)
+	ISC_DEPRECATED;
 /*!<
  * \brief Calculate a hash value.
  *
@@ -183,7 +179,8 @@ isc_hash_calc(const unsigned char *key, unsigned int keylen,
 /*@}*/
 
 void
-isc__hash_setvec(const isc_uint16_t *vec);
+isc__hash_setvec(const isc_uint16_t *vec)
+	ISC_DEPRECATED;
 
 /*!<
  * \brief Set the contents of the random vector used in hashing.
@@ -197,6 +194,12 @@ isc__hash_setvec(const isc_uint16_t *vec);
  * 'vec' is not documented here on purpose. You should know what you are
  * doing before using this function.
  */
+
+const void *
+isc_hash_get_initializer(void);
+
+void
+isc_hash_set_initializer(const void *initializer);
 
 isc_uint32_t
 isc_hash_function(const void *data, size_t length,

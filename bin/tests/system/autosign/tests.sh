@@ -1,18 +1,10 @@
 #!/bin/sh
 #
-# Copyright (C) 2009-2014  Internet Systems Consortium, Inc. ("ISC")
+# Copyright (C) 2009-2016  Internet Systems Consortium, Inc. ("ISC")
 #
-# Permission to use, copy, modify, and/or distribute this software for any
-# purpose with or without fee is hereby granted, provided that the above
-# copyright notice and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-# AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
-# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
-# OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-# PERFORMANCE OF THIS SOFTWARE.
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 SYSTEMTESTTOP=..
 . $SYSTEMTESTTOP/conf.sh
@@ -1149,13 +1141,11 @@ status=`expr $status + $ret`
 echo "I:test turning on auto-dnssec during reconfig ($n)"
 ret=0
 # first create a zone that doesn't have auto-dnssec
-rm -f ns3/*.nzf
 $RNDC -c ../common/rndc.conf -s 10.53.0.3 -p 9953 addzone reconf.example '{ type master; file "reconf.example.db"; };' 2>&1 | sed 's/^/I:ns3 /'
 rekey_calls=`grep "zone reconf.example.*next key event" ns3/named.run | wc -l`
 [ "$rekey_calls" -eq 0 ] || ret=1
 # ...then we add auto-dnssec and reconfigure
-nzf=`ls ns3/*.nzf`
-echo 'zone reconf.example { type master; file "reconf.example.db"; allow-update { any; }; auto-dnssec maintain; };' > $nzf
+$RNDC -c ../common/rndc.conf -s 10.53.0.3 -p 9953 modzone reconf.example '{ type master; file "reconf.example.db"; allow-update { any; }; auto-dnssec maintain; };' 2>&1 | sed 's/^/I:ns3 /'
 $RNDC -c ../common/rndc.conf -s 10.53.0.3 -p 9953 reconfig 2>&1 | sed 's/^/I:ns3 /'
 for i in 0 1 2 3 4 5 6 7 8 9; do
     lret=0
@@ -1170,5 +1160,51 @@ if [ "$lret" != 0 ]; then ret=$lret; fi
 if [ $ret != 0 ]; then echo "I:failed"; fi
 status=`expr $status + $ret`
 
+echo "I:test CDS and CDNSKEY auto generation ($n)"
+ret=0
+$DIG $DIGOPTS @10.53.0.3 sync.example cds > dig.out.ns3.cdstest$n
+$DIG $DIGOPTS @10.53.0.3 sync.example cdnskey > dig.out.ns3.cdnskeytest$n
+grep -i "sync.example.*in.cds.*[1-9][0-9]* " dig.out.ns3.cdstest$n > /dev/null || ret=1
+grep -i "sync.example.*in.cdnskey.*257 " dig.out.ns3.cdnskeytest$n > /dev/null || ret=1
+n=`expr $n + 1`
+if [ "$lret" != 0 ]; then ret=$lret; fi
+if [ $ret != 0 ]; then echo "I:failed"; fi
+status=`expr $status + $ret`
+
+echo "I:setting CDS and CDNSKEY deletion times and calling 'rndc loadkeys'"
+$SETTIME -D sync now+2 `cat sync.key`
+$RNDC -c ../common/rndc.conf -s 10.53.0.3 -p 9953 loadkeys sync.example
+echo "I:waiting for deletion to occur"
+sleep 3
+
+echo "I:checking that the CDS and CDNSKEY are deleted ($n)"
+ret=0
+$DIG $DIGOPTS @10.53.0.3 sync.example cds > dig.out.ns3.cdstest$n
+$DIG $DIGOPTS @10.53.0.3 sync.example cdnskey > dig.out.ns3.cdnskeytest$n
+grep -i "sync.example.*in.cds.*[1-9][0-9]* " dig.out.ns3.cdstest$n > /dev/null && ret=1
+grep -i "sync.example.*in.cdnskey.*257 " dig.out.ns3.cdnskeytest$n > /dev/null && ret=1
+n=`expr $n + 1`
+if [ "$lret" != 0 ]; then ret=$lret; fi
+if [ $ret != 0 ]; then echo "I:failed"; fi
+status=`expr $status + $ret`
+
+echo "I:check that dnssec-settime -p Dsync works ($n)"
+ret=0
+$SETTIME -p Dsync `cat sync.key` > settime.out.$n|| ret=0
+grep "SYNC Delete:" settime.out.$n >/dev/null || ret=0
+n=`expr $n + 1`
+if [ "$lret" != 0 ]; then ret=$lret; fi
+if [ $ret != 0 ]; then echo "I:failed"; fi
+status=`expr $status + $ret`
+
+echo "I:check that dnssec-settime -p Psync works ($n)"
+ret=0
+$SETTIME -p Psync `cat sync.key` > settime.out.$n|| ret=0
+grep "SYNC Publish:" settime.out.$n >/dev/null || ret=0
+n=`expr $n + 1`
+if [ "$lret" != 0 ]; then ret=$lret; fi
+if [ $ret != 0 ]; then echo "I:failed"; fi
+status=`expr $status + $ret`
+
 echo "I:exit status: $status"
-exit $status
+[ $status -eq 0 ] || exit 1

@@ -1,20 +1,12 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <!--
- - Copyright (C) 2004-2015 Internet Systems Consortium, Inc. ("ISC")
- - Copyright (C) 2000-2003 Internet Software Consortium.
+ - Copyright (C) 2000-2015 Internet Systems Consortium, Inc. ("ISC")
  - 
- - Permission to use, copy, modify, and/or distribute this software for any
- - purpose with or without fee is hereby granted, provided that the above
- - copyright notice and this permission notice appear in all copies.
- - 
- - THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- - REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- - AND FITNESS. IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- - INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- - LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- - OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- - PERFORMANCE OF THIS SOFTWARE.
+ - This Source Code Form is subject to the terms of the Mozilla Public
+ - License, v. 2.0. If a copy of the MPL was not distributed with this
+ - file, You can obtain one at http://mozilla.org/MPL/2.0/.
 -->
-<html>
+<html lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
 <title>named.conf</title>
@@ -22,7 +14,7 @@
 <link rel="home" href="Bv9ARM.html" title="BIND 9 Administrator Reference Manual">
 <link rel="up" href="Bv9ARM.ch13.html" title="Manual pages">
 <link rel="prev" href="man.named.html" title="named">
-<link rel="next" href="man.lwresd.html" title="lwresd">
+<link rel="next" href="man.named-checkconf.html" title="named-checkconf">
 </head>
 <body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
 <div class="navheader">
@@ -32,7 +24,7 @@
 <td width="20%" align="left">
 <a accesskey="p" href="man.named.html">Prev</a> </td>
 <th width="60%" align="center">Manual pages</th>
-<td width="20%" align="right"> <a accesskey="n" href="man.lwresd.html">Next</a>
+<td width="20%" align="right"> <a accesskey="n" href="man.named-checkconf.html">Next</a>
 </td>
 </tr>
 </table>
@@ -42,14 +34,14 @@
 <a name="man.named.conf"></a><div class="titlepage"></div>
 <div class="refnamediv">
 <h2>Name</h2>
-<p><code class="filename">named.conf</code> &#8212; configuration file for named</p>
+<p><code class="filename">named.conf</code> &#8212; configuration file for <span class="command"><strong>named</strong></span></p>
 </div>
 <div class="refsynopsisdiv">
 <h2>Synopsis</h2>
 <div class="cmdsynopsis"><p><code class="command">named.conf</code> </p></div>
 </div>
 <div class="refsection">
-<a name="id-1.14.18.7"></a><h2>DESCRIPTION</h2>
+<a name="id-1.14.20.7"></a><h2>DESCRIPTION</h2>
 <p><code class="filename">named.conf</code> is the configuration file
       for
       <span class="command"><strong>named</strong></span>.  Statements are enclosed
@@ -68,14 +60,14 @@
     </p>
 </div>
 <div class="refsection">
-<a name="id-1.14.18.8"></a><h2>ACL</h2>
+<a name="id-1.14.20.8"></a><h2>ACL</h2>
 <div class="literallayout"><p><br>
 acl <em class="replaceable"><code>string</code></em> { <em class="replaceable"><code>address_match_element</code></em>; ... };<br>
 <br>
 </p></div>
 </div>
 <div class="refsection">
-<a name="id-1.14.18.9"></a><h2>KEY</h2>
+<a name="id-1.14.20.9"></a><h2>KEY</h2>
 <div class="literallayout"><p><br>
 key <em class="replaceable"><code>domain_name</code></em> {<br>
 	algorithm <em class="replaceable"><code>string</code></em>;<br>
@@ -84,7 +76,7 @@ key <em class="replaceable"><code>domain_name</code></em> {<br>
 </p></div>
 </div>
 <div class="refsection">
-<a name="id-1.14.18.10"></a><h2>MASTERS</h2>
+<a name="id-1.14.20.10"></a><h2>MASTERS</h2>
 <div class="literallayout"><p><br>
 masters <em class="replaceable"><code>string</code></em> [<span class="optional"> port <em class="replaceable"><code>integer</code></em> </span>] {<br>
 	( <em class="replaceable"><code>masters</code></em> | <em class="replaceable"><code>ipv4_address</code></em> [<span class="optional">port <em class="replaceable"><code>integer</code></em></span>] |<br>
@@ -93,13 +85,14 @@ masters <em class="replaceable"><code>string</code></em> [<span class="optional"
 </p></div>
 </div>
 <div class="refsection">
-<a name="id-1.14.18.11"></a><h2>SERVER</h2>
+<a name="id-1.14.20.11"></a><h2>SERVER</h2>
 <div class="literallayout"><p><br>
 server ( <em class="replaceable"><code>ipv4_address[<span class="optional">/prefixlen</span>]</code></em> | <em class="replaceable"><code>ipv6_address[<span class="optional">/prefixlen</span>]</code></em> ) {<br>
 	bogus <em class="replaceable"><code>boolean</code></em>;<br>
 	edns <em class="replaceable"><code>boolean</code></em>;<br>
 	edns-udp-size <em class="replaceable"><code>integer</code></em>;<br>
 	max-udp-size <em class="replaceable"><code>integer</code></em>;<br>
+	tcp-only <em class="replaceable"><code>boolean</code></em>;<br>
 	provide-ixfr <em class="replaceable"><code>boolean</code></em>;<br>
 	request-ixfr <em class="replaceable"><code>boolean</code></em>;<br>
 	keys <em class="replaceable"><code>server_key</code></em>;<br>
@@ -115,7 +108,7 @@ server ( <em class="replaceable"><code>ipv4_address[<span class="optional">/pref
 </p></div>
 </div>
 <div class="refsection">
-<a name="id-1.14.18.12"></a><h2>TRUSTED-KEYS</h2>
+<a name="id-1.14.20.12"></a><h2>TRUSTED-KEYS</h2>
 <div class="literallayout"><p><br>
 trusted-keys {<br>
 	<em class="replaceable"><code>domain_name</code></em> <em class="replaceable"><code>flags</code></em> <em class="replaceable"><code>protocol</code></em> <em class="replaceable"><code>algorithm</code></em> <em class="replaceable"><code>key</code></em>; ...<br>
@@ -123,7 +116,7 @@ trusted-keys {<br>
 </p></div>
 </div>
 <div class="refsection">
-<a name="id-1.14.18.13"></a><h2>MANAGED-KEYS</h2>
+<a name="id-1.14.20.13"></a><h2>MANAGED-KEYS</h2>
 <div class="literallayout"><p><br>
 managed-keys {<br>
 	<em class="replaceable"><code>domain_name</code></em> <code class="constant">initial-key</code> <em class="replaceable"><code>flags</code></em> <em class="replaceable"><code>protocol</code></em> <em class="replaceable"><code>algorithm</code></em> <em class="replaceable"><code>key</code></em>; ...<br>
@@ -131,7 +124,7 @@ managed-keys {<br>
 </p></div>
 </div>
 <div class="refsection">
-<a name="id-1.14.18.14"></a><h2>CONTROLS</h2>
+<a name="id-1.14.20.14"></a><h2>CONTROLS</h2>
 <div class="literallayout"><p><br>
 controls {<br>
 	inet ( <em class="replaceable"><code>ipv4_address</code></em> | <em class="replaceable"><code>ipv6_address</code></em> | * )<br>
@@ -143,7 +136,7 @@ controls {<br>
 </p></div>
 </div>
 <div class="refsection">
-<a name="id-1.14.18.15"></a><h2>LOGGING</h2>
+<a name="id-1.14.20.15"></a><h2>LOGGING</h2>
 <div class="literallayout"><p><br>
 logging {<br>
 	channel <em class="replaceable"><code>string</code></em> {<br>
@@ -161,7 +154,7 @@ logging {<br>
 </p></div>
 </div>
 <div class="refsection">
-<a name="id-1.14.18.16"></a><h2>LWRES</h2>
+<a name="id-1.14.20.16"></a><h2>LWRES</h2>
 <div class="literallayout"><p><br>
 lwres {<br>
 	listen-on [<span class="optional"> port <em class="replaceable"><code>integer</code></em> </span>] {<br>
@@ -170,11 +163,13 @@ lwres {<br>
 	view <em class="replaceable"><code>string</code></em> <em class="replaceable"><code>optional_class</code></em>;<br>
 	search { <em class="replaceable"><code>string</code></em>; ... };<br>
 	ndots <em class="replaceable"><code>integer</code></em>;<br>
+	lwres-tasks <em class="replaceable"><code>integer</code></em>;<br>
+	lwres-clients <em class="replaceable"><code>integer</code></em>;<br>
 };<br>
 </p></div>
 </div>
 <div class="refsection">
-<a name="id-1.14.18.17"></a><h2>OPTIONS</h2>
+<a name="id-1.14.20.17"></a><h2>OPTIONS</h2>
 <div class="literallayout"><p><br>
 options {<br>
 	avoid-v4-udp-ports { <em class="replaceable"><code>port</code></em>; ... };<br>
@@ -183,13 +178,25 @@ options {<br>
 	coresize <em class="replaceable"><code>size</code></em>;<br>
 	datasize <em class="replaceable"><code>size</code></em>;<br>
 	directory <em class="replaceable"><code>quoted_string</code></em>;<br>
+	dnstap { <em class="replaceable"><code>message_type</code></em>; ... };<br>
+	dnstap-output ( <code class="literal">file</code> | <code class="literal">unix</code> ) <em class="replaceable"><code>path_name</code></em>;<br>
+	dnstap-identity ( <em class="replaceable"><code>string</code></em> | <code class="literal">hostname</code> | <code class="literal">none</code> );<br>
+	dnstap-version ( <em class="replaceable"><code>string</code></em> | <code class="literal">none</code> );<br>
 	dump-file <em class="replaceable"><code>quoted_string</code></em>;<br>
 	files <em class="replaceable"><code>size</code></em>;<br>
+	fstrm-set-buffer-hint <em class="replaceable"><code>number</code></em>;<br>
+	fstrm-set-flush-timeout <em class="replaceable"><code>number</code></em>;<br>
+	fstrm-set-input-queue-size <em class="replaceable"><code>number</code></em>;<br>
+	fstrm-set-output-notify-threshold <em class="replaceable"><code>number</code></em>;<br>
+	fstrm-set-output-queue-model ( <em class="replaceable"><code>mpsc</code></em> | <em class="replaceable"><code>spsc</code></em> ) ;<br>
+	fstrm-set-output-queue-size <em class="replaceable"><code>number</code></em>;<br>
+	fstrm-set-reopen-interval <em class="replaceable"><code>number</code></em>;<br>
 	heartbeat-interval <em class="replaceable"><code>integer</code></em>;<br>
 	host-statistics <em class="replaceable"><code>boolean</code></em>; // not implemented<br>
 	host-statistics-max <em class="replaceable"><code>number</code></em>; // not implemented<br>
 	hostname ( <em class="replaceable"><code>quoted_string</code></em> | none );<br>
 	interface-interval <em class="replaceable"><code>integer</code></em>;<br>
+	keep-response-order { <em class="replaceable"><code>address_match_element</code></em>; ... };<br>
 	listen-on [<span class="optional"> port <em class="replaceable"><code>integer</code></em> </span>] { <em class="replaceable"><code>address_match_element</code></em>; ... };<br>
 	listen-on-v6 [<span class="optional"> port <em class="replaceable"><code>integer</code></em> </span>] { <em class="replaceable"><code>address_match_element</code></em>; ... };<br>
 	match-mapped-addresses <em class="replaceable"><code>boolean</code></em>;<br>
@@ -212,6 +219,7 @@ options {<br>
 	tkey-gssapi-credential <em class="replaceable"><code>quoted_string</code></em>;<br>
 	tkey-gssapi-keytab <em class="replaceable"><code>quoted_string</code></em>;<br>
 	tkey-domain <em class="replaceable"><code>quoted_string</code></em>;<br>
+	transfer-message-size <em class="replaceable"><code>integer</code></em>;<br>
 	transfers-per-ns <em class="replaceable"><code>integer</code></em>;<br>
 	transfers-in <em class="replaceable"><code>integer</code></em>;<br>
 	transfers-out <em class="replaceable"><code>integer</code></em>;<br>
@@ -221,7 +229,8 @@ options {<br>
 	sortlist { <em class="replaceable"><code>address_match_element</code></em>; ... };<br>
 	topology { <em class="replaceable"><code>address_match_element</code></em>; ... }; // not implemented<br>
 	auth-nxdomain <em class="replaceable"><code>boolean</code></em>; // default changed<br>
-	minimal-responses <em class="replaceable"><code>boolean</code></em>;<br>
+	minimal-any <em class="replaceable"><code>boolean</code></em>;<br>
+	minimal-responses ( <em class="replaceable"><code>boolean</code></em> | no-auth | no-auth-recursive );<br>
 	recursion <em class="replaceable"><code>boolean</code></em>;<br>
 	rrset-order {<br>
 		[<span class="optional"> class <em class="replaceable"><code>string</code></em> </span>] [<span class="optional"> type <em class="replaceable"><code>string</code></em> </span>]<br>
@@ -255,6 +264,16 @@ options {<br>
 	check-mx-cname ( fail | warn | ignore );<br>
 	check-srv-cname ( fail | warn | ignore );<br>
 	cache-file <em class="replaceable"><code>quoted_string</code></em>; // test option<br>
+	catalog-zones {<br>
+	    zone <em class="replaceable"><code>quoted_string</code></em><br>
+		[<span class="optional"> default-masters<br>
+		[<span class="optional">port <em class="replaceable"><code>ip_port</code></em></span>]<br>
+		[<span class="optional">dscp <em class="replaceable"><code>ip_dscp</code></em></span>]<br>
+		{ ( <em class="replaceable"><code>masters_list</code></em> | <em class="replaceable"><code>ip_addr</code></em> [<span class="optional">port <em class="replaceable"><code>ip_port</code></em></span>] [<span class="optional">key <em class="replaceable"><code>key</code></em></span>] ) ; [<span class="optional">...</span>] }</span>]<br>
+	    [<span class="optional">in-memory <em class="replaceable"><code>yes_or_no</code></em></span>]<br>
+	    [<span class="optional">min-update-interval <em class="replaceable"><code>interval</code></em></span>]<br>
+	    ; ... };<br>
+	;<br>
 	suppress-initial-notify <em class="replaceable"><code>boolean</code></em>; // not yet implemented<br>
 	preferred-glue <em class="replaceable"><code>string</code></em>;<br>
 	dual-stack-servers [<span class="optional"> port <em class="replaceable"><code>integer</code></em> </span>] {<br>
@@ -276,9 +295,9 @@ options {<br>
 	dns64-server <em class="replaceable"><code>string</code></em>;<br>
 	dns64-contact <em class="replaceable"><code>string</code></em>;<br>
 	dns64 <em class="replaceable"><code>prefix</code></em> {<br>
-		clients { <span style="color: red">&lt;replacable&gt;acl&lt;/replacable&gt;</span>; };<br>
-		exclude { <span style="color: red">&lt;replacable&gt;acl&lt;/replacable&gt;</span>; };<br>
-		mapped { <span style="color: red">&lt;replacable&gt;acl&lt;/replacable&gt;</span>; };<br>
+		clients { <em class="replaceable"><code>acl</code></em>; };<br>
+		exclude { <em class="replaceable"><code>acl</code></em>; };<br>
+		mapped { <em class="replaceable"><code>acl</code></em>; };<br>
 		break-dnssec <em class="replaceable"><code>boolean</code></em>;<br>
 		recursive-only <em class="replaceable"><code>boolean</code></em>;<br>
 		suffix <em class="replaceable"><code>ipv6_address</code></em>;<br>
@@ -356,6 +375,12 @@ options {<br>
 	dnssec-secure-to-insecure <em class="replaceable"><code>boolean</code></em>;<br>
 	automatic-interface-scan <em class="replaceable"><code>boolean</code></em>;<br>
 <br>
+	cookie-algorithm ( <em class="replaceable"><code>aes</code></em> | <em class="replaceable"><code>sha1</code></em> | <em class="replaceable"><code>sha256</code></em> );<br>
+	cookie-secret <em class="replaceable"><code>string</code></em>;<br>
+	require-server-cookie <em class="replaceable"><code>boolean</code></em>;<br>
+	send-cookie <em class="replaceable"><code>boolean</code></em>;<br>
+	nocookie-udp-size <em class="replaceable"><code>integer</code></em>;<br>
+<br>
 	deny-answer-addresses {<br>
 		<em class="replaceable"><code>address_match_list</code></em><br>
 	} [<span class="optional"> except-from { <em class="replaceable"><code>namelist</code></em> } </span>];<br>
@@ -382,7 +407,7 @@ options {<br>
 </p></div>
 </div>
 <div class="refsection">
-<a name="id-1.14.18.18"></a><h2>VIEW</h2>
+<a name="id-1.14.20.18"></a><h2>VIEW</h2>
 <div class="literallayout"><p><br>
 view <em class="replaceable"><code>string</code></em> <em class="replaceable"><code>optional_class</code></em> {<br>
 	match-clients { <em class="replaceable"><code>address_match_element</code></em>; ... };<br>
@@ -412,6 +437,7 @@ view <em class="replaceable"><code>string</code></em> <em class="replaceable"><c
 	sortlist { <em class="replaceable"><code>address_match_element</code></em>; ... };<br>
 	topology { <em class="replaceable"><code>address_match_element</code></em>; ... }; // not implemented<br>
 	auth-nxdomain <em class="replaceable"><code>boolean</code></em>; // default changed<br>
+	minimal-any <em class="replaceable"><code>boolean</code></em>;<br>
 	minimal-responses <em class="replaceable"><code>boolean</code></em>;<br>
 	recursion <em class="replaceable"><code>boolean</code></em>;<br>
 	rrset-order {<br>
@@ -467,9 +493,9 @@ view <em class="replaceable"><code>string</code></em> <em class="replaceable"><c
 	dns64-server <em class="replaceable"><code>string</code></em>;<br>
 	dns64-contact <em class="replaceable"><code>string</code></em>;<br>
 	dns64 <em class="replaceable"><code>prefix</code></em> {<br>
-		clients { <span style="color: red">&lt;replacable&gt;acl&lt;/replacable&gt;</span>; };<br>
-		exclude { <span style="color: red">&lt;replacable&gt;acl&lt;/replacable&gt;</span>; };<br>
-		mapped { <span style="color: red">&lt;replacable&gt;acl&lt;/replacable&gt;</span>; };<br>
+		clients { <em class="replaceable"><code>acl</code></em>; };<br>
+		exclude { <em class="replaceable"><code>acl</code></em>; };<br>
+		mapped { <em class="replaceable"><code>acl</code></em>; };<br>
 		break-dnssec <em class="replaceable"><code>boolean</code></em>;<br>
 		recursive-only <em class="replaceable"><code>boolean</code></em>;<br>
 		suffix <em class="replaceable"><code>ipv6_address</code></em>;<br>
@@ -539,6 +565,10 @@ view <em class="replaceable"><code>string</code></em> <em class="replaceable"><c
 	zero-no-soa-ttl-cache <em class="replaceable"><code>boolean</code></em>;<br>
 	dnssec-secure-to-insecure <em class="replaceable"><code>boolean</code></em>;<br>
 <br>
+	require-server-cookie <em class="replaceable"><code>boolean</code></em>;<br>
+	send-cookie <em class="replaceable"><code>boolean</code></em>;<br>
+	nocookie-udp-size <em class="replaceable"><code>integer</code></em>;<br>
+<br>
 	allow-v6-synthesis { <em class="replaceable"><code>address_match_element</code></em>; ... }; // obsolete<br>
 	fetch-glue <em class="replaceable"><code>boolean</code></em>; // obsolete<br>
 	maintain-ixfr-base <em class="replaceable"><code>boolean</code></em>; // obsolete<br>
@@ -547,7 +577,7 @@ view <em class="replaceable"><code>string</code></em> <em class="replaceable"><c
 </p></div>
 </div>
 <div class="refsection">
-<a name="id-1.14.18.19"></a><h2>ZONE</h2>
+<a name="id-1.14.20.19"></a><h2>ZONE</h2>
 <div class="literallayout"><p><br>
 zone <em class="replaceable"><code>string</code></em> <em class="replaceable"><code>optional_class</code></em> {<br>
 	type ( master | slave | stub | hint | redirect |<br>
@@ -581,7 +611,7 @@ zone <em class="replaceable"><code>string</code></em> <em class="replaceable"><c
 	update-policy <em class="replaceable"><code>local</code></em> | <em class="replaceable"><code> {<br>
 		( grant | deny ) <em class="replaceable"><code>string</code></em><br>
 		( name | subdomain | wildcard | self | selfsub | selfwild |<br>
-                  krb5-self | ms-self | krb5-subdomain | ms-subdomain |<br>
+		  krb5-self | ms-self | krb5-subdomain | ms-subdomain |<br>
 		  tcp-self | zonesub | 6to4-self ) <em class="replaceable"><code>string</code></em><br>
 		<em class="replaceable"><code>rrtypelist</code></em>;<br>
 		[<span class="optional">...</span>]<br>
@@ -644,12 +674,12 @@ zone <em class="replaceable"><code>string</code></em> <em class="replaceable"><c
 </p></div>
 </div>
 <div class="refsection">
-<a name="id-1.14.18.20"></a><h2>FILES</h2>
+<a name="id-1.14.20.20"></a><h2>FILES</h2>
 <p><code class="filename">/etc/named.conf</code>
     </p>
 </div>
 <div class="refsection">
-<a name="id-1.14.18.21"></a><h2>SEE ALSO</h2>
+<a name="id-1.14.20.21"></a><h2>SEE ALSO</h2>
 <p><span class="citerefentry"><span class="refentrytitle">named</span>(8)</span>,
       <span class="citerefentry"><span class="refentrytitle">named-checkconf</span>(8)</span>,
       <span class="citerefentry"><span class="refentrytitle">rndc</span>(8)</span>,
@@ -664,18 +694,18 @@ zone <em class="replaceable"><code>string</code></em> <em class="replaceable"><c
 <td width="40%" align="left">
 <a accesskey="p" href="man.named.html">Prev</a> </td>
 <td width="20%" align="center"><a accesskey="u" href="Bv9ARM.ch13.html">Up</a></td>
-<td width="40%" align="right"> <a accesskey="n" href="man.lwresd.html">Next</a>
+<td width="40%" align="right"> <a accesskey="n" href="man.named-checkconf.html">Next</a>
 </td>
 </tr>
 <tr>
 <td width="40%" align="left" valign="top">
 <span class="application">named</span> </td>
 <td width="20%" align="center"><a accesskey="h" href="Bv9ARM.html">Home</a></td>
-<td width="40%" align="right" valign="top"> <span class="application">lwresd</span>
+<td width="40%" align="right" valign="top"> <span class="application">named-checkconf</span>
 </td>
 </tr>
 </table>
 </div>
-<p xmlns:db="http://docbook.org/ns/docbook" style="text-align: center;">BIND 9.10.4-P2</p>
+<p xmlns:db="http://docbook.org/ns/docbook" style="text-align: center;">BIND 9.11.0</p>
 </body>
 </html>

@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2009, 2011-2015  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 2000-2003  Internet Software Consortium.
+ * Copyright (C) 2000-2009, 2011-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /*
@@ -39,6 +30,8 @@
 #include <isc/sha2.h>
 #include <isc/string.h>
 #include <isc/util.h>
+
+#include <pk11/site.h>
 
 #include <dst/result.h>
 
@@ -131,11 +124,18 @@ opensslrsa_createctx(dst_key_t *key, dst_context_t *dctx) {
 #endif
 
 	UNUSED(key);
+#ifndef PK11_MD5_DISABLE
 	REQUIRE(dctx->key->key_alg == DST_ALG_RSAMD5 ||
 		dctx->key->key_alg == DST_ALG_RSASHA1 ||
 		dctx->key->key_alg == DST_ALG_NSEC3RSASHA1 ||
 		dctx->key->key_alg == DST_ALG_RSASHA256 ||
 		dctx->key->key_alg == DST_ALG_RSASHA512);
+#else
+	REQUIRE(dctx->key->key_alg == DST_ALG_RSASHA1 ||
+		dctx->key->key_alg == DST_ALG_NSEC3RSASHA1 ||
+		dctx->key->key_alg == DST_ALG_RSASHA256 ||
+		dctx->key->key_alg == DST_ALG_RSASHA512);
+#endif
 
 #if USE_EVP
 	evp_md_ctx = EVP_MD_CTX_create();
@@ -143,9 +143,11 @@ opensslrsa_createctx(dst_key_t *key, dst_context_t *dctx) {
 		return (ISC_R_NOMEMORY);
 
 	switch (dctx->key->key_alg) {
+#ifndef PK11_MD5_DISABLE
 	case DST_ALG_RSAMD5:
 		type = EVP_md5();	/* MD5 + RSA */
 		break;
+#endif
 	case DST_ALG_RSASHA1:
 	case DST_ALG_NSEC3RSASHA1:
 		type = EVP_sha1();	/* SHA1 + RSA */
@@ -173,6 +175,7 @@ opensslrsa_createctx(dst_key_t *key, dst_context_t *dctx) {
 	dctx->ctxdata.evp_md_ctx = evp_md_ctx;
 #else
 	switch (dctx->key->key_alg) {
+#ifndef PK11_MD5_DISABLE
 	case DST_ALG_RSAMD5:
 		{
 			isc_md5_t *md5ctx;
@@ -184,6 +187,7 @@ opensslrsa_createctx(dst_key_t *key, dst_context_t *dctx) {
 			dctx->ctxdata.md5ctx = md5ctx;
 		}
 		break;
+#endif
 	case DST_ALG_RSASHA1:
 	case DST_ALG_NSEC3RSASHA1:
 		{
@@ -234,11 +238,18 @@ opensslrsa_destroyctx(dst_context_t *dctx) {
 	EVP_MD_CTX *evp_md_ctx = dctx->ctxdata.evp_md_ctx;
 #endif
 
+#ifndef PK11_MD5_DISABLE
 	REQUIRE(dctx->key->key_alg == DST_ALG_RSAMD5 ||
 		dctx->key->key_alg == DST_ALG_RSASHA1 ||
 		dctx->key->key_alg == DST_ALG_NSEC3RSASHA1 ||
 		dctx->key->key_alg == DST_ALG_RSASHA256 ||
 		dctx->key->key_alg == DST_ALG_RSASHA512);
+#else
+	REQUIRE(dctx->key->key_alg == DST_ALG_RSASHA1 ||
+		dctx->key->key_alg == DST_ALG_NSEC3RSASHA1 ||
+		dctx->key->key_alg == DST_ALG_RSASHA256 ||
+		dctx->key->key_alg == DST_ALG_RSASHA512);
+#endif
 
 #if USE_EVP
 	if (evp_md_ctx != NULL) {
@@ -247,6 +258,7 @@ opensslrsa_destroyctx(dst_context_t *dctx) {
 	}
 #else
 	switch (dctx->key->key_alg) {
+#ifndef PK11_MD5_DISABLE
 	case DST_ALG_RSAMD5:
 		{
 			isc_md5_t *md5ctx = dctx->ctxdata.md5ctx;
@@ -259,6 +271,7 @@ opensslrsa_destroyctx(dst_context_t *dctx) {
 			}
 		}
 		break;
+#endif
 	case DST_ALG_RSASHA1:
 	case DST_ALG_NSEC3RSASHA1:
 		{
@@ -308,11 +321,18 @@ opensslrsa_adddata(dst_context_t *dctx, const isc_region_t *data) {
 	EVP_MD_CTX *evp_md_ctx = dctx->ctxdata.evp_md_ctx;
 #endif
 
+#ifndef PK11_MD5_DISABLE
 	REQUIRE(dctx->key->key_alg == DST_ALG_RSAMD5 ||
 		dctx->key->key_alg == DST_ALG_RSASHA1 ||
 		dctx->key->key_alg == DST_ALG_NSEC3RSASHA1 ||
 		dctx->key->key_alg == DST_ALG_RSASHA256 ||
 		dctx->key->key_alg == DST_ALG_RSASHA512);
+#else
+	REQUIRE(dctx->key->key_alg == DST_ALG_RSASHA1 ||
+		dctx->key->key_alg == DST_ALG_NSEC3RSASHA1 ||
+		dctx->key->key_alg == DST_ALG_RSASHA256 ||
+		dctx->key->key_alg == DST_ALG_RSASHA512);
+#endif
 
 #if USE_EVP
 	if (!EVP_DigestUpdate(evp_md_ctx, data->base, data->length)) {
@@ -322,6 +342,7 @@ opensslrsa_adddata(dst_context_t *dctx, const isc_region_t *data) {
 	}
 #else
 	switch (dctx->key->key_alg) {
+#ifndef PK11_MD5_DISABLE
 	case DST_ALG_RSAMD5:
 		{
 			isc_md5_t *md5ctx = dctx->ctxdata.md5ctx;
@@ -329,6 +350,7 @@ opensslrsa_adddata(dst_context_t *dctx, const isc_region_t *data) {
 			isc_md5_update(md5ctx, data->base, data->length);
 		}
 		break;
+#endif
 	case DST_ALG_RSASHA1:
 	case DST_ALG_NSEC3RSASHA1:
 		{
@@ -394,11 +416,18 @@ opensslrsa_sign(dst_context_t *dctx, isc_buffer_t *sig) {
 #endif
 #endif
 
+#ifndef PK11_MD5_DISABLE
 	REQUIRE(dctx->key->key_alg == DST_ALG_RSAMD5 ||
 		dctx->key->key_alg == DST_ALG_RSASHA1 ||
 		dctx->key->key_alg == DST_ALG_NSEC3RSASHA1 ||
 		dctx->key->key_alg == DST_ALG_RSASHA256 ||
 		dctx->key->key_alg == DST_ALG_RSASHA512);
+#else
+	REQUIRE(dctx->key->key_alg == DST_ALG_RSASHA1 ||
+		dctx->key->key_alg == DST_ALG_NSEC3RSASHA1 ||
+		dctx->key->key_alg == DST_ALG_RSASHA256 ||
+		dctx->key->key_alg == DST_ALG_RSASHA512);
+#endif
 
 	isc_buffer_availableregion(sig, &r);
 
@@ -416,6 +445,7 @@ opensslrsa_sign(dst_context_t *dctx, isc_buffer_t *sig) {
 		return (ISC_R_NOSPACE);
 
 	switch (dctx->key->key_alg) {
+#ifndef PK11_MD5_DISABLE
 	case DST_ALG_RSAMD5:
 		{
 			isc_md5_t *md5ctx = dctx->ctxdata.md5ctx;
@@ -425,6 +455,7 @@ opensslrsa_sign(dst_context_t *dctx, isc_buffer_t *sig) {
 			digestlen = ISC_MD5_DIGESTLENGTH;
 		}
 		break;
+#endif
 	case DST_ALG_RSASHA1:
 	case DST_ALG_NSEC3RSASHA1:
 		{
@@ -469,7 +500,9 @@ opensslrsa_sign(dst_context_t *dctx, isc_buffer_t *sig) {
 
 #if OPENSSL_VERSION_NUMBER < 0x00908000L
 	switch (dctx->key->key_alg) {
+#ifndef PK11_MD5_DISABLE
 	case DST_ALG_RSAMD5:
+#endif
 	case DST_ALG_RSASHA1:
 	case DST_ALG_NSEC3RSASHA1:
 		INSIST(type != 0);
@@ -533,11 +566,18 @@ opensslrsa_verify2(dst_context_t *dctx, int maxbits, const isc_region_t *sig) {
 #endif
 #endif
 
+#ifndef PK11_MD5_DISABLE
 	REQUIRE(dctx->key->key_alg == DST_ALG_RSAMD5 ||
 		dctx->key->key_alg == DST_ALG_RSASHA1 ||
 		dctx->key->key_alg == DST_ALG_NSEC3RSASHA1 ||
 		dctx->key->key_alg == DST_ALG_RSASHA256 ||
 		dctx->key->key_alg == DST_ALG_RSASHA512);
+#else
+	REQUIRE(dctx->key->key_alg == DST_ALG_RSASHA1 ||
+		dctx->key->key_alg == DST_ALG_NSEC3RSASHA1 ||
+		dctx->key->key_alg == DST_ALG_RSASHA256 ||
+		dctx->key->key_alg == DST_ALG_RSASHA512);
+#endif
 
 #if USE_EVP
 	rsa = EVP_PKEY_get1_RSA(pkey);
@@ -564,6 +604,7 @@ opensslrsa_verify2(dst_context_t *dctx, int maxbits, const isc_region_t *sig) {
 		return (DST_R_VERIFYFAILURE);
 
 	switch (dctx->key->key_alg) {
+#ifndef PK11_MD5_DISABLE
 	case DST_ALG_RSAMD5:
 		{
 			isc_md5_t *md5ctx = dctx->ctxdata.md5ctx;
@@ -573,6 +614,7 @@ opensslrsa_verify2(dst_context_t *dctx, int maxbits, const isc_region_t *sig) {
 			digestlen = ISC_MD5_DIGESTLENGTH;
 		}
 		break;
+#endif
 	case DST_ALG_RSASHA1:
 	case DST_ALG_NSEC3RSASHA1:
 		{
@@ -620,7 +662,9 @@ opensslrsa_verify2(dst_context_t *dctx, int maxbits, const isc_region_t *sig) {
 
 #if OPENSSL_VERSION_NUMBER < 0x00908000L
 	switch (dctx->key->key_alg) {
+#ifndef PK11_MD5_DISABLE
 	case DST_ALG_RSAMD5:
+#endif
 	case DST_ALG_RSASHA1:
 	case DST_ALG_NSEC3RSASHA1:
 		INSIST(type != 0);
@@ -1140,14 +1184,16 @@ opensslrsa_tofile(const dst_key_t *key, const char *directory) {
 
 	if (key->engine != NULL) {
 		priv.elements[i].tag = TAG_RSA_ENGINE;
-		priv.elements[i].length = strlen(key->engine) + 1;
+		priv.elements[i].length =
+			(unsigned short)strlen(key->engine) + 1;
 		priv.elements[i].data = (unsigned char *)key->engine;
 		i++;
 	}
 
 	if (key->label != NULL) {
 		priv.elements[i].tag = TAG_RSA_LABEL;
-		priv.elements[i].length = strlen(key->label) + 1;
+		priv.elements[i].length =
+			(unsigned short)strlen(key->label) + 1;
 		priv.elements[i].data = (unsigned char *)key->label;
 		i++;
 	}

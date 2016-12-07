@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2009, 2011-2014  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1999-2003  Internet Software Consortium.
+ * Copyright (C) 1999-2009, 2011-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id: client.h,v 1.96 2012/01/31 23:47:31 tbox Exp $ */
@@ -129,17 +120,25 @@ struct ns_client {
 	void			(*shutdown)(void *arg, isc_result_t result);
 	void 			*shutdown_arg;
 	ns_query_t		query;
-	isc_stdtime_t		requesttime;
+	isc_time_t		requesttime;
 	isc_stdtime_t		now;
+	isc_time_t		tnow;
 	dns_name_t		signername;   /*%< [T]SIG key name */
 	dns_name_t *		signer;	      /*%< NULL if not valid sig */
 	isc_boolean_t		mortal;	      /*%< Die after handling request */
+	isc_boolean_t		pipelined;   /*%< TCP queries not in sequence */
 	isc_quota_t		*tcpquota;
 	isc_quota_t		*recursionquota;
 	ns_interface_t		*interface;
+
 	isc_sockaddr_t		peeraddr;
 	isc_boolean_t		peeraddr_valid;
 	isc_netaddr_t		destaddr;
+
+	isc_netaddr_t		ecs_addr;	/*%< EDNS client subnet */
+	isc_uint8_t		ecs_addrlen;
+	isc_uint8_t		ecs_scope;
+
 	struct in6_pktinfo	pktinfo;
 	isc_dscp_t		dscp;
 	isc_event_t		ctlevent;
@@ -182,11 +181,22 @@ typedef ISC_LIST(ns_client_t) client_list_t;
 #define NS_CLIENTATTR_FILTER_AAAA_RC	0x0080 /*%< recursing for A against AAAA */
 #endif
 #define NS_CLIENTATTR_WANTAD		0x0100 /*%< want AD in response if possible */
-#define NS_CLIENTATTR_WANTSIT		0x0200 /*%< include SIT */
-#define NS_CLIENTATTR_HAVESIT		0x0400 /*%< has a valid SIT */
+#define NS_CLIENTATTR_WANTCOOKIE	0x0200 /*%< return a COOKIE */
+#define NS_CLIENTATTR_HAVECOOKIE	0x0400 /*%< has a valid COOKIE */
 #define NS_CLIENTATTR_WANTEXPIRE	0x0800 /*%< return seconds to expire */
 #define NS_CLIENTATTR_HAVEEXPIRE	0x1000 /*%< return seconds to expire */
 #define NS_CLIENTATTR_WANTOPT		0x2000 /*%< add opt to reply */
+#define NS_CLIENTATTR_HAVEECS		0x4000 /*%< received an ECS option */
+
+#define NS_CLIENTATTR_NOSETFC		0x8000 /*%< don't set servfail cache */
+
+/*
+ * Flag to use with the SERVFAIL cache to indicate
+ * that a query had the CD bit set.
+ */
+#define NS_FAILCACHE_CD		0x01
+
+
 
 extern unsigned int ns_client_requests;
 

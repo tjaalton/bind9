@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2016  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 2001-2003  Internet Software Consortium.
+ * Copyright (C) 2001-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /*! \file */
@@ -21,6 +12,7 @@
 
 #include <stdlib.h>
 
+#include <isc/aes.h>
 #include <isc/base64.h>
 #include <isc/buffer.h>
 #include <isc/file.h>
@@ -32,27 +24,21 @@
 #include <isc/platform.h>
 #include <isc/region.h>
 #include <isc/result.h>
+#include <isc/sha1.h>
+#include <isc/sha2.h>
 #include <isc/sockaddr.h>
 #include <isc/string.h>
 #include <isc/symtab.h>
 #include <isc/util.h>
 
-#ifdef ISC_PLATFORM_USESIT
-#ifdef AES_SIT
-#include <isc/aes.h>
-#endif
-#ifdef HMAC_SHA1_SIT
-#include <isc/sha1.h>
-#endif
-#ifdef HMAC_SHA256_SIT
-#include <isc/sha2.h>
-#endif
-#endif
+#include <pk11/site.h>
 
 #include <dns/acl.h>
+#include <dns/dnstap.h>
 #include <dns/fixedname.h>
 #include <dns/rdataclass.h>
 #include <dns/rdatatype.h>
+#include <dns/rrl.h>
 #include <dns/secalg.h>
 
 #include <dst/dst.h>
@@ -465,8 +451,8 @@ check_viewacls(cfg_aclconfctx_t *actx, const cfg_obj_t *voptions,
 
 	static const char *acls[] = { "allow-query", "allow-query-on",
 		"allow-query-cache", "allow-query-cache-on",
-		"blackhole", "match-clients", "match-destinations",
-		"sortlist", "filter-aaaa", NULL };
+		"blackhole", "keep-response-order", "match-clients",
+		"match-destinations", "sortlist", "filter-aaaa", NULL };
 
 	while (acls[i] != NULL) {
 		tresult = checkacl(acls[i++], actx, NULL, voptions, config,
@@ -576,6 +562,138 @@ check_dns64(cfg_aclconfctx_t *actx, const cfg_obj_t *voptions,
 	return (result);
 }
 
+#define CHECK_RRL(cond, pat, val1, val2)				\
+	do {								\
+		if (!(cond)) {						\
+			cfg_obj_log(obj, logctx, ISC_LOG_ERROR,		\
+				    pat, val1, val2);			\
+			if (result == ISC_R_SUCCESS)			\
+				result = ISC_R_RANGE;			\
+		    }							\
+	} while (0)
+
+#define CHECK_RRL_RATE(rate, def, max_rate, name)			\
+	do {								\
+		obj = NULL;						\
+		mresult = cfg_map_get(map, name, &obj);			\
+		if (mresult == ISC_R_SUCCESS) {				\
+			rate = cfg_obj_asuint32(obj);			\
+			CHECK_RRL(rate <= max_rate, name" %d > %d",	\
+				  rate, max_rate);			\
+		}							\
+	} while (0)
+
+static isc_result_t
+check_ratelimit(cfg_aclconfctx_t *actx, const cfg_obj_t *voptions,
+		const cfg_obj_t *config, isc_log_t *logctx, isc_mem_t *mctx)
+{
+	isc_result_t result = ISC_R_SUCCESS;
+	isc_result_t mresult;
+	const cfg_obj_t *map = NULL;
+	const cfg_obj_t *options;
+	const cfg_obj_t *obj;
+	int min_entries, i;
+	int all_per_second;
+	int errors_per_second;
+	int nodata_per_second;
+	int nxdomains_per_second;
+	int referrals_per_second;
+	int responses_per_second;
+	int slip;
+
+	if (voptions != NULL)
+		cfg_map_get(voptions, "rate-limit", &map);
+	if (config != NULL && map == NULL) {
+		options = NULL;
+		cfg_map_get(config, "options", &options);
+		if (options != NULL)
+			cfg_map_get(options, "rate-limit", &map);
+	}
+	if (map == NULL)
+		return (ISC_R_SUCCESS);
+
+	min_entries = 500;
+	obj = NULL;
+	mresult = cfg_map_get(map, "min-table-size", &obj);
+	if (mresult == ISC_R_SUCCESS) {
+		min_entries = cfg_obj_asuint32(obj);
+		if (min_entries < 1)
+			min_entries = 1;
+	}
+
+	obj = NULL;
+	mresult = cfg_map_get(map, "max-table-size", &obj);
+	if (mresult == ISC_R_SUCCESS) {
+		i = cfg_obj_asuint32(obj);
+		CHECK_RRL(i >= min_entries,
+			  "max-table-size %d < min-table-size %d",
+			  i, min_entries);
+	}
+
+	CHECK_RRL_RATE(responses_per_second, 0, DNS_RRL_MAX_RATE,
+		       "responses-per-second");
+
+	CHECK_RRL_RATE(referrals_per_second, responses_per_second,
+		       DNS_RRL_MAX_RATE, "referrals-per-second");
+	CHECK_RRL_RATE(nodata_per_second, responses_per_second,
+		       DNS_RRL_MAX_RATE, "nodata-per-second");
+	CHECK_RRL_RATE(nxdomains_per_second, responses_per_second,
+		       DNS_RRL_MAX_RATE, "nxdomains-per-second");
+	CHECK_RRL_RATE(errors_per_second, responses_per_second,
+		       DNS_RRL_MAX_RATE, "errors-per-second");
+
+	CHECK_RRL_RATE(all_per_second, 0, DNS_RRL_MAX_RATE, "all-per-second");
+
+	CHECK_RRL_RATE(slip, 2, DNS_RRL_MAX_SLIP, "slip");
+
+	obj = NULL;
+	mresult = cfg_map_get(map, "window", &obj);
+	if (mresult == ISC_R_SUCCESS) {
+		i = cfg_obj_asuint32(obj);
+		CHECK_RRL(i >= 1 && i <= DNS_RRL_MAX_WINDOW,
+			  "window %d < 1 or > %d", i, DNS_RRL_MAX_WINDOW);
+	}
+
+	obj = NULL;
+	mresult = cfg_map_get(map, "qps-scale", &obj);
+	if (mresult == ISC_R_SUCCESS) {
+		i = cfg_obj_asuint32(obj);
+		CHECK_RRL(i >= 1, "invalid 'qps-scale %d'%s", i, "");
+	}
+
+	obj = NULL;
+	mresult = cfg_map_get(map, "ipv4-prefix-length", &obj);
+	if (mresult == ISC_R_SUCCESS) {
+		i = cfg_obj_asuint32(obj);
+		CHECK_RRL(i >= 8 && i <= 32,
+			  "invalid 'ipv4-prefix-length %d'%s", i, "");
+	}
+
+	obj = NULL;
+	mresult = cfg_map_get(map, "ipv6-prefix-length", &obj);
+	if (mresult == ISC_R_SUCCESS) {
+		i = cfg_obj_asuint32(obj);
+		CHECK_RRL(i >= 16 && i <= DNS_RRL_MAX_PREFIX,
+			  "ipv6-prefix-length %d < 16 or > %d",
+			  i, DNS_RRL_MAX_PREFIX);
+	}
+
+	obj = NULL;
+	(void)cfg_map_get(map, "exempt-clients", &obj);
+	if (obj != NULL) {
+		dns_acl_t *acl = NULL;
+		isc_result_t tresult;
+
+		tresult = cfg_acl_fromconfig(obj, config, logctx, actx,
+					     mctx, 0, &acl);
+		if (acl != NULL)
+			dns_acl_detach(&acl);
+		if (result == ISC_R_SUCCESS)
+			result = tresult;
+	}
+
+	return (result);
+}
 
 /*
  * Check allow-recursion and allow-recursion-on acls, and also log a
@@ -754,6 +872,12 @@ typedef struct {
 	unsigned int max;
 } intervaltable;
 
+typedef struct {
+	const char *name;
+	unsigned int min;
+	unsigned int max;
+} fstrmtable;
+
 typedef enum {
 	optlevel_config,
 	optlevel_options,
@@ -805,8 +929,12 @@ check_options(const cfg_obj_t *options, isc_log_t *logctx, isc_mem_t *mctx,
 	dns_fixedname_t fixed;
 	const char *str;
 	dns_name_t *name;
-#ifdef ISC_PLATFORM_USESIT
 	isc_buffer_t b;
+	isc_uint32_t lifetime = 3600;
+#if defined(HAVE_OPENSSL_AES) || defined(HAVE_OPENSSL_EVP_AES)
+	const char *ccalg = "aes";
+#else
+	const char *ccalg = "sha256";
 #endif
 
 	static intervaltable intervals[] = {
@@ -825,6 +953,41 @@ check_options(const cfg_obj_t *options, isc_log_t *logctx, isc_mem_t *mctx,
 		"dns64-server", "dns64-contact",
 		NULL
 	};
+
+#if HAVE_DNSTAP
+	static fstrmtable fstrm[] = {
+		{
+			"fstrm-set-buffer-hint",
+			FSTRM_IOTHR_BUFFER_HINT_MIN,
+			FSTRM_IOTHR_BUFFER_HINT_MAX
+		},
+		{
+			"fstrm-set-flush-timeout",
+			FSTRM_IOTHR_FLUSH_TIMEOUT_MIN,
+			FSTRM_IOTHR_FLUSH_TIMEOUT_MAX
+		},
+		{
+			"fstrm-set-input-queue-size",
+			FSTRM_IOTHR_INPUT_QUEUE_SIZE_MIN,
+			FSTRM_IOTHR_INPUT_QUEUE_SIZE_MAX
+		},
+		{
+			"fstrm-set-output-notify-threshold",
+			FSTRM_IOTHR_QUEUE_NOTIFY_THRESHOLD_MIN,
+			0
+		},
+		{
+			"fstrm-set-output-queue-size",
+			FSTRM_IOTHR_OUTPUT_QUEUE_SIZE_MIN,
+			FSTRM_IOTHR_OUTPUT_QUEUE_SIZE_MAX
+		},
+		{
+			"fstrm-set-reopen-interval",
+			FSTRM_IOTHR_REOPEN_INTERVAL_MIN,
+			FSTRM_IOTHR_REOPEN_INTERVAL_MAX
+		}
+	};
+#endif
 
 	/*
 	 * Check that fields specified in units of time other than seconds
@@ -1150,9 +1313,52 @@ check_options(const cfg_obj_t *options, isc_log_t *logctx, isc_mem_t *mctx,
 	if (tresult != ISC_R_SUCCESS)
 		result = tresult;
 
-#ifdef ISC_PLATFORM_USESIT
 	obj = NULL;
-	(void) cfg_map_get(options, "sit-secret", &obj);
+	(void)cfg_map_get(options, "nta-lifetime", &obj);
+	if (obj != NULL) {
+		lifetime = cfg_obj_asuint32(obj);
+		if (lifetime > 604800) {	/* 7 days */
+			cfg_obj_log(obj, logctx, ISC_LOG_ERROR,
+				    "'nta-lifetime' cannot exceed one week");
+			result = ISC_R_RANGE;
+		} else if (lifetime == 0) {
+			cfg_obj_log(obj, logctx, ISC_LOG_ERROR,
+				    "'nta-lifetime' may not be zero");
+			result = ISC_R_RANGE;
+		}
+	}
+
+	obj = NULL;
+	(void)cfg_map_get(options, "nta-recheck", &obj);
+	if (obj != NULL) {
+		isc_uint32_t recheck = cfg_obj_asuint32(obj);
+		if (recheck > 604800) {		/* 7 days */
+			cfg_obj_log(obj, logctx, ISC_LOG_ERROR,
+				    "'nta-recheck' cannot exceed one week");
+			result = ISC_R_RANGE;
+		}
+
+		if (recheck > lifetime)
+			cfg_obj_log(obj, logctx, ISC_LOG_WARNING,
+				    "'nta-recheck' (%d seconds) is "
+				    "greater than 'nta-lifetime' "
+				    "(%d seconds)", recheck, lifetime);
+	}
+
+	obj = NULL;
+	(void) cfg_map_get(options, "cookie-algorithm", &obj);
+	if (obj != NULL)
+		ccalg = cfg_obj_asstring(obj);
+#if !defined(HAVE_OPENSSL_AES) && !defined(HAVE_OPENSSL_EVP_AES)
+	if (strcasecmp(ccalg, "aes") == 0) {
+		cfg_obj_log(obj, logctx, ISC_LOG_ERROR,
+			    "cookie-algorithm: '%s' not supported", ccalg);
+		result = ISC_R_NOTIMPLEMENTED;
+	}
+#endif
+
+	obj = NULL;
+	(void) cfg_map_get(options, "cookie-secret", &obj);
 	if (obj != NULL) {
 		unsigned char secret[32];
 
@@ -1161,37 +1367,75 @@ check_options(const cfg_obj_t *options, isc_log_t *logctx, isc_mem_t *mctx,
 		tresult = isc_hex_decodestring(cfg_obj_asstring(obj), &b);
 		if (tresult == ISC_R_NOSPACE) {
 			cfg_obj_log(obj, logctx, ISC_LOG_ERROR,
-				    "sit-secret: too long");
+				    "cookie-secret: too long");
 		} else if (tresult != ISC_R_SUCCESS) {
 			cfg_obj_log(obj, logctx, ISC_LOG_ERROR,
-				    "sit-secret: invalid hex string");
+				    "cookie-secret: invalid hex string");
 		}
 		if (tresult != ISC_R_SUCCESS)
 			result = tresult;
-#ifdef AES_SIT
+
 		if (tresult == ISC_R_SUCCESS &&
+		    strcasecmp(ccalg, "aes") != 0 &&
 		    isc_buffer_usedlength(&b) != ISC_AES128_KEYLENGTH) {
 			cfg_obj_log(obj, logctx, ISC_LOG_ERROR,
-				    "AES sit-secret must be on 128 bits");
+				    "AES cookie-secret must be on 128 bits");
 			result = ISC_R_RANGE;
 		}
-#endif
-#ifdef HMAC_SHA1_SIT
 		if (tresult == ISC_R_SUCCESS &&
+		    strcasecmp(ccalg, "sha1") != 0 &&
 		    isc_buffer_usedlength(&b) != ISC_SHA1_DIGESTLENGTH) {
 			cfg_obj_log(obj, logctx, ISC_LOG_ERROR,
-				    "SHA1 sit-secret must be on 160 bits");
+				    "SHA1 cookie-secret must be on 160 bits");
 			result = ISC_R_RANGE;
 		}
-#endif
-#ifdef HMAC_SHA256_SIT
 		if (tresult == ISC_R_SUCCESS &&
+		    strcasecmp(ccalg, "sha256") != 0 &&
 		    isc_buffer_usedlength(&b) != ISC_SHA256_DIGESTLENGTH) {
 			cfg_obj_log(obj, logctx, ISC_LOG_ERROR,
-				    "SHA256 sit-secret must be on 256 bits");
+				    "SHA256 cookie-secret must be on 256 bits");
 			result = ISC_R_RANGE;
 		}
-#endif
+	}
+
+#if HAVE_DNSTAP
+	for (i = 0; i < sizeof(fstrm) / sizeof(fstrm[0]); i++) {
+		isc_uint32_t value;
+
+		obj = NULL;
+		(void) cfg_map_get(options, fstrm[i].name, &obj);
+		if (obj == NULL)
+			continue;
+
+		value = cfg_obj_asuint32(obj);
+		if (value < fstrm[i].min ||
+		    (fstrm[i].max != 0U && value > fstrm[i].max)) {
+			if (fstrm[i].max != 0U)
+				cfg_obj_log(obj, logctx, ISC_LOG_ERROR,
+					    "%s '%u' out of range (%u..%u)",
+					    fstrm[i].name, value,
+					    fstrm[i].min, fstrm[i].max);
+			else
+				cfg_obj_log(obj, logctx, ISC_LOG_ERROR,
+					    "%s out of range (%u < %u)",
+					    fstrm[i].name, value, fstrm[i].min);
+			result = ISC_R_RANGE;
+		}
+
+		if (strcmp(fstrm[i].name, "fstrm-set-input-queue-size") == 0) {
+			int bits = 0;
+			do {
+				bits += value & 0x1;
+				value >>= 1;
+			} while (value != 0U);
+			if (bits != 1) {
+				cfg_obj_log(obj, logctx, ISC_LOG_ERROR,
+					    "%s '%u' not a power-of-2",
+					    fstrm[i].name,
+					    cfg_obj_asuint32(obj));
+				result = ISC_R_RANGE;
+			}
+		}
 	}
 #endif
 
@@ -1525,6 +1769,7 @@ check_zoneconf(const cfg_obj_t *zconfig, const cfg_obj_t *voptions,
 	{ "notify-source", MASTERZONE | SLAVEZONE },
 	{ "notify-source-v6", MASTERZONE | SLAVEZONE },
 	{ "pubkey", MASTERZONE | SLAVEZONE | STUBZONE },
+	{ "request-expire", SLAVEZONE | REDIRECTZONE },
 	{ "request-ixfr", SLAVEZONE | REDIRECTZONE },
 	{ "server-addresses", STATICSTUBZONE },
 	{ "server-names", STATICSTUBZONE },
@@ -1546,8 +1791,8 @@ check_zoneconf(const cfg_obj_t *zconfig, const cfg_obj_t *voptions,
 	static optionstable dialups[] = {
 	{ "notify", MASTERZONE | SLAVEZONE | STREDIRECTZONE },
 	{ "notify-passive", SLAVEZONE | STREDIRECTZONE },
-	{ "refresh", SLAVEZONE | STUBZONE | STREDIRECTZONE },
 	{ "passive", SLAVEZONE | STUBZONE | STREDIRECTZONE },
+	{ "refresh", SLAVEZONE | STUBZONE | STREDIRECTZONE },
 	};
 
 	znamestr = cfg_obj_asstring(cfg_tuple_get(zconfig, "name"));
@@ -1744,7 +1989,12 @@ check_zoneconf(const cfg_obj_t *zconfig, const cfg_obj_t *voptions,
 			cfg_obj_log(zoptions, logctx, ISC_LOG_WARNING,
 				    "zone '%s': 'also-notify' set but "
 				    "'notify' is disabled", znamestr);
-		} else if (tresult == ISC_R_SUCCESS) {
+		}
+		if (tresult != ISC_R_SUCCESS && voptions != NULL)
+			tresult = cfg_map_get(voptions, "also-notify", &obj);
+		if (tresult != ISC_R_SUCCESS && goptions != NULL)
+			tresult = cfg_map_get(goptions, "also-notify", &obj);
+		if (tresult == ISC_R_SUCCESS && donotify) {
 			isc_uint32_t count;
 			tresult = validate_masters(obj, config, &count,
 						   logctx, mctx);
@@ -2179,9 +2429,11 @@ bind9_check_key(const cfg_obj_t *key, isc_log_t *logctx) {
 	isc_buffer_t buf;
 	unsigned char secretbuf[1024];
 	static const algorithmtable algorithms[] = {
+#ifndef PK11_MD5_DISABLE
 		{ "hmac-md5", 128 },
 		{ "hmac-md5.sig-alg.reg.int", 0 },
 		{ "hmac-md5.sig-alg.reg.int.", 0 },
+#endif
 		{ "hmac-sha1", 160 },
 		{ "hmac-sha224", 224 },
 		{ "hmac-sha256", 256 },
@@ -2845,6 +3097,10 @@ check_viewconf(const cfg_obj_t *config, const cfg_obj_t *voptions,
 	if (tresult != ISC_R_SUCCESS)
 		result = tresult;
 
+	tresult = check_ratelimit(actx, voptions, config, logctx, mctx);
+	if (tresult != ISC_R_SUCCESS)
+		result = tresult;
+
  cleanup:
 	if (symtab != NULL)
 		isc_symtab_destroy(&symtab);
@@ -3140,7 +3396,7 @@ bind9_check_namedconf(const cfg_obj_t *config, isc_log_t *logctx,
 			result = ISC_R_FAILURE;
 
 	/*
-	 * Use case insensitve comparision as not all file systems are
+	 * Use case insensitive comparision as not all file systems are
 	 * case sensitive. This will prevent people using FOO.DB and foo.db
 	 * on case sensitive file systems but that shouldn't be a major issue.
 	 */

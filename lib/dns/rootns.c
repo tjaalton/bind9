@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004, 2005, 2007, 2008, 2010, 2012-2016  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1999-2002  Internet Software Consortium.
+ * Copyright (C) 1999-2002, 2004, 2005, 2007, 2008, 2010, 2012-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id: rootns.c,v 1.40.476.1 2012/02/07 00:44:14 each Exp $ */
@@ -62,11 +53,13 @@ static char root_ns[] =
 "A.ROOT-SERVERS.NET.     3600000 IN      A       198.41.0.4\n"
 "A.ROOT-SERVERS.NET.     3600000 IN      AAAA    2001:503:BA3E::2:30\n"
 "B.ROOT-SERVERS.NET.     3600000 IN      A       192.228.79.201\n"
+"B.ROOT-SERVERS.NET.     3600000 IN      AAAA    2001:500:84::b\n"
 "C.ROOT-SERVERS.NET.     3600000 IN      A       192.33.4.12\n"
 "C.ROOT-SERVERS.NET.     3600000 IN      AAAA    2001:500:2::c\n"
 "D.ROOT-SERVERS.NET.     3600000 IN      A       199.7.91.13\n"
 "D.ROOT-SERVERS.NET.     3600000 IN      AAAA    2001:500:2d::d\n"
 "E.ROOT-SERVERS.NET.     3600000 IN      A       192.203.230.10\n"
+"E.ROOT-SERVERS.NET.     3600000 IN      AAAA    2001:500:a8::e\n"
 "F.ROOT-SERVERS.NET.     3600000 IN      A       192.5.5.241\n"
 "F.ROOT-SERVERS.NET.     3600000 IN      AAAA    2001:500:2F::F\n"
 "G.ROOT-SERVERS.NET.     3600000 IN      A       192.112.36.4\n"

@@ -1,16 +1,8 @@
-# Copyright (C) 2011-2015  Internet Systems Consortium, Inc. ("ISC")
+# Copyright (C) 2011-2016  Internet Systems Consortium, Inc. ("ISC")
 #
-# Permission to use, copy, modify, and/or distribute this software for any
-# purpose with or without fee is hereby granted, provided that the above
-# copyright notice and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-# AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
-# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
-# OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-# PERFORMANCE OF THIS SOFTWARE.
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 # $Id$
 
@@ -43,9 +35,11 @@ SRCS =		db_test.c \
 		dbiterator_test.c \
 		dh_test.c \
 		dispatch_test.c \
+		dnstap_test.c \
 		dnstest.c \
 		geoip_test.c \
 		gost_test.c \
+		keytable_test.c \
 		master_test.c \
 		name_test.c \
 		nsec3_test.c \
@@ -56,6 +50,7 @@ SRCS =		db_test.c \
 		rdata_test.c \
 		rdataset_test.c \
 		rdatasetstats_test.c \
+		rsa_test.c \
 		time_test.c \
 		update_test.c \
 		zonemgr_test.c \
@@ -68,8 +63,10 @@ TARGETS =	db_test@EXEEXT@ \
 		dbversion_test@EXEEXT@ \
 		dh_test@EXEEXT@ \
 		dispatch_test@EXEEXT@ \
+		dnstap_test@EXEEXT@ \
 		geoip_test@EXEEXT@ \
 		gost_test@EXEEXT@ \
+		keytable_test@EXEEXT@ \
 		master_test@EXEEXT@ \
 		name_test@EXEEXT@ \
 		nsec3_test@EXEEXT@ \
@@ -80,6 +77,7 @@ TARGETS =	db_test@EXEEXT@ \
 		rdata_test@EXEEXT@ \
 		rdataset_test@EXEEXT@ \
 		rdatasetstats_test@EXEEXT@ \
+		rsa_test@EXEEXT@ \
 		time_test@EXEEXT@ \
 		update_test@EXEEXT@ \
 		zonemgr_test@EXEEXT@ \
@@ -98,6 +96,11 @@ master_test@EXEEXT@: master_test.@O@ dnstest.@O@ ${ISCDEPLIBS} ${DNSDEPLIBS}
 		> testdata/master/master14.data
 	${LIBTOOL_MODE_LINK} ${PURIFY} ${CC} ${CFLAGS} ${LDFLAGS} -o $@ \
 			master_test.@O@ dnstest.@O@ ${DNSLIBS} \
+				${ISCLIBS} ${LIBS}
+
+keytable_test@EXEEXT@: keytable_test.@O@ dnstest.@O@ ${ISCDEPLIBS} ${DNSDEPLIBS}
+	${LIBTOOL_MODE_LINK} ${PURIFY} ${CC} ${CFLAGS} ${LDFLAGS} -o $@ \
+			keytable_test.@O@ dnstest.@O@ ${DNSLIBS} \
 				${ISCLIBS} ${LIBS}
 
 time_test@EXEEXT@: time_test.@O@ dnstest.@O@ ${ISCDEPLIBS} ${DNSDEPLIBS}
@@ -166,6 +169,11 @@ dispatch_test@EXEEXT@: dispatch_test.@O@ dnstest.@O@ ${ISCDEPLIBS} ${DNSDEPLIBS}
 			dispatch_test.@O@ dnstest.@O@ ${DNSLIBS} \
 				${ISCLIBS} ${LIBS}
 
+dnstap_test@EXEEXT@: dnstap_test.@O@ dnstest.@O@ ${ISCDEPLIBS} ${DNSDEPLIBS}
+	${LIBTOOL_MODE_LINK} ${PURIFY} ${CC} ${CFLAGS} ${LDFLAGS} -o $@ \
+			dnstap_test.@O@ dnstest.@O@ ${DNSLIBS} \
+				${ISCLIBS} ${LIBS}
+
 rdatasetstats_test@EXEEXT@: rdatasetstats_test.@O@ dnstest.@O@ ${ISCDEPLIBS} ${DNSDEPLIBS}
 	${LIBTOOL_MODE_LINK} ${PURIFY} ${CC} ${CFLAGS} ${LDFLAGS} -o $@ \
 			rdatasetstats_test.@O@ dnstest.@O@ ${DNSLIBS} \
@@ -204,6 +212,11 @@ gost_test@EXEEXT@: gost_test.@O@ dnstest.@O@ ${ISCDEPLIBS} ${DNSDEPLIBS}
 dh_test@EXEEXT@: dh_test.@O@ dnstest.@O@ ${ISCDEPLIBS} ${DNSDEPLIBS}
 	${LIBTOOL_MODE_LINK} ${PURIFY} ${CC} ${CFLAGS} ${LDFLAGS} -o $@ \
 			dh_test.@O@ dnstest.@O@ ${DNSLIBS} \
+			${ISCLIBS} ${LIBS}
+
+rsa_test@EXEEXT@: rsa_test.@O@ dnstest.@O@ ${ISCDEPLIBS} ${DNSDEPLIBS}
+	${LIBTOOL_MODE_LINK} ${PURIFY} ${CC} ${CFLAGS} ${LDFLAGS} -o $@ \
+			rsa_test.@O@ dnstest.@O@ ${DNSLIBS} \
 			${ISCLIBS} ${LIBS}
 
 unit::

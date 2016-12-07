@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2007, 2009, 2010, 2013, 2014  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 2000-2002  Internet Software Consortium.
+ * Copyright (C) 2000-2002, 2004-2007, 2009, 2010, 2013-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id: request.h,v 1.31 2010/03/04 23:50:34 tbox Exp $ */
@@ -49,6 +40,7 @@
 #define DNS_REQUESTOPT_TCP 0x00000001U
 #define DNS_REQUESTOPT_CASE 0x00000002U
 #define DNS_REQUESTOPT_FIXEDID 0x00000004U
+#define DNS_REQUESTOPT_SHARE 0x00000008U
 
 typedef struct dns_requestevent {
 	ISC_EVENT_COMMON(struct dns_requestevent);
@@ -174,7 +166,9 @@ dns_request_create(dns_requestmgr_t *requestmgr, dns_message_t *message,
  * Notes:
  *
  *\li	'message' will be rendered and sent to 'address'.  If the
- *	#DNS_REQUESTOPT_TCP option is set, TCP will be used.  The request
+ *	#DNS_REQUESTOPT_TCP option is set, TCP will be used,
+ *	#DNS_REQUESTOPT_SHARE option is set too, connecting TCP
+ *	(vs. connected) will be shared too.  The request
  *	will timeout after 'timeout' seconds.
  *
  *\li	If the #DNS_REQUESTOPT_CASE option is set, use case sensitive
@@ -238,7 +232,9 @@ dns_request_createvia4(dns_requestmgr_t *requestmgr, dns_message_t *message,
  * Notes:
  *
  *\li	'message' will be rendered and sent to 'address'.  If the
- *	#DNS_REQUESTOPT_TCP option is set, TCP will be used.  The request
+ *	#DNS_REQUESTOPT_TCP option is set, TCP will be used,
+ *	#DNS_REQUESTOPT_SHARE option is set too, connecting TCP
+ *	(vs. connected) will be shared too.  The request
  *	will timeout after 'timeout' seconds.  UDP requests will be resent
  *	at 'udptimeout' intervals if non-zero or 'udpretries' is non-zero.
  *
@@ -305,7 +301,9 @@ dns_request_createraw4(dns_requestmgr_t *requestmgr, isc_buffer_t *msgbuf,
  * Notes:
  *
  *\li	'msgbuf' will be sent to 'destaddr' after setting the id.  If the
- *	#DNS_REQUESTOPT_TCP option is set, TCP will be used.  The request
+ *	#DNS_REQUESTOPT_TCP option is set, TCP will be used,
+ *	#DNS_REQUESTOPT_SHARE option is set too, connecting TCP
+ *	(vs. connected) will be shared too.  The request
  *	will timeout after 'timeout' seconds.   UDP requests will be resent
  *	at 'udptimeout' intervals if non-zero or if 'udpretries' is not zero.
  *

@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2011, 2013, 2014, 2016  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1999-2002  Internet Software Consortium.
+ * Copyright (C) 1999-2002, 2004-2011, 2013-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /*! \file */
@@ -55,7 +46,9 @@
 #endif
 
 static char *pidfile = NULL;
+static char *lockfile = NULL;
 static int devnullfd = -1;
+static int singletonfd = -1;
 
 #ifndef ISC_FACILITY
 #define ISC_FACILITY LOG_DAEMON
@@ -675,6 +668,27 @@ cleanup_pidfile(void) {
 	pidfile = NULL;
 }
 
+static void
+cleanup_lockfile(void) {
+	if (singletonfd != -1) {
+		close(singletonfd);
+		singletonfd = -1;
+	}
+
+	if (lockfile != NULL) {
+		int n = unlink(lockfile);
+		if (n == -1 && errno != ENOENT)
+			ns_main_earlywarning("unlink '%s': failed", lockfile);
+		free(lockfile);
+		lockfile = NULL;
+	}
+}
+
+/*
+ * Ensure that a directory exists.
+ * NOTE: This function overwrites the '/' characters in 'filename' with
+ * nulls. The caller should copy the filename to a fresh buffer first.
+ */
 static int
 mkdirpath(char *filename, void (*report)(const char *, ...)) {
 	char *slash = strrchr(filename, '/');
@@ -852,7 +866,7 @@ ns_os_openfile(const char *filename, mode_t mode, isc_boolean_t switch_user) {
 
 void
 ns_os_writepidfile(const char *filename, isc_boolean_t first_time) {
-	FILE *lockfile;
+	FILE *fh;
 	pid_t pid;
 	char strbuf[ISC_STRERRORSIZE];
 	void (*report)(const char *, ...);
@@ -875,9 +889,9 @@ ns_os_writepidfile(const char *filename, isc_boolean_t first_time) {
 		return;
 	}
 
-	lockfile = ns_os_openfile(filename, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH,
+	fh = ns_os_openfile(filename, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH,
 				  first_time);
-	if (lockfile == NULL) {
+	if (fh == NULL) {
 		cleanup_pidfile();
 		return;
 	}
@@ -886,25 +900,81 @@ ns_os_writepidfile(const char *filename, isc_boolean_t first_time) {
 #else
 	pid = getpid();
 #endif
-	if (fprintf(lockfile, "%ld\n", (long)pid) < 0) {
+	if (fprintf(fh, "%ld\n", (long)pid) < 0) {
 		(*report)("fprintf() to pid file '%s' failed", filename);
-		(void)fclose(lockfile);
+		(void)fclose(fh);
 		cleanup_pidfile();
 		return;
 	}
-	if (fflush(lockfile) == EOF) {
+	if (fflush(fh) == EOF) {
 		(*report)("fflush() to pid file '%s' failed", filename);
-		(void)fclose(lockfile);
+		(void)fclose(fh);
 		cleanup_pidfile();
 		return;
 	}
-	(void)fclose(lockfile);
+	(void)fclose(fh);
+}
+
+isc_boolean_t
+ns_os_issingleton(const char *filename) {
+	char strbuf[ISC_STRERRORSIZE];
+	struct flock lock;
+
+	if (singletonfd != -1)
+		return (ISC_TRUE);
+
+	if (strcasecmp(filename, "none") == 0)
+		return (ISC_TRUE);
+
+	/*
+	 * Make the containing directory if it doesn't exist.
+	 */
+	lockfile = strdup(filename);
+	if (lockfile == NULL) {
+		isc__strerror(errno, strbuf, sizeof(strbuf));
+		ns_main_earlyfatal("couldn't allocate memory for '%s': %s",
+				   filename, strbuf);
+	} else {
+		int ret = mkdirpath(lockfile, ns_main_earlywarning);
+		if (ret == -1) {
+			ns_main_earlywarning("couldn't create '%s'", filename);
+			cleanup_lockfile();
+			return (ISC_FALSE);
+		}
+	}
+
+	/*
+	 * ns_os_openfile() uses safeopen() which removes any existing
+	 * files. We can't use that here.
+	 */
+	singletonfd = open(filename, O_WRONLY | O_CREAT,
+			   S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
+	if (singletonfd == -1) {
+		cleanup_lockfile();
+		return (ISC_FALSE);
+	}
+
+	memset(&lock, 0, sizeof(lock));
+	lock.l_type = F_WRLCK;
+	lock.l_whence = SEEK_SET;
+	lock.l_start = 0;
+	lock.l_len = 1;
+
+	/* Non-blocking (does not wait for lock) */
+	if (fcntl(singletonfd, F_SETLK, &lock) == -1) {
+		close(singletonfd);
+		singletonfd = -1;
+		return (ISC_FALSE);
+	}
+
+	return (ISC_TRUE);
 }
 
 void
 ns_os_shutdown(void) {
 	closelog();
 	cleanup_pidfile();
+	cleanup_lockfile();
 }
 
 isc_result_t

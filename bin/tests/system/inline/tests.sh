@@ -1,18 +1,10 @@
 #!/bin/sh
 #
-# Copyright (C) 2011-2014  Internet Systems Consortium, Inc. ("ISC")
+# Copyright (C) 2011-2014, 2016  Internet Systems Consortium, Inc. ("ISC")
 #
-# Permission to use, copy, modify, and/or distribute this software for any
-# purpose with or without fee is hereby granted, provided that the above
-# copyright notice and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-# AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
-# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
-# OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-# PERFORMANCE OF THIS SOFTWARE.
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 # $Id: tests.sh,v 1.18 2012/02/23 06:53:15 marka Exp $
 
@@ -614,6 +606,7 @@ done
 if [ $ret != 0 ]; then echo "I:failed"; fi
 status=`expr $status + $ret`
 
+ret=0
 n=`expr $n + 1`
 echo "I:checking turning on of inline signing in a slave zone via reload ($n)"
 $DIG $DIGOPTS @10.53.0.5 -p 5300 +dnssec bits SOA > dig.out.ns5.test$n
@@ -889,4 +882,94 @@ $IMPORTKEY -f import.key import.example > /dev/null 2>&1 || ret=1
 if [ $ret != 0 ]; then echo "I:failed"; fi
 status=`expr $status + $ret`
 
-exit $status
+n=`expr $n + 1`
+echo "I:testing updating inline secure serial via 'rndc signing -serial' ($n)"
+ret=0
+$DIG nsec3. SOA -p 5300 @10.53.0.3 > dig.out.n3.pre.test$n
+newserial=`$PERL -e 'while (<>) { chomp; my @field = split /\s+/; printf("%u\n", $field[6] + 10) if ($field[3] eq "SOA"); }' < dig.out.n3.pre.test$n`
+$RNDC -c ../common/rndc.conf -s 10.53.0.3 -p 9953 signing -serial ${newserial:-0} nsec3 > /dev/null 2>&1
+sleep 1
+$DIG nsec3. SOA -p 5300 @10.53.0.3 > dig.out.ns3.post.test$n
+serial=`awk '$4 == "SOA" { print $7 }' dig.out.ns3.post.test$n`
+[ ${newserial:-0} -eq ${serial:-1} ] || ret=1
+if [ $ret != 0 ]; then echo "I:failed"; fi
+status=`expr $status + $ret`
+
+n=`expr $n + 1`
+echo "I:testing updating inline secure serial via 'rndc signing -serial' with negative change ($n)"
+ret=0
+$DIG nsec3. SOA -p 5300 @10.53.0.3 > dig.out.n3.pre.test$n
+oldserial=`awk '$4 == "SOA" { print $7 }' dig.out.n3.pre.test$n`
+newserial=`$PERL -e 'while (<>) { chomp; my @field = split /\s+/; printf("%u\n", $field[6] - 10) if ($field[3] eq "SOA"); }' < dig.out.n3.pre.test$n`
+$RNDC -c ../common/rndc.conf -s 10.53.0.3 -p 9953 signing -serial ${newserial:-0} nsec3 > /dev/null 2>&1
+sleep 1
+$DIG nsec3. SOA -p 5300 @10.53.0.3 > dig.out.ns3.post.test$n
+serial=`awk '$4 == "SOA" { print $7 }' dig.out.ns3.post.test$n`
+[ ${oldserial:-0} -eq ${serial:-1} ] || ret=1
+if [ $ret != 0 ]; then echo "I:failed"; fi
+status=`expr $status + $ret`
+
+#
+# Freezing only operates on the raw zone.
+#
+n=`expr $n + 1`
+echo "I:testing updating inline secure serial via 'rndc signing -serial' when frozen ($n)"
+ret=0
+$DIG nsec3. SOA -p 5300 @10.53.0.3 > dig.out.n3.pre.test$n
+oldserial=`awk '$4 == "SOA" { print $7 }' dig.out.n3.pre.test$n`
+newserial=`$PERL -e 'while (<>) { chomp; my @field = split /\s+/; printf("%u\n", $field[6] + 10) if ($field[3] eq "SOA"); }' < dig.out.n3.pre.test$n`
+$RNDC -c ../common/rndc.conf -s 10.53.0.3 -p 9953 freeze nsec3 > /dev/null 2>&1
+$RNDC -c ../common/rndc.conf -s 10.53.0.3 -p 9953 signing -serial ${newserial:-0} nsec3 > /dev/null 2>&1
+$RNDC -c ../common/rndc.conf -s 10.53.0.3 -p 9953 thaw nsec3 > /dev/null 2>&1
+sleep 1
+$DIG nsec3. SOA -p 5300 @10.53.0.3 > dig.out.ns3.post.test$n
+serial=`awk '$4 == "SOA" { print $7 }' dig.out.ns3.post.test$n`
+[ ${newserial:-0} -eq ${serial:-1} ] || ret=1
+if [ $ret != 0 ]; then echo "I:failed"; fi
+status=`expr $status + $ret`
+n=`expr $n + 1`
+
+echo "I:testing updating dynamic serial via 'rndc signing -serial' ($n)"
+ret=0
+$DIG bits. SOA -p 5300 @10.53.0.2 > dig.out.ns2.pre.test$n
+newserial=`$PERL -e 'while (<>) { chomp; my @field = split /\s+/; printf("%u\n", $field[6] + 10) if ($field[3] eq "SOA"); }' < dig.out.ns2.pre.test$n`
+$RNDC -c ../common/rndc.conf -s 10.53.0.2 -p 9953 signing -serial ${newserial:-0} bits > /dev/null 2>&1
+sleep 1
+$DIG bits. SOA -p 5300 @10.53.0.2 > dig.out.ns2.post.test$n
+serial=`awk '$4 == "SOA" { print $7 }' dig.out.ns2.post.test$n`
+[ ${newserial:-0} -eq ${serial:-1} ] || ret=1
+if [ $ret != 0 ]; then echo "I:failed"; fi
+status=`expr $status + $ret`
+
+n=`expr $n + 1`
+echo "I:testing updating dynamic serial via 'rndc signing -serial' with negative change ($n)"
+ret=0
+$DIG bits. SOA -p 5300 @10.53.0.2 > dig.out.ns2.pre.test$n
+oldserial=`awk '$4 == "SOA" { print $7 }' dig.out.ns2.pre.test$n`
+newserial=`$PERL -e 'while (<>) { chomp; my @field = split /\s+/; printf("%u\n", $field[6] - 10) if ($field[3] eq "SOA"); }' < dig.out.ns2.pre.test$n`
+$RNDC -c ../common/rndc.conf -s 10.53.0.2 -p 9953 signing -serial ${newserial:-0} bits > /dev/null 2>&1
+sleep 1
+$DIG bits. SOA -p 5300 @10.53.0.2 > dig.out.ns2.post.test$n
+serial=`awk '$4 == "SOA" { print $7 }' dig.out.ns2.post.test$n`
+[ ${oldserial:-0} -eq ${serial:-1} ] || ret=1
+if [ $ret != 0 ]; then echo "I:failed"; fi
+status=`expr $status + $ret`
+
+n=`expr $n + 1`
+echo "I:testing updating dynamic serial via 'rndc signing -serial' when frozen ($n)"
+ret=0
+$DIG bits. SOA -p 5300 @10.53.0.2 > dig.out.ns2.pre.test$n
+oldserial=`awk '$4 == "SOA" { print $7 }' dig.out.ns2.pre.test$n`
+newserial=`$PERL -e 'while (<>) { chomp; my @field = split /\s+/; printf("%u\n", $field[6] + 10) if ($field[3] eq "SOA"); }' < dig.out.ns2.pre.test$n`
+$RNDC -c ../common/rndc.conf -s 10.53.0.2 -p 9953 freeze bits > /dev/null 2>&1
+$RNDC -c ../common/rndc.conf -s 10.53.0.2 -p 9953 signing -serial ${newserial:-0} bits > /dev/null 2>&1
+$RNDC -c ../common/rndc.conf -s 10.53.0.2 -p 9953 thaw bits > /dev/null 2>&1
+sleep 1
+$DIG bits. SOA -p 5300 @10.53.0.2 > dig.out.ns2.post.test$n
+serial=`awk '$4 == "SOA" { print $7 }' dig.out.ns2.post.test$n`
+[ ${oldserial:-0} -eq ${serial:-1} ] || ret=1
+if [ $ret != 0 ]; then echo "I:failed"; fi
+status=`expr $status + $ret`
+
+echo "I:exit status: $status"
+[ $status -eq 0 ] || exit 1

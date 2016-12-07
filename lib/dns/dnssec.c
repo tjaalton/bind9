@@ -1,22 +1,9 @@
 /*
- * Copyright (C) 2004-2015  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1999-2003  Internet Software Consortium.
+ * Copyright (C) 1999-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
- */
-
-/*
- * $Id$
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /*! \file */
@@ -28,9 +15,12 @@
 #include <isc/buffer.h>
 #include <isc/dir.h>
 #include <isc/mem.h>
+#include <isc/print.h>
 #include <isc/serial.h>
 #include <isc/string.h>
 #include <isc/util.h>
+
+#include <pk11/site.h>
 
 #include <dns/db.h>
 #include <dns/diff.h>
@@ -663,27 +653,94 @@ dns_dnssec_keyactive(dst_key_t *key, isc_stdtime_t now) {
 	return (ISC_FALSE);
 }
 
+/*%<
+ * Indicate whether a key is scheduled to to have CDS/CDNSKEY records
+ * published now.
+ *
+ * Returns ISC_TRUE iff.
+ *  - SyncPublish is set and in the past, AND
+ *  - SyncDelete is unset or in the future
+ */
+static isc_boolean_t
+syncpublish(dst_key_t *key, isc_stdtime_t now) {
+	isc_result_t result;
+	isc_stdtime_t when;
+	int major, minor;
+
+	/*
+	 * Is this an old-style key?
+	 */
+	result = dst_key_getprivateformat(key, &major, &minor);
+	RUNTIME_CHECK(result == ISC_R_SUCCESS);
+
+	/*
+	 * Smart signing started with key format 1.3
+	 */
+	if (major == 1 && minor <= 2)
+		return (ISC_FALSE);
+
+	result = dst_key_gettime(key, DST_TIME_SYNCPUBLISH, &when);
+	if (result != ISC_R_SUCCESS)
+		return (ISC_FALSE);
+
+	result = dst_key_gettime(key, DST_TIME_SYNCDELETE, &when);
+	if (result != ISC_R_SUCCESS)
+		return (ISC_TRUE);
+	if (when <= now)
+		return (ISC_FALSE);
+	return (ISC_TRUE);
+}
+
+/*%<
+ * Indicate whether a key is scheduled to to have CDS/CDNSKEY records
+ * deleted now.
+ *
+ * Returns ISC_TRUE iff. SyncDelete is set and in the past.
+ */
+static isc_boolean_t
+syncdelete(dst_key_t *key, isc_stdtime_t now) {
+	isc_result_t result;
+	isc_stdtime_t when;
+	int major, minor;
+
+	/*
+	 * Is this an old-style key?
+	 */
+	result = dst_key_getprivateformat(key, &major, &minor);
+	RUNTIME_CHECK(result == ISC_R_SUCCESS);
+
+	/*
+	 * Smart signing started with key format 1.3.
+	 */
+	if (major == 1 && minor <= 2)
+		return (ISC_FALSE);
+
+	result = dst_key_gettime(key, DST_TIME_SYNCDELETE, &when);
+	if (result != ISC_R_SUCCESS)
+		return (ISC_FALSE);
+	if (when <= now)
+		return (ISC_TRUE);
+	return (ISC_FALSE);
+}
+
 #define is_zone_key(key) ((dst_key_flags(key) & DNS_KEYFLAG_OWNERMASK) \
 			  == DNS_KEYOWNER_ZONE)
 
 isc_result_t
-dns_dnssec_findzonekeys2(dns_db_t *db, dns_dbversion_t *ver,
+dns_dnssec_findzonekeys3(dns_db_t *db, dns_dbversion_t *ver,
 			 dns_dbnode_t *node, dns_name_t *name,
-			 const char *directory, isc_mem_t *mctx,
-			 unsigned int maxkeys, dst_key_t **keys,
-			 unsigned int *nkeys)
+			 const char *directory, isc_stdtime_t now,
+			 isc_mem_t *mctx, unsigned int maxkeys,
+			 dst_key_t **keys, unsigned int *nkeys)
 {
 	dns_rdataset_t rdataset;
 	dns_rdata_t rdata = DNS_RDATA_INIT;
 	isc_result_t result;
 	dst_key_t *pubkey = NULL;
 	unsigned int count = 0;
-	isc_stdtime_t now;
 
 	REQUIRE(nkeys != NULL);
 	REQUIRE(keys != NULL);
-
-	isc_stdtime_get(&now);
 
 	*nkeys = 0;
 	memset(keys, 0, sizeof(*keys) * maxkeys);
@@ -739,18 +796,36 @@ dns_dnssec_findzonekeys2(dns_db_t *db, dns_dbversion_t *ver,
 		}
 
 		if (result != ISC_R_SUCCESS) {
-			char keybuf[DNS_NAME_FORMATSIZE];
-			char algbuf[DNS_SECALG_FORMATSIZE];
-			dns_name_format(dst_key_name(pubkey), keybuf,
-					sizeof(keybuf));
-			dns_secalg_format(dst_key_alg(pubkey), algbuf,
-					  sizeof(algbuf));
+			char filename[ISC_DIR_NAMEMAX];
+			isc_result_t result2;
+			isc_buffer_t buf;
+
+			isc_buffer_init(&buf, filename, ISC_DIR_NAMEMAX);
+			result2 = dst_key_getfilename(dst_key_name(pubkey),
+						      dst_key_id(pubkey),
+						      dst_key_alg(pubkey),
+						      (DST_TYPE_PUBLIC |
+						       DST_TYPE_PRIVATE),
+						      directory, mctx,
+						      &buf);
+			if (result2 != ISC_R_SUCCESS) {
+				char namebuf[DNS_NAME_FORMATSIZE];
+				char algbuf[DNS_SECALG_FORMATSIZE];
+
+				dns_name_format(dst_key_name(pubkey),
+						namebuf, sizeof(namebuf));
+				dns_secalg_format(dst_key_alg(pubkey),
+						  algbuf, sizeof(algbuf));
+				snprintf(filename, sizeof(filename) - 1,
+					 "key file for %s/%s/%d",
+					 namebuf, algbuf, dst_key_id(pubkey));
+			}
+
 			isc_log_write(dns_lctx, DNS_LOGCATEGORY_GENERAL,
 				      DNS_LOGMODULE_DNSSEC, ISC_LOG_WARNING,
 				      "dns_dnssec_findzonekeys2: error "
-				      "reading private key file %s/%s/%d: %s",
-				      keybuf, algbuf, dst_key_id(pubkey),
-				      isc_result_totext(result));
+				      "reading %s: %s",
+				      filename, isc_result_totext(result));
 		}
 
 		if (result == ISC_R_FILENOTFOUND || result == ISC_R_NOPERM) {
@@ -813,13 +888,30 @@ dns_dnssec_findzonekeys2(dns_db_t *db, dns_dbversion_t *ver,
 }
 
 isc_result_t
+dns_dnssec_findzonekeys2(dns_db_t *db, dns_dbversion_t *ver,
+			 dns_dbnode_t *node, dns_name_t *name,
+			 const char *directory, isc_mem_t *mctx,
+			 unsigned int maxkeys, dst_key_t **keys,
+			 unsigned int *nkeys)
+{
+	isc_stdtime_t now;
+
+	isc_stdtime_get(&now);
+	return (dns_dnssec_findzonekeys3(db, ver, node, name, directory, now,
+					 mctx, maxkeys, keys, nkeys));
+}
+
+isc_result_t
 dns_dnssec_findzonekeys(dns_db_t *db, dns_dbversion_t *ver,
 			dns_dbnode_t *node, dns_name_t *name, isc_mem_t *mctx,
 			unsigned int maxkeys, dst_key_t **keys,
 			unsigned int *nkeys)
 {
-	return (dns_dnssec_findzonekeys2(db, ver, node, name, NULL, mctx,
-					 maxkeys, keys, nkeys));
+	isc_stdtime_t now;
+
+	isc_stdtime_get(&now);
+	return (dns_dnssec_findzonekeys3(db, ver, node, name, NULL, now,
+					 mctx, maxkeys, keys, nkeys));
 }
 
 isc_result_t
@@ -1308,8 +1400,9 @@ get_hints(dns_dnsseckey_t *key, isc_stdtime_t now) {
  * Get a list of DNSSEC keys from the key repository
  */
 isc_result_t
-dns_dnssec_findmatchingkeys(dns_name_t *origin, const char *directory,
-			    isc_mem_t *mctx, dns_dnsseckeylist_t *keylist)
+dns_dnssec_findmatchingkeys2(dns_name_t *origin, const char *directory,
+			     isc_stdtime_t now, isc_mem_t *mctx,
+			     dns_dnsseckeylist_t *keylist)
 {
 	isc_result_t result = ISC_R_SUCCESS;
 	isc_boolean_t dir_open = ISC_FALSE;
@@ -1319,8 +1412,7 @@ dns_dnssec_findmatchingkeys(dns_name_t *origin, const char *directory,
 	dst_key_t *dstkey = NULL;
 	char namebuf[DNS_NAME_FORMATSIZE];
 	isc_buffer_t b;
-	unsigned int len, i;
-	isc_stdtime_t now;
+	unsigned int len, i, alg;
 
 	REQUIRE(keylist != NULL);
 	ISC_LIST_INIT(list);
@@ -1336,8 +1428,6 @@ dns_dnssec_findmatchingkeys(dns_name_t *origin, const char *directory,
 	RETERR(isc_dir_open(&dir, directory));
 	dir_open = ISC_TRUE;
 
-	isc_stdtime_get(&now);
-
 	while (isc_dir_read(&dir) == ISC_R_SUCCESS) {
 		if (dir.entry.name[0] != 'K' ||
 		    dir.entry.length < len + 1 ||
@@ -1345,11 +1435,20 @@ dns_dnssec_findmatchingkeys(dns_name_t *origin, const char *directory,
 		    strncasecmp(dir.entry.name + 1, namebuf, len) != 0)
 			continue;
 
-		for (i = len + 1 + 1; i < dir.entry.length ; i++)
+		alg = 0;
+		for (i = len + 1 + 1; i < dir.entry.length ; i++) {
 			if (dir.entry.name[i] < '0' || dir.entry.name[i] > '9')
 				break;
+			alg *= 10;
+			alg += dir.entry.name[i] - '0';
+		}
 
-		if (i == len + 1 + 1 || i >= dir.entry.length ||
+		/*
+		 * Did we not read exactly 3 digits?
+		 * Did we overflow?
+		 * Did we correctly terminate?
+		 */
+		if (i != len + 1 + 1 + 3 || i >= dir.entry.length ||
 		    dir.entry.name[i] != '+')
 			continue;
 
@@ -1357,7 +1456,13 @@ dns_dnssec_findmatchingkeys(dns_name_t *origin, const char *directory,
 			if (dir.entry.name[i] < '0' || dir.entry.name[i] > '9')
 				break;
 
-		if (strcmp(dir.entry.name + i, ".private") != 0)
+		/*
+		 * Did we not read exactly 5 more digits?
+		 * Did we overflow?
+		 * Did we correctly terminate?
+		 */
+		if (i != len + 1 + 1 + 3 + 1 + 5 || i >= dir.entry.length ||
+		    strcmp(dir.entry.name + i, ".private") != 0)
 				continue;
 
 		dstkey = NULL;
@@ -1366,6 +1471,19 @@ dns_dnssec_findmatchingkeys(dns_name_t *origin, const char *directory,
 					       DST_TYPE_PUBLIC |
 					       DST_TYPE_PRIVATE,
 					       mctx, &dstkey);
+
+		switch (alg) {
+#ifndef PK11_MD5_DISABLE
+		case DST_ALG_HMACMD5:
+#endif
+		case DST_ALG_HMACSHA1:
+		case DST_ALG_HMACSHA224:
+		case DST_ALG_HMACSHA256:
+		case DST_ALG_HMACSHA384:
+		case DST_ALG_HMACSHA512:
+			if (result == DST_R_BADKEYTYPE)
+				continue;
+		}
 
 		if (result != ISC_R_SUCCESS) {
 			isc_log_write(dns_lctx,
@@ -1410,6 +1528,17 @@ dns_dnssec_findmatchingkeys(dns_name_t *origin, const char *directory,
 	if (dstkey != NULL)
 		dst_key_free(&dstkey);
 	return (result);
+}
+
+isc_result_t
+dns_dnssec_findmatchingkeys(dns_name_t *origin, const char *directory,
+			    isc_mem_t *mctx, dns_dnsseckeylist_t *keylist)
+{
+	isc_stdtime_t now;
+
+	isc_stdtime_get(&now);
+	return (dns_dnssec_findmatchingkeys2(origin, directory, now, mctx,
+					     keylist));
 }
 
 /*%
@@ -1594,18 +1723,36 @@ dns_dnssec_keylistfromrdataset(dns_name_t *origin,
 		}
 
 		if (result != ISC_R_SUCCESS) {
-			char keybuf[DNS_NAME_FORMATSIZE];
-			char algbuf[DNS_SECALG_FORMATSIZE];
-			dns_name_format(dst_key_name(pubkey), keybuf,
-					sizeof(keybuf));
-			dns_secalg_format(dst_key_alg(pubkey), algbuf,
-					  sizeof(algbuf));
+			char filename[ISC_DIR_NAMEMAX];
+			isc_result_t result2;
+			isc_buffer_t buf;
+
+			isc_buffer_init(&buf, filename, ISC_DIR_NAMEMAX);
+			result2 = dst_key_getfilename(dst_key_name(pubkey),
+						      dst_key_id(pubkey),
+						      dst_key_alg(pubkey),
+						      (DST_TYPE_PUBLIC |
+						       DST_TYPE_PRIVATE),
+						      directory, mctx,
+						      &buf);
+			if (result2 != ISC_R_SUCCESS) {
+				char namebuf[DNS_NAME_FORMATSIZE];
+				char algbuf[DNS_SECALG_FORMATSIZE];
+
+				dns_name_format(dst_key_name(pubkey),
+						namebuf, sizeof(namebuf));
+				dns_secalg_format(dst_key_alg(pubkey),
+						  algbuf, sizeof(algbuf));
+				snprintf(filename, sizeof(filename) - 1,
+					 "key file for %s/%s/%d",
+					 namebuf, algbuf, dst_key_id(pubkey));
+			}
+
 			isc_log_write(dns_lctx, DNS_LOGCATEGORY_GENERAL,
 				      DNS_LOGMODULE_DNSSEC, ISC_LOG_WARNING,
 				      "dns_dnssec_keylistfromrdataset: error "
-				      "reading private key file %s/%s/%d: %s",
-				      keybuf, algbuf, dst_key_id(pubkey),
-				      isc_result_totext(result));
+				      "reading %s: %s",
+				      filename, isc_result_totext(result));
 		}
 
 		if (result == ISC_R_FILENOTFOUND || result == ISC_R_NOPERM) {
@@ -1674,6 +1821,36 @@ make_dnskey(dst_key_t *key, unsigned char *buf, int bufsize,
 }
 
 static isc_result_t
+publish(dns_rdata_t *rdata, dns_diff_t *diff, dns_name_t *origin,
+	dns_ttl_t ttl, isc_mem_t *mctx)
+{
+	isc_result_t result;
+	dns_difftuple_t *tuple = NULL;
+
+	RETERR(dns_difftuple_create(mctx, DNS_DIFFOP_ADD, origin, ttl,
+				    rdata, &tuple));
+	dns_diff_appendminimal(diff, &tuple);
+
+ failure:
+	return (result);
+}
+
+static isc_result_t
+delete(dns_rdata_t *rdata, dns_diff_t *diff, dns_name_t *origin,
+	dns_ttl_t ttl, isc_mem_t *mctx)
+{
+	isc_result_t result;
+	dns_difftuple_t *tuple = NULL;
+
+	RETERR(dns_difftuple_create(mctx, DNS_DIFFOP_DEL, origin, ttl,
+				    rdata, &tuple));
+	dns_diff_appendminimal(diff, &tuple);
+
+ failure:
+	return (result);
+}
+
+static isc_result_t
 publish_key(dns_diff_t *diff, dns_dnsseckey_t *key, dns_name_t *origin,
 	    dns_ttl_t ttl, isc_mem_t *mctx, isc_boolean_t allzsk,
 	    void (*report)(const char *, ...))
@@ -1734,6 +1911,149 @@ remove_key(dns_diff_t *diff, dns_dnsseckey_t *key, dns_name_t *origin,
 	RETERR(dns_difftuple_create(mctx, DNS_DIFFOP_DEL, origin, ttl, &dnskey,
 				    &tuple));
 	dns_diff_appendminimal(diff, &tuple);
+	result = ISC_R_SUCCESS;
+
+ failure:
+	return (result);
+}
+
+static isc_boolean_t
+exists(dns_rdataset_t *rdataset, dns_rdata_t *rdata) {
+	isc_result_t result;
+	dns_rdataset_t trdataset;
+
+	dns_rdataset_init(&trdataset);
+	dns_rdataset_clone(rdataset, &trdataset);
+	for (result = dns_rdataset_first(&trdataset);
+	     result == ISC_R_SUCCESS;
+	     result = dns_rdataset_next(&trdataset)) {
+		dns_rdata_t current = DNS_RDATA_INIT;
+
+		dns_rdataset_current(&trdataset, &current);
+		if (dns_rdata_compare(rdata, &current) == 0) {
+			dns_rdataset_disassociate(&trdataset);
+			return (ISC_TRUE);
+		}
+	}
+	dns_rdataset_disassociate(&trdataset);
+	return (ISC_FALSE);
+}
+
+isc_result_t
+dns_dnssec_syncupdate(dns_dnsseckeylist_t *keys, dns_dnsseckeylist_t *rmkeys,
+		      dns_rdataset_t *cds, dns_rdataset_t *cdnskey,
+		      isc_stdtime_t now, dns_ttl_t ttl, dns_diff_t *diff,
+		      isc_mem_t *mctx)
+{
+	unsigned char dsbuf1[DNS_DS_BUFFERSIZE];
+	unsigned char dsbuf2[DNS_DS_BUFFERSIZE];
+	unsigned char keybuf[DST_KEY_MAXSIZE];
+	isc_result_t result;
+	dns_dnsseckey_t *key;
+
+	for (key = ISC_LIST_HEAD(*keys);
+	     key != NULL;
+	     key = ISC_LIST_NEXT(key, link)) {
+		dns_rdata_t cdsrdata1 = DNS_RDATA_INIT;
+		dns_rdata_t cdsrdata2 = DNS_RDATA_INIT;
+		dns_rdata_t cdnskeyrdata = DNS_RDATA_INIT;
+		dns_name_t *origin = dst_key_name(key->key);
+
+		RETERR(make_dnskey(key->key, keybuf, sizeof(keybuf),
+				   &cdnskeyrdata));
+
+		/*
+		 * XXXMPA we need to be able to specify the DS algorithms
+		 * to be used here and below with rmkeys.
+		 */
+		RETERR(dns_ds_buildrdata(origin, &cdnskeyrdata,
+					 DNS_DSDIGEST_SHA1, dsbuf1,
+					 &cdsrdata1));
+		RETERR(dns_ds_buildrdata(origin, &cdnskeyrdata,
+					 DNS_DSDIGEST_SHA256, dsbuf2,
+					 &cdsrdata2));
+
+		/*
+		 * Now that the we have created the DS records convert
+		 * the rdata to CDNSKEY and CDS for comparison.
+		 */
+		cdnskeyrdata.type = dns_rdatatype_cdnskey;
+		cdsrdata1.type = dns_rdatatype_cds;
+		cdsrdata2.type = dns_rdatatype_cds;
+
+		if (syncpublish(key->key, now)) {
+			if (!dns_rdataset_isassociated(cdnskey) ||
+			    !exists(cdnskey, &cdnskeyrdata))
+				RETERR(publish(&cdnskeyrdata, diff, origin,
+					       ttl, mctx));
+			if (!dns_rdataset_isassociated(cds) ||
+			    !exists(cds, &cdsrdata1))
+				RETERR(publish(&cdsrdata1, diff, origin,
+					       ttl, mctx));
+			if (!dns_rdataset_isassociated(cds) ||
+			    !exists(cds, &cdsrdata2))
+				RETERR(publish(&cdsrdata2, diff, origin,
+					       ttl, mctx));
+		}
+
+		if (dns_rdataset_isassociated(cds) &&
+		    syncdelete(key->key, now)) {
+			if (exists(cds, &cdsrdata1))
+				RETERR(delete(&cdsrdata1, diff, origin,
+					      cds->ttl, mctx));
+			if (exists(cds, &cdsrdata2))
+				RETERR(delete(&cdsrdata2, diff, origin,
+					      cds->ttl, mctx));
+		}
+
+		if (dns_rdataset_isassociated(cdnskey) &&
+		    syncdelete(key->key, now)) {
+			if (exists(cdnskey, &cdnskeyrdata))
+				RETERR(delete(&cdnskeyrdata, diff, origin,
+					      cdnskey->ttl, mctx));
+		}
+	}
+
+	if (!dns_rdataset_isassociated(cds) &&
+	    !dns_rdataset_isassociated(cdnskey))
+		return (ISC_R_SUCCESS);
+
+	/*
+	 * Unconditionaly remove CDS/DNSKEY records for removed keys.
+	 */
+	for (key = ISC_LIST_HEAD(*rmkeys);
+	     key != NULL;
+	     key = ISC_LIST_NEXT(key, link)) {
+		dns_rdata_t cdsrdata1 = DNS_RDATA_INIT;
+		dns_rdata_t cdsrdata2 = DNS_RDATA_INIT;
+		dns_rdata_t cdnskeyrdata = DNS_RDATA_INIT;
+		dns_name_t *origin = dst_key_name(key->key);
+
+		RETERR(make_dnskey(key->key, keybuf, sizeof(keybuf),
+				   &cdnskeyrdata));
+
+		if (dns_rdataset_isassociated(cds)) {
+			RETERR(dns_ds_buildrdata(origin, &cdnskeyrdata,
+						 DNS_DSDIGEST_SHA1, dsbuf1,
+						 &cdsrdata1));
+			RETERR(dns_ds_buildrdata(origin, &cdnskeyrdata,
+						 DNS_DSDIGEST_SHA256, dsbuf2,
+						 &cdsrdata2));
+			if (exists(cds, &cdsrdata1))
+				RETERR(delete(&cdsrdata1, diff, origin,
+					      cds->ttl, mctx));
+			if (exists(cds, &cdsrdata2))
+				RETERR(delete(&cdsrdata2, diff, origin,
+					      cds->ttl, mctx));
+		}
+
+		if (dns_rdataset_isassociated(cdnskey)) {
+			if (exists(cdnskey, &cdnskeyrdata))
+				RETERR(delete(&cdnskeyrdata, diff, origin,
+					      cdnskey->ttl, mctx));
+		}
+	}
+
 	result = ISC_R_SUCCESS;
 
  failure:

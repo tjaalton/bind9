@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2009, 2013, 2014  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 2000, 2001, 2003  Internet Software Consortium.
+ * Copyright (C) 2000, 2001, 2003-2009, 2013-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id: peer.h,v 1.35 2009/01/17 23:47:43 tbox Exp $ */
@@ -74,7 +65,9 @@ struct dns_peer {
 	isc_boolean_t		request_ixfr;
 	isc_boolean_t		support_edns;
 	isc_boolean_t		request_nsid;
-	isc_boolean_t		request_sit;
+	isc_boolean_t		send_cookie;
+	isc_boolean_t		request_expire;
+	isc_boolean_t		force_tcp;
 	dns_name_t	       *key;
 	isc_sockaddr_t	       *transfer_source;
 	isc_dscp_t		transfer_dscp;
@@ -84,6 +77,7 @@ struct dns_peer {
 	isc_dscp_t		query_dscp;
 	isc_uint16_t		udpsize;		/* receive size */
 	isc_uint16_t		maxudp;			/* transmit size */
+	isc_uint8_t		ednsversion;		/* edns version */
 
 	isc_uint32_t		bitflags;
 
@@ -161,13 +155,25 @@ isc_result_t
 dns_peer_getrequestnsid(dns_peer_t *peer, isc_boolean_t *retval);
 
 isc_result_t
-dns_peer_setrequestsit(dns_peer_t *peer, isc_boolean_t newval);
+dns_peer_setsendcookie(dns_peer_t *peer, isc_boolean_t newval);
 
 isc_result_t
-dns_peer_getrequestsit(dns_peer_t *peer, isc_boolean_t *retval);
+dns_peer_getsendcookie(dns_peer_t *peer, isc_boolean_t *retval);
+
+isc_result_t
+dns_peer_setrequestexpire(dns_peer_t *peer, isc_boolean_t newval);
+
+isc_result_t
+dns_peer_getrequestexpire(dns_peer_t *peer, isc_boolean_t *retval);
 
 isc_result_t
 dns_peer_setsupportedns(dns_peer_t *peer, isc_boolean_t newval);
+
+isc_result_t
+dns_peer_getforcetcp(dns_peer_t *peer, isc_boolean_t *retval);
+
+isc_result_t
+dns_peer_setforcetcp(dns_peer_t *peer, isc_boolean_t newval);
 
 isc_result_t
 dns_peer_getsupportedns(dns_peer_t *peer, isc_boolean_t *retval);
@@ -241,6 +247,12 @@ dns_peer_setquerydscp(dns_peer_t *peer, isc_dscp_t dscp);
 
 isc_result_t
 dns_peer_getquerydscp(dns_peer_t *peer, isc_dscp_t *dscpp);
+
+isc_result_t
+dns_peer_setednsversion(dns_peer_t *peer, isc_uint8_t ednsversion);
+
+isc_result_t
+dns_peer_getednsversion(dns_peer_t *peer, isc_uint8_t *ednsversion);
 ISC_LANG_ENDDECLS
 
 #endif /* DNS_PEER_H */

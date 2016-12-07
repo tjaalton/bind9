@@ -1,17 +1,9 @@
 <!--
  - Copyright (C) 2004-2016  Internet Systems Consortium, Inc. ("ISC")
  -
- - Permission to use, copy, modify, and/or distribute this software for any
- - purpose with or without fee is hereby granted, provided that the above
- - copyright notice and this permission notice appear in all copies.
- -
- - THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- - REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- - AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- - INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- - LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- - OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- - PERFORMANCE OF THIS SOFTWARE.
+ - This Source Code Form is subject to the terms of the Mozilla Public
+ - License, v. 2.0. If a copy of the MPL was not distributed with this
+ - file, You can obtain one at http://mozilla.org/MPL/2.0/.
 -->
 
 <!-- Converted by db4-upgrade version 1.0 -->
@@ -32,7 +24,7 @@
 
   <refnamediv>
     <refname><filename>named.conf</filename></refname>
-    <refpurpose>configuration file for named</refpurpose>
+    <refpurpose>configuration file for <command>named</command></refpurpose>
   </refnamediv>
 
   <docinfo>
@@ -116,6 +108,7 @@ server ( <replaceable>ipv4_address<optional>/prefixlen</optional></replaceable> 
 	edns <replaceable>boolean</replaceable>;
 	edns-udp-size <replaceable>integer</replaceable>;
 	max-udp-size <replaceable>integer</replaceable>;
+	tcp-only <replaceable>boolean</replaceable>;
 	provide-ixfr <replaceable>boolean</replaceable>;
 	request-ixfr <replaceable>boolean</replaceable>;
 	keys <replaceable>server_key</replaceable>;
@@ -191,6 +184,8 @@ lwres {
 	view <replaceable>string</replaceable> <replaceable>optional_class</replaceable>;
 	search { <replaceable>string</replaceable>; ... };
 	ndots <replaceable>integer</replaceable>;
+	lwres-tasks <replaceable>integer</replaceable>;
+	lwres-clients <replaceable>integer</replaceable>;
 };
 </literallayout>
   </refsection>
@@ -205,13 +200,25 @@ options {
 	coresize <replaceable>size</replaceable>;
 	datasize <replaceable>size</replaceable>;
 	directory <replaceable>quoted_string</replaceable>;
+	dnstap { <replaceable>message_type</replaceable>; ... };
+	dnstap-output ( <literal>file</literal> | <literal>unix</literal> ) <replaceable>path_name</replaceable>;
+	dnstap-identity ( <replaceable>string</replaceable> | <literal>hostname</literal> | <literal>none</literal> );
+	dnstap-version ( <replaceable>string</replaceable> | <literal>none</literal> );
 	dump-file <replaceable>quoted_string</replaceable>;
 	files <replaceable>size</replaceable>;
+	fstrm-set-buffer-hint <replaceable>number</replaceable>;
+	fstrm-set-flush-timeout <replaceable>number</replaceable>;
+	fstrm-set-input-queue-size <replaceable>number</replaceable>;
+	fstrm-set-output-notify-threshold <replaceable>number</replaceable>;
+	fstrm-set-output-queue-model ( <replaceable>mpsc</replaceable> | <replaceable>spsc</replaceable> ) ;
+	fstrm-set-output-queue-size <replaceable>number</replaceable>;
+	fstrm-set-reopen-interval <replaceable>number</replaceable>;
 	heartbeat-interval <replaceable>integer</replaceable>;
 	host-statistics <replaceable>boolean</replaceable>; // not implemented
 	host-statistics-max <replaceable>number</replaceable>; // not implemented
 	hostname ( <replaceable>quoted_string</replaceable> | none );
 	interface-interval <replaceable>integer</replaceable>;
+	keep-response-order { <replaceable>address_match_element</replaceable>; ... };
 	listen-on <optional> port <replaceable>integer</replaceable> </optional> { <replaceable>address_match_element</replaceable>; ... };
 	listen-on-v6 <optional> port <replaceable>integer</replaceable> </optional> { <replaceable>address_match_element</replaceable>; ... };
 	match-mapped-addresses <replaceable>boolean</replaceable>;
@@ -234,6 +241,7 @@ options {
 	tkey-gssapi-credential <replaceable>quoted_string</replaceable>;
 	tkey-gssapi-keytab <replaceable>quoted_string</replaceable>;
 	tkey-domain <replaceable>quoted_string</replaceable>;
+	transfer-message-size <replaceable>integer</replaceable>;
 	transfers-per-ns <replaceable>integer</replaceable>;
 	transfers-in <replaceable>integer</replaceable>;
 	transfers-out <replaceable>integer</replaceable>;
@@ -243,7 +251,8 @@ options {
 	sortlist { <replaceable>address_match_element</replaceable>; ... };
 	topology { <replaceable>address_match_element</replaceable>; ... }; // not implemented
 	auth-nxdomain <replaceable>boolean</replaceable>; // default changed
-	minimal-responses <replaceable>boolean</replaceable>;
+	minimal-any <replaceable>boolean</replaceable>;
+	minimal-responses ( <replaceable>boolean</replaceable> | no-auth | no-auth-recursive );
 	recursion <replaceable>boolean</replaceable>;
 	rrset-order {
 		<optional> class <replaceable>string</replaceable> </optional> <optional> type <replaceable>string</replaceable> </optional>
@@ -277,6 +286,16 @@ options {
 	check-mx-cname ( fail | warn | ignore );
 	check-srv-cname ( fail | warn | ignore );
 	cache-file <replaceable>quoted_string</replaceable>; // test option
+	catalog-zones {
+	    zone <replaceable>quoted_string</replaceable>
+		<optional> default-masters
+		<optional>port <replaceable>ip_port</replaceable></optional>
+		<optional>dscp <replaceable>ip_dscp</replaceable></optional>
+		{ ( <replaceable>masters_list</replaceable> | <replaceable>ip_addr</replaceable> <optional>port <replaceable>ip_port</replaceable></optional> <optional>key <replaceable>key</replaceable></optional> ) ; <optional>...</optional> }</optional>
+	    <optional>in-memory <replaceable>yes_or_no</replaceable></optional>
+	    <optional>min-update-interval <replaceable>interval</replaceable></optional>
+	    ; ... };
+	;
 	suppress-initial-notify <replaceable>boolean</replaceable>; // not yet implemented
 	preferred-glue <replaceable>string</replaceable>;
 	dual-stack-servers <optional> port <replaceable>integer</replaceable> </optional> {
@@ -298,9 +317,9 @@ options {
 	dns64-server <replaceable>string</replaceable>;
 	dns64-contact <replaceable>string</replaceable>;
 	dns64 <replaceable>prefix</replaceable> {
-		clients { <replacable>acl</replacable>; };
-		exclude { <replacable>acl</replacable>; };
-		mapped { <replacable>acl</replacable>; };
+		clients { <replaceable>acl</replaceable>; };
+		exclude { <replaceable>acl</replaceable>; };
+		mapped { <replaceable>acl</replaceable>; };
 		break-dnssec <replaceable>boolean</replaceable>;
 		recursive-only <replaceable>boolean</replaceable>;
 		suffix <replaceable>ipv6_address</replaceable>;
@@ -378,6 +397,12 @@ options {
 	dnssec-secure-to-insecure <replaceable>boolean</replaceable>;
 	automatic-interface-scan <replaceable>boolean</replaceable>;
 
+	cookie-algorithm ( <replaceable>aes</replaceable> | <replaceable>sha1</replaceable> | <replaceable>sha256</replaceable> );
+	cookie-secret <replaceable>string</replaceable>;
+	require-server-cookie <replaceable>boolean</replaceable>;
+	send-cookie <replaceable>boolean</replaceable>;
+	nocookie-udp-size <replaceable>integer</replaceable>;
+
 	deny-answer-addresses {
 		<replaceable>address_match_list</replaceable>
 	} <optional> except-from { <replaceable>namelist</replaceable> } </optional>;
@@ -435,6 +460,7 @@ view <replaceable>string</replaceable> <replaceable>optional_class</replaceable>
 	sortlist { <replaceable>address_match_element</replaceable>; ... };
 	topology { <replaceable>address_match_element</replaceable>; ... }; // not implemented
 	auth-nxdomain <replaceable>boolean</replaceable>; // default changed
+	minimal-any <replaceable>boolean</replaceable>;
 	minimal-responses <replaceable>boolean</replaceable>;
 	recursion <replaceable>boolean</replaceable>;
 	rrset-order {
@@ -490,9 +516,9 @@ view <replaceable>string</replaceable> <replaceable>optional_class</replaceable>
 	dns64-server <replaceable>string</replaceable>;
 	dns64-contact <replaceable>string</replaceable>;
 	dns64 <replaceable>prefix</replaceable> {
-		clients { <replacable>acl</replacable>; };
-		exclude { <replacable>acl</replacable>; };
-		mapped { <replacable>acl</replacable>; };
+		clients { <replaceable>acl</replaceable>; };
+		exclude { <replaceable>acl</replaceable>; };
+		mapped { <replaceable>acl</replaceable>; };
 		break-dnssec <replaceable>boolean</replaceable>;
 		recursive-only <replaceable>boolean</replaceable>;
 		suffix <replaceable>ipv6_address</replaceable>;
@@ -562,6 +588,10 @@ view <replaceable>string</replaceable> <replaceable>optional_class</replaceable>
 	zero-no-soa-ttl-cache <replaceable>boolean</replaceable>;
 	dnssec-secure-to-insecure <replaceable>boolean</replaceable>;
 
+	require-server-cookie <replaceable>boolean</replaceable>;
+	send-cookie <replaceable>boolean</replaceable>;
+	nocookie-udp-size <replaceable>integer</replaceable>;
+
 	allow-v6-synthesis { <replaceable>address_match_element</replaceable>; ... }; // obsolete
 	fetch-glue <replaceable>boolean</replaceable>; // obsolete
 	maintain-ixfr-base <replaceable>boolean</replaceable>; // obsolete
@@ -605,7 +635,7 @@ zone <replaceable>string</replaceable> <replaceable>optional_class</replaceable>
 	update-policy <replaceable>local</replaceable> | <replaceable> {
 		( grant | deny ) <replaceable>string</replaceable>
 		( name | subdomain | wildcard | self | selfsub | selfwild |
-                  krb5-self | ms-self | krb5-subdomain | ms-subdomain |
+		  krb5-self | ms-self | krb5-subdomain | ms-subdomain |
 		  tcp-self | zonesub | 6to4-self ) <replaceable>string</replaceable>
 		<replaceable>rrtypelist</replaceable>;
 		<optional>...</optional>
@@ -677,13 +707,13 @@ zone <replaceable>string</replaceable> <replaceable>optional_class</replaceable>
   <refsection><info><title>SEE ALSO</title></info>
 
     <para><citerefentry>
-        <refentrytitle>named</refentrytitle><manvolnum>8</manvolnum>
+	<refentrytitle>named</refentrytitle><manvolnum>8</manvolnum>
       </citerefentry>,
       <citerefentry>
-        <refentrytitle>named-checkconf</refentrytitle><manvolnum>8</manvolnum>
+	<refentrytitle>named-checkconf</refentrytitle><manvolnum>8</manvolnum>
       </citerefentry>,
       <citerefentry>
-        <refentrytitle>rndc</refentrytitle><manvolnum>8</manvolnum>
+	<refentrytitle>rndc</refentrytitle><manvolnum>8</manvolnum>
       </citerefentry>,
       <citetitle>BIND 9 Administrator Reference Manual</citetitle>.
     </para>

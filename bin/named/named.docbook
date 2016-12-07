@@ -1,18 +1,9 @@
 <!--
- - Copyright (C) 2004-2009, 2011, 2013-2015  Internet Systems Consortium, Inc. ("ISC")
- - Copyright (C) 2000, 2001, 2003  Internet Software Consortium.
+ - Copyright (C) 2000, 2001, 2003-2009, 2011, 2013-2016  Internet Systems Consortium, Inc. ("ISC")
  -
- - Permission to use, copy, modify, and/or distribute this software for any
- - purpose with or without fee is hereby granted, provided that the above
- - copyright notice and this permission notice appear in all copies.
- -
- - THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- - REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- - AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- - INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- - LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- - OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- - PERFORMANCE OF THIS SOFTWARE.
+ - This Source Code Form is subject to the terms of the Mozilla Public
+ - License, v. 2.0. If a copy of the MPL was not distributed with this
+ - file, You can obtain one at http://mozilla.org/MPL/2.0/.
 -->
 
 <!-- Converted by db4-upgrade version 1.0 -->
@@ -38,6 +29,9 @@
 
   <docinfo>
     <copyright>
+      <year>2000</year>
+      <year>2001</year>
+      <year>2003</year>
       <year>2004</year>
       <year>2005</year>
       <year>2006</year>
@@ -48,13 +42,8 @@
       <year>2013</year>
       <year>2014</year>
       <year>2015</year>
+      <year>2016</year>
       <holder>Internet Systems Consortium, Inc. ("ISC")</holder>
-    </copyright>
-    <copyright>
-      <year>2000</year>
-      <year>2001</year>
-      <year>2003</year>
-      <holder>Internet Software Consortium.</holder>
     </copyright>
   </docinfo>
 
@@ -69,6 +58,7 @@
       <arg choice="opt" rep="norepeat"><option>-E <replaceable class="parameter">engine-name</replaceable></option></arg>
       <arg choice="opt" rep="norepeat"><option>-f</option></arg>
       <arg choice="opt" rep="norepeat"><option>-g</option></arg>
+      <arg choice="opt" rep="norepeat"><option>-L <replaceable class="parameter">logfile</replaceable></option></arg>
       <arg choice="opt" rep="norepeat"><option>-M <replaceable class="parameter">option</replaceable></option></arg>
       <arg choice="opt" rep="norepeat"><option>-m <replaceable class="parameter">flag</replaceable></option></arg>
       <arg choice="opt" rep="norepeat"><option>-n <replaceable class="parameter">#cpus</replaceable></option></arg>
@@ -80,6 +70,7 @@
       <arg choice="opt" rep="norepeat"><option>-u <replaceable class="parameter">user</replaceable></option></arg>
       <arg choice="opt" rep="norepeat"><option>-v</option></arg>
       <arg choice="opt" rep="norepeat"><option>-V</option></arg>
+      <arg choice="opt" rep="norepeat"><option>-X <replaceable class="parameter">lock-file</replaceable></option></arg>
       <arg choice="opt" rep="norepeat"><option>-x <replaceable class="parameter">cache-file</replaceable></option></arg>
     </cmdsynopsis>
   </refsynopsisdiv>
@@ -158,10 +149,10 @@
         <term>-D <replaceable class="parameter">string</replaceable></term>
         <listitem>
           <para>
-	    Specifies a string that is used to identify a instance of
-	    <command>named</command> in a process listing.  The contents
-	    of <replaceable class="parameter">string</replaceable> are
-	    not examined.
+            Specifies a string that is used to identify a instance of
+            <command>named</command> in a process listing.  The contents
+            of <replaceable class="parameter">string</replaceable> are
+            not examined.
           </para>
         </listitem>
       </varlistentry>
@@ -205,14 +196,24 @@
       </varlistentry>
 
       <varlistentry>
+        <term>-L <replaceable class="parameter">logfile</replaceable></term>
+        <listitem>
+          <para>
+            Log to the file <option>logfile</option> by default
+            instead of the system log.
+          </para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
         <term>-M <replaceable class="parameter">option</replaceable></term>
         <listitem>
           <para>
-	    Sets the default memory context options.  Currently
-	    the only supported option is
-	    <replaceable class="parameter">external</replaceable>,
-	    which causes the internal memory manager to be bypassed
-	    in favor of system-provided memory allocation functions.
+            Sets the default memory context options.  Currently
+            the only supported option is
+            <replaceable class="parameter">external</replaceable>,
+            which causes the internal memory manager to be bypassed
+            in favor of system-provided memory allocation functions.
           </para>
         </listitem>
       </varlistentry>
@@ -221,14 +222,14 @@
         <term>-m <replaceable class="parameter">flag</replaceable></term>
         <listitem>
           <para>
-	    Turn on memory usage debugging flags.  Possible flags are
-	    <replaceable class="parameter">usage</replaceable>,
-	    <replaceable class="parameter">trace</replaceable>,
-	    <replaceable class="parameter">record</replaceable>,
-	    <replaceable class="parameter">size</replaceable>, and
-	    <replaceable class="parameter">mctx</replaceable>.
-	    These correspond to the ISC_MEM_DEBUGXXXX flags described in
-	    <filename>&lt;isc/mem.h&gt;</filename>.
+            Turn on memory usage debugging flags.  Possible flags are
+            <replaceable class="parameter">usage</replaceable>,
+            <replaceable class="parameter">trace</replaceable>,
+            <replaceable class="parameter">record</replaceable>,
+            <replaceable class="parameter">size</replaceable>, and
+            <replaceable class="parameter">mctx</replaceable>.
+            These correspond to the ISC_MEM_DEBUGXXXX flags described in
+            <filename>&lt;isc/mem.h&gt;</filename>.
           </para>
         </listitem>
       </varlistentry>
@@ -275,38 +276,38 @@
       <varlistentry>
         <term>-S <replaceable class="parameter">#max-socks</replaceable></term>
         <listitem>
-	  <para>
-	    Allow <command>named</command> to use up to
-	    <replaceable class="parameter">#max-socks</replaceable> sockets.
+          <para>
+            Allow <command>named</command> to use up to
+            <replaceable class="parameter">#max-socks</replaceable> sockets.
             The default value is 4096 on systems built with default
             configuration options, and 21000 on systems built with
             "configure --with-tuning=large".
-	  </para>
+          </para>
           <warning>
             <para>
               This option should be unnecessary for the vast majority
               of users.
-	      The use of this option could even be harmful because the
+              The use of this option could even be harmful because the
               specified value may exceed the limitation of the
               underlying system API.
-	      It is therefore set only when the default configuration
+              It is therefore set only when the default configuration
               causes exhaustion of file descriptors and the
               operational environment is known to support the
               specified number of sockets.
-	      Note also that the actual maximum number is normally a little
+              Note also that the actual maximum number is normally a little
               fewer than the specified value because
-	      <command>named</command> reserves some file descriptors
-	      for its internal use.
+              <command>named</command> reserves some file descriptors
+              for its internal use.
             </para>
           </warning>
-	</listitem>
+        </listitem>
       </varlistentry>
 
       <varlistentry>
         <term>-t <replaceable class="parameter">directory</replaceable></term>
         <listitem>
           <para>Chroot
-	    to <replaceable class="parameter">directory</replaceable> after
+            to <replaceable class="parameter">directory</replaceable> after
             processing the command line arguments, but before
             reading the configuration file.
           </para>
@@ -347,14 +348,14 @@
         <term>-u <replaceable class="parameter">user</replaceable></term>
         <listitem>
           <para>Setuid
-	    to <replaceable class="parameter">user</replaceable> after completing
+            to <replaceable class="parameter">user</replaceable> after completing
             privileged operations, such as creating sockets that
             listen on privileged ports.
           </para>
           <note>
             <para>
               On Linux, <command>named</command> uses the kernel's
-              		capability mechanism to drop all root privileges
+                        capability mechanism to drop all root privileges
               except the ability to <function>bind(2)</function> to
               a
               privileged port and set process resource limits.
@@ -383,6 +384,21 @@
         <listitem>
           <para>
             Report the version number and build options, and exit.
+          </para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>-X <replaceable class="parameter">lock-file</replaceable></term>
+        <listitem>
+          <para>
+            Acquire a lock on the specified file at runtime; this
+            helps to prevent duplicate <command>named</command> instances
+            from running simultaneously.
+            Use of this option overrides the <command>lock-file</command>
+            option in <filename>named.conf</filename>.
+            If set to <literal>none</literal>, the lock file check
+            is disabled.
           </para>
         </listitem>
       </varlistentry>
@@ -498,23 +514,23 @@
       <citetitle>RFC 1035</citetitle>,
       <citerefentry>
         <refentrytitle>named-checkconf</refentrytitle>
-	<manvolnum>8</manvolnum>
+        <manvolnum>8</manvolnum>
       </citerefentry>,
       <citerefentry>
         <refentrytitle>named-checkzone</refentrytitle>
-	<manvolnum>8</manvolnum>
+        <manvolnum>8</manvolnum>
       </citerefentry>,
       <citerefentry>
         <refentrytitle>rndc</refentrytitle>
-	<manvolnum>8</manvolnum>
+        <manvolnum>8</manvolnum>
       </citerefentry>,
       <citerefentry>
         <refentrytitle>lwresd</refentrytitle>
-	<manvolnum>8</manvolnum>
+        <manvolnum>8</manvolnum>
       </citerefentry>,
       <citerefentry>
-	<refentrytitle>named.conf</refentrytitle>
-	<manvolnum>5</manvolnum>
+        <refentrytitle>named.conf</refentrytitle>
+        <manvolnum>5</manvolnum>
       </citerefentry>,
       <citetitle>BIND 9 Administrator Reference Manual</citetitle>.
     </para>

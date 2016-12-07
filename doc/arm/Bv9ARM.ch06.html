@@ -1,20 +1,12 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <!--
- - Copyright (C) 2004-2015 Internet Systems Consortium, Inc. ("ISC")
- - Copyright (C) 2000-2003 Internet Software Consortium.
+ - Copyright (C) 2000-2015 Internet Systems Consortium, Inc. ("ISC")
  - 
- - Permission to use, copy, modify, and/or distribute this software for any
- - purpose with or without fee is hereby granted, provided that the above
- - copyright notice and this permission notice appear in all copies.
- - 
- - THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- - REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- - AND FITNESS. IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- - INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- - LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- - OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- - PERFORMANCE OF THIS SOFTWARE.
+ - This Source Code Form is subject to the terms of the Mozilla Public
+ - License, v. 2.0. If a copy of the MPL was not distributed with this
+ - file, You can obtain one at http://mozilla.org/MPL/2.0/.
 -->
-<html>
+<html lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
 <title>Chapter 6. BIND 9 Configuration Reference</title>
@@ -466,6 +458,26 @@
 <tr>
 <td>
                 <p>
+                  <code class="varname">size_or_percent</code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="varname">size_spec</code> or integer value
+                  followed by '%' to represent percents.
+                </p>
+                <p>
+                  The behavior is exactly the same as
+                  <code class="varname">size_spec</code>, but
+                  <code class="varname">size_or_percent</code> allows also
+                  to specify a positive integer value followed by
+                  '%' sign to represent percents.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
                   <code class="varname">yes_or_no</code>
                 </p>
               </td>
@@ -570,8 +582,9 @@
             <span class="command"><strong>allow-query-cache-on</strong></span>,
             <span class="command"><strong>allow-transfer</strong></span>,
             <span class="command"><strong>allow-update</strong></span>,
-            <span class="command"><strong>allow-update-forwarding</strong></span>, and
-            <span class="command"><strong>blackhole</strong></span> all use address match
+            <span class="command"><strong>allow-update-forwarding</strong></span>,
+            <span class="command"><strong>blackhole</strong></span>, and
+            <span class="command"><strong>keep-response-order</strong></span> all use address match
             lists.  Similarly, the <span class="command"><strong>listen-on</strong></span> option will cause the
             server to refuse queries on any of the machine's
             addresses which do not match the list.
@@ -955,63 +968,6 @@
 </tr>
 </tbody>
 </table></div>
-<p>
-          When <acronym class="acronym">BIND</acronym> 9 is built with GeoIP support,
-          ACLs can also be used for geographic access restrictions.
-          This is done by specifying an ACL element of the form:
-          <span class="command"><strong>geoip [<span class="optional">db <em class="replaceable"><code>database</code></em></span>] <em class="replaceable"><code>field</code></em> <em class="replaceable"><code>value</code></em></strong></span>
-        </p>
-<p>
-          The <em class="replaceable"><code>field</code></em> indicates which field
-          to search for a match.  Available fields are "country",
-          "region", "city", "continent", "postal" (postal code),
-          "metro" (metro code), "area" (area code), "tz" (timezone),
-          "isp", "org", "asnum", "domain" and "netspeed".
-        </p>
-<p>
-          <em class="replaceable"><code>value</code></em> is the value to search
-          for within the database.  A string may be quoted if it
-          contains spaces or other special characters.  If this is
-          an "asnum" search, then the leading "ASNNNN" string can be
-          used, otherwise the full description must be used (e.g.
-          "ASNNNN Example Company Name").  If this is a "country"
-          search and the string is two characters long, then it must
-          be a standard ISO-3166-1 two-letter country code, and if it
-          is three characters long then it must be an ISO-3166-1
-          three-letter country code; otherwise it is the full name
-          of the country.  Similarly, if this is a "region" search
-          and the string is two characters long, then it must be a
-          standard two-letter state or province abbreviation;
-          otherwise it is the full name of the state or province.
-        </p>
-<p>
-          The <em class="replaceable"><code>database</code></em> field indicates which
-          GeoIP database to search for a match.  In most cases this is
-          unnecessary, because most search fields can only be found in
-          a single database.  However, searches for country can be
-          answered from the "city", "region", or "country" databases,
-          and searches for region (i.e., state or province) can be
-          answered from the "city" or "region" databases.  For these
-          search types, specifying a <em class="replaceable"><code>database</code></em>
-          will force the query to be answered from that database and no
-          other.  If <em class="replaceable"><code>database</code></em> is not
-          specified, then these queries will be answered from the "city",
-          database if it is installed, or the "region" database if it is
-          installed, or the "country" database, in that order.
-        </p>
-<p>
-          Some example GeoIP ACLs:
-        </p>
-<pre class="programlisting">geoip country US;
-geoip country JAP;
-geoip db country country Canada;
-geoip db region region WA;
-geoip city "San Francisco";
-geoip region Oklahoma;
-geoip postal 95062;
-geoip tz "America/Los_Angeles";
-geoip org "Internet Systems Consortium";
-</pre>
 </div>
 <div class="section">
 <div class="titlepage"><div><div><h3 class="title">
@@ -1019,10 +975,12 @@ geoip org "Internet Systems Consortium";
 <pre class="programlisting"><span class="command"><strong>controls</strong></span> {
    [ inet ( ip_addr | * ) [ port ip_port ]
                 allow { <em class="replaceable"><code> address_match_list </code></em> }
-                keys { <em class="replaceable"><code>key_list</code></em> }; ]
+                [ keys { <em class="replaceable"><code>key_list</code></em> } ]
+                [ read-only <em class="replaceable"><code>yes_or_no</code></em> ] ; ]
    [ inet ...; ]
    [ unix <em class="replaceable"><code>path</code></em> perm <em class="replaceable"><code>number</code></em> owner <em class="replaceable"><code>number</code></em> group <em class="replaceable"><code>number</code></em>
-     keys { <em class="replaceable"><code>key_list</code></em> }; ]
+                [ keys { <em class="replaceable"><code>key_list</code></em> } ]
+                [ read-only <em class="replaceable"><code>yes_or_no</code></em> ] ; ]
    [ unix ...; ]
 };
 </pre>
@@ -1082,6 +1040,16 @@ geoip org "Internet Systems Consortium";
           is authorized to execute commands over the control channel.
           See <a class="xref" href="Bv9ARM.ch03.html#rndc">Remote Name Daemon Control application</a> in <a class="xref" href="Bv9ARM.ch03.html#admin_tools" title="Administrative Tools">the section called &#8220;Administrative Tools&#8221;</a>)
           for information about configuring keys in <span class="command"><strong>rndc</strong></span>.
+        </p>
+<p>
+          If the <span class="command"><strong>read-only</strong></span> clause is enabled, the
+          control channel is limited to the following set of read-only
+          commands: <span class="command"><strong>nta -dump</strong></span>,
+          <span class="command"><strong>null</strong></span>, <span class="command"><strong>status</strong></span>,
+          <span class="command"><strong>showzone</strong></span>, <span class="command"><strong>testgen</strong></span>, and
+          <span class="command"><strong>zonestatus</strong></span>. By default,
+          <span class="command"><strong>read-only</strong></span> is not enabled and the control
+          channel allows read-write access.
         </p>
 <p>
           If no <span class="command"><strong>controls</strong></span> statement is present,
@@ -1197,8 +1165,8 @@ geoip org "Internet Systems Consortium";
         </p>
 <p>
           The <em class="replaceable"><code>algorithm_id</code></em> is a string
-          that specifies a security/authentication algorithm.  Named
-          supports <code class="literal">hmac-md5</code>,
+          that specifies a security/authentication algorithm.  The
+          <span class="command"><strong>named</strong></span> server supports <code class="literal">hmac-md5</code>,
           <code class="literal">hmac-sha1</code>, <code class="literal">hmac-sha224</code>,
           <code class="literal">hmac-sha256</code>, <code class="literal">hmac-sha384</code>
           and <code class="literal">hmac-sha512</code> TSIG authentication.
@@ -1226,6 +1194,7 @@ geoip org "Internet Systems Consortium";
      [ <span class="command"><strong>print-category</strong></span> <code class="option">yes</code> or <code class="option">no</code>; ]
      [ <span class="command"><strong>print-severity</strong></span> <code class="option">yes</code> or <code class="option">no</code>; ]
      [ <span class="command"><strong>print-time</strong></span> <code class="option">yes</code> or <code class="option">no</code>; ]
+     [ <span class="command"><strong>buffered</strong></span> <code class="option">yes</code> or <code class="option">no</code>; ]
    }; ]
    [ <span class="command"><strong>category</strong></span> <em class="replaceable"><code>category_name</code></em> {
      <em class="replaceable"><code>channel_name</code></em> ; [ <em class="replaceable"><code>channel_name</code></em> ; ... ]
@@ -1257,6 +1226,17 @@ geoip org "Internet Systems Consortium";
 };
 </pre>
 <p>
+          If <span class="command"><strong>named</strong></span> is started with the
+          <code class="option">-L</code> option, it logs to the specified file
+          at startup, instead of using syslog. In this case the logging
+          configuration will be:
+        </p>
+<pre class="programlisting">logging {
+     category default { default_logfile; default_debug; };
+     category unmatched { null; };
+};
+</pre>
+<p>
           In <acronym class="acronym">BIND</acronym> 9, the logging configuration
           is only established when
           the entire configuration file has been parsed.  In <acronym class="acronym">BIND</acronym> 8, it was
@@ -1264,7 +1244,7 @@ geoip org "Internet Systems Consortium";
           statement
           was parsed. When the server is starting up, all logging messages
           regarding syntax errors in the configuration file go to the default
-          channels, or to standard error if the "<code class="option">-g</code>" option
+          channels, or to standard error if the <code class="option">-g</code> option
           was specified.
         </p>
 <div class="section">
@@ -1450,8 +1430,16 @@ notrace</strong></span>. All debugging messages in the server have a debug
             <code class="computeroutput">28-Feb-2000 15:05:32.863 general: notice: running</code>
           </p>
 <p>
+            If <span class="command"><strong>buffered</strong></span> has been turned on the output
+            to files will not be flushed after each log entry.  By default
+            all log messages are flushed.
+          </p>
+<p>
             There are four predefined channels that are used for
             <span class="command"><strong>named</strong></span>'s default logging as follows.
+            If <span class="command"><strong>named</strong></span> is started with the
+            <code class="option">-L</code> then a
+            fifth channel <span class="command"><strong>default_logfile</strong></span> is added.
             How they are
             used is described in <a class="xref" href="Bv9ARM.ch06.html#the_category_phrase" title="The category Phrase">the section called &#8220;The <span class="command"><strong>category</strong></span> Phrase&#8221;</a>.
           </p>
@@ -1464,7 +1452,7 @@ notrace</strong></span>. All debugging messages in the server have a debug
 channel default_debug {
     // write to named.run in the working directory
     // Note: stderr is used instead of "named.run" if
-    // the server is started with the '-f' option.
+    // the server is started with the '-g' option.
     file "named.run";
     // log at the server's current debug level
     severity dynamic;
@@ -1481,6 +1469,15 @@ channel null {
    // toss anything sent to this channel
    null;
 };
+
+channel default_logfile {
+    // this channel is only present if named is
+    // started with the -L option, whose argument
+    // provides the file name
+    file "...";
+    // log at the server's current debug level
+    severity dynamic;
+};
 </pre>
 <p>
             The <span class="command"><strong>default_debug</strong></span> channel has the
@@ -1491,14 +1488,15 @@ channel null {
             in the server's working directory.
           </p>
 <p>
-            For security reasons, when the "<code class="option">-u</code>"
+            For security reasons, when the <code class="option">-u</code>
             command line option is used, the <code class="filename">named.run</code> file
             is created only after <span class="command"><strong>named</strong></span> has
             changed to the
             new UID, and any debug output generated while <span class="command"><strong>named</strong></span> is
             starting up and still running as root is discarded.  If you need
-            to capture this output, you must run the server with the "<code class="option">-g</code>"
-            option and redirect standard error to a file.
+            to capture this output, you must run the server with the <code class="option">-L</code>
+            option to specify a default logfile, or the <code class="option">-g</code>
+            option to log to standard error which you can redirect to a file.
           </p>
 <p>
             Once a channel is defined, it cannot be redefined. Thus you
@@ -1520,6 +1518,12 @@ channel null {
             "default default" is used:
           </p>
 <pre class="programlisting">category default { default_syslog; default_debug; };
+</pre>
+<p>
+            If you start <span class="command"><strong>named</strong></span> with the
+            <code class="option">-L</code> option then the default category is:
+          </p>
+<pre class="programlisting">category default { default_logfile; default_debug; };
 </pre>
 <p>
             As an example, let's say you want to log security events to
@@ -1645,6 +1649,16 @@ category notify { null; };
 </tr>
 <tr>
 <td>
+	  <p><span class="command"><strong>dnstap</strong></span></p>
+	</td>
+<td>
+	  <p>
+	    The "dnstap" DNS traffic capture system.
+	  </p>
+	</td>
+</tr>
+<tr>
+<td>
 	  <p><span class="command"><strong>edns-disabled</strong></span></p>
 	</td>
 <td>
@@ -1740,11 +1754,14 @@ category notify { null; };
 	    class and type.  Next it reports whether the
 	    Recursion Desired flag was set (+ if set, -
 	    if not set), if the query was signed (S),
-	    EDNS was in use (E), if TCP was used (T), if
-	    DO (DNSSEC Ok) was set (D), or if CD (Checking
-	    Disabled) was set (C).  After this the
-	    destination address the query was sent to is
-	    reported.
+	    EDNS was in used along with the EDNS version
+	    number (E(#)), if TCP was used (T), if DO
+	    (DNSSEC Ok) was set (D), if CD (Checking
+	    Disabled) was set (C), if a valid DNS Server
+	    COOKIE was received (V), or if a DNS COOKIE
+	    option without a valid Server COOKIE was
+	    present (K).  After this the destination
+	    address the query was sent to is reported.
 	  </p>
 
 	  <p>
@@ -2144,6 +2161,8 @@ badresp:1,adberr:0,findfail:0,valfail:0]
     [<span class="optional"> view <em class="replaceable"><code>view_name</code></em>; </span>]
     [<span class="optional"> search { <em class="replaceable"><code>domain_name</code></em> ; [<span class="optional"> <em class="replaceable"><code>domain_name</code></em> ; ... </span>] }; </span>]
     [<span class="optional"> ndots <em class="replaceable"><code>number</code></em>; </span>]
+    [<span class="optional"> lwres-tasks <em class="replaceable"><code>number</code></em>; </span>]
+    [<span class="optional"> lwres-clients <em class="replaceable"><code>number</code></em>; </span>]
 };
 </pre>
 </div>
@@ -2197,6 +2216,31 @@ badresp:1,adberr:0,findfail:0,valfail:0]
           number of dots in a relative domain name that should result in an
           exact match lookup before search path elements are appended.
         </p>
+<p>
+          The <code class="option">lwres-tasks</code> statement specifies the number
+          of worker threads the lightweight resolver will dedicate to serving
+          clients.  By default the number is the same as the number of CPUs on
+          the system; this can be overridden using the <code class="option">-n</code>
+          command line option when starting the server.
+        </p>
+<p>
+          The <code class="option">lwres-clients</code> specifies
+          the number of client objects per thread the lightweight
+          resolver should create to serve client queries.
+          By default, if the lightweight resolver runs as a part
+          of <span class="command"><strong>named</strong></span>, 256 client objects are
+          created for each task; if it runs as <span class="command"><strong>lwresd</strong></span>,
+          1024 client objects are created for each thread. The maximum
+          value is 32768; higher values will be silently ignored and
+          the maximum will be used instead.
+          Note that setting too high a value may overconsume
+          system resources.
+        </p>
+<p>
+          The maximum number of client queries that the lightweight
+          resolver can handle at any one time equals
+          <code class="option">lwres-tasks</code> times <code class="option">lwres-clients</code>.
+        </p>
 </div>
 <div class="section">
 <div class="titlepage"><div><div><h3 class="title">
@@ -2229,6 +2273,18 @@ badresp:1,adberr:0,findfail:0,valfail:0]
     [<span class="optional"> hostname <em class="replaceable"><code>hostname_string</code></em>; </span>]
     [<span class="optional"> server-id <em class="replaceable"><code>server_id_string</code></em>; </span>]
     [<span class="optional"> directory <em class="replaceable"><code>path_name</code></em>; </span>]
+    [<span class="optional"> dnstap { <em class="replaceable"><code>message_type</code></em>; ... }; </span>]
+    [<span class="optional"> dnstap-output ( <code class="literal">file</code> | <code class="literal">unix</code> ) <em class="replaceable"><code>path_name</code></em>; </span>]
+    [<span class="optional"> dnstap-identity ( <em class="replaceable"><code>string</code></em> | <code class="literal">hostname</code> | <code class="literal">none</code> ); </span>]
+    [<span class="optional"> dnstap-version ( <em class="replaceable"><code>string</code></em> | <code class="literal">none</code> ); </span>]
+    [<span class="optional"> fstrm-set-buffer-hint <em class="replaceable"><code>number</code></em> ; </span>]
+    [<span class="optional"> fstrm-set-flush-timeout <em class="replaceable"><code>number</code></em> ; </span>]
+    [<span class="optional"> fstrm-set-input-queue-size <em class="replaceable"><code>number</code></em> ; </span>]
+    [<span class="optional"> fstrm-set-output-notify-threshold <em class="replaceable"><code>number</code></em> ; </span>]
+    [<span class="optional"> fstrm-set-output-queue-model ( <em class="replaceable"><code>mpsc</code></em> |
+                        <em class="replaceable"><code>spsc</code></em> ) ; </span>]
+    [<span class="optional"> fstrm-set-output-queue-size <em class="replaceable"><code>number</code></em> ; </span>]
+    [<span class="optional"> fstrm-set-reopen-interval <em class="replaceable"><code>number</code></em> ; </span>]
     [<span class="optional"> geoip-directory <em class="replaceable"><code>path_name</code></em>; </span>]
     [<span class="optional"> key-directory <em class="replaceable"><code>path_name</code></em>; </span>]
     [<span class="optional"> managed-keys-directory <em class="replaceable"><code>path_name</code></em>; </span>]
@@ -2240,6 +2296,7 @@ badresp:1,adberr:0,findfail:0,valfail:0]
     [<span class="optional"> cache-file <em class="replaceable"><code>path_name</code></em>; </span>]
     [<span class="optional"> dump-file <em class="replaceable"><code>path_name</code></em>; </span>]
     [<span class="optional"> bindkeys-file <em class="replaceable"><code>path_name</code></em>; </span>]
+    [<span class="optional"> lock-file <em class="replaceable"><code>path_name</code></em>; </span>]
     [<span class="optional"> secroots-file <em class="replaceable"><code>path_name</code></em>; </span>]
     [<span class="optional"> session-keyfile <em class="replaceable"><code>path_name</code></em>; </span>]
     [<span class="optional"> session-keyname <em class="replaceable"><code>key_name</code></em>; </span>]
@@ -2251,6 +2308,7 @@ badresp:1,adberr:0,findfail:0,valfail:0]
     [<span class="optional"> statistics-file <em class="replaceable"><code>path_name</code></em>; </span>]
     [<span class="optional"> zone-statistics <em class="replaceable"><code>full</code></em> | <em class="replaceable"><code>terse</code></em> | <em class="replaceable"><code>none</code></em>; </span>]
     [<span class="optional"> auth-nxdomain <em class="replaceable"><code>yes_or_no</code></em>; </span>]
+    [<span class="optional"> nxdomain-redirect <em class="replaceable"><code>string</code></em>; </span>]
     [<span class="optional"> deallocate-on-exit <em class="replaceable"><code>yes_or_no</code></em>; </span>]
     [<span class="optional"> dialup <em class="replaceable"><code>dialup_option</code></em>; </span>]
     [<span class="optional"> fake-iquery <em class="replaceable"><code>yes_or_no</code></em>; </span>]
@@ -2259,13 +2317,16 @@ badresp:1,adberr:0,findfail:0,valfail:0]
     [<span class="optional"> has-old-clients <em class="replaceable"><code>yes_or_no</code></em>; </span>]
     [<span class="optional"> host-statistics <em class="replaceable"><code>yes_or_no</code></em>; </span>]
     [<span class="optional"> host-statistics-max <em class="replaceable"><code>number</code></em>; </span>]
-    [<span class="optional"> minimal-responses <em class="replaceable"><code>yes_or_no</code></em>; </span>]
+    [<span class="optional"> minimal-any <em class="replaceable"><code>yes_or_no</code></em>; </span>]
+    [<span class="optional"> minimal-responses (<em class="replaceable"><code>yes_or_no</code></em> | <code class="constant">no-auth</code> | <code class="constant">no-auth-recursive</code>); </span>]
     [<span class="optional"> multiple-cnames <em class="replaceable"><code>yes_or_no</code></em>; </span>]
     [<span class="optional"> notify <em class="replaceable"><code>yes_or_no</code></em> | <em class="replaceable"><code>explicit</code></em> | <em class="replaceable"><code>master-only</code></em>; </span>]
     [<span class="optional"> recursion <em class="replaceable"><code>yes_or_no</code></em>; </span>]
-    [<span class="optional"> request-sit <em class="replaceable"><code>yes_or_no</code></em>; </span>]
-    [<span class="optional"> nosit-udp-size <em class="replaceable"><code>number</code></em> ; </span>]
-    [<span class="optional"> sit-secret <em class="replaceable"><code>secret_string</code></em> ; </span>]
+    [<span class="optional"> send-cookie <em class="replaceable"><code>yes_or_no</code></em>; </span>]
+    [<span class="optional"> require-server-cookie <em class="replaceable"><code>yes_or_no</code></em>; </span>]
+    [<span class="optional"> cookie-algorithm <em class="replaceable"><code>algorithm_id</code></em>; </span>]
+    [<span class="optional"> cookie-secret <em class="replaceable"><code>secret_string</code></em>; </span>]
+    [<span class="optional"> nocookie-udp-size <em class="replaceable"><code>number</code></em> ; </span>]
     [<span class="optional"> request-nsid <em class="replaceable"><code>yes_or_no</code></em>; </span>]
     [<span class="optional"> rfc2308-type1 <em class="replaceable"><code>yes_or_no</code></em>; </span>]
     [<span class="optional"> use-id-pool <em class="replaceable"><code>yes_or_no</code></em>; </span>]
@@ -2306,6 +2367,8 @@ badresp:1,adberr:0,findfail:0,valfail:0]
     [<span class="optional"> allow-recursion-on { <em class="replaceable"><code>address_match_list</code></em> }; </span>]
     [<span class="optional"> allow-update { <em class="replaceable"><code>address_match_list</code></em> }; </span>]
     [<span class="optional"> allow-update-forwarding { <em class="replaceable"><code>address_match_list</code></em> }; </span>]
+    [<span class="optional"> automatic-interface-scan { <em class="replaceable"><code>yes_or_no</code></em> }; </span>]
+    [<span class="optional"> geoip-use-ecs <em class="replaceable"><code>yes_or_no</code></em>;</span>]
     [<span class="optional"> update-check-ksk <em class="replaceable"><code>yes_or_no</code></em>; </span>]
     [<span class="optional"> dnssec-update-mode ( <em class="replaceable"><code>maintain</code></em> | <em class="replaceable"><code>no-resign</code></em> ); </span>]
     [<span class="optional"> dnssec-dnskey-kskonly <em class="replaceable"><code>yes_or_no</code></em>; </span>]
@@ -2314,7 +2377,9 @@ badresp:1,adberr:0,findfail:0,valfail:0]
     [<span class="optional"> try-tcp-refresh <em class="replaceable"><code>yes_or_no</code></em>; </span>]
     [<span class="optional"> allow-v6-synthesis { <em class="replaceable"><code>address_match_list</code></em> }; </span>]
     [<span class="optional"> blackhole { <em class="replaceable"><code>address_match_list</code></em> }; </span>]
+    [<span class="optional"> keep-response-order { <em class="replaceable"><code>address_match_list</code></em> }; </span>]
     [<span class="optional"> no-case-compress { <em class="replaceable"><code>address_match_list</code></em> }; </span>]
+    [<span class="optional"> message-compression <em class="replaceable"><code>yes_or_no</code></em> ; </span>]
     [<span class="optional"> use-v4-udp-ports { <em class="replaceable"><code>port_list</code></em> }; </span>]
     [<span class="optional"> avoid-v4-udp-ports { <em class="replaceable"><code>port_list</code></em> }; </span>]
     [<span class="optional"> use-v6-udp-ports { <em class="replaceable"><code>port_list</code></em> }; </span>]
@@ -2349,10 +2414,13 @@ badresp:1,adberr:0,findfail:0,valfail:0]
     [<span class="optional"> fetches-per-server <em class="replaceable"><code>number</code></em> [<span class="optional"><em class="replaceable"><code>(drop | fail)</code></em></span>]; </span>]
     [<span class="optional"> fetch-quota-params <em class="replaceable"><code>number fixedpoint fixedpoint fixedpoint</code></em> ; </span>]
     [<span class="optional"> fetches-per-zone <em class="replaceable"><code>number</code></em> [<span class="optional"><em class="replaceable"><code>(drop | fail)</code></em></span>]; </span>]
+    [<span class="optional"> notify-rate <em class="replaceable"><code>number</code></em>; </span>]
+    [<span class="optional"> startup-notify-rate <em class="replaceable"><code>number</code></em>; </span>]
     [<span class="optional"> serial-query-rate <em class="replaceable"><code>number</code></em>; </span>]
     [<span class="optional"> serial-queries <em class="replaceable"><code>number</code></em>; </span>]
     [<span class="optional"> tcp-listen-queue <em class="replaceable"><code>number</code></em>; </span>]
     [<span class="optional"> transfer-format <em class="replaceable"><code>( one-answer | many-answers )</code></em>; </span>]
+    [<span class="optional"> transfer-message-size  <em class="replaceable"><code>number</code></em>; </span>]
     [<span class="optional"> transfers-in  <em class="replaceable"><code>number</code></em>; </span>]
     [<span class="optional"> transfers-out <em class="replaceable"><code>number</code></em>; </span>]
     [<span class="optional"> transfers-per-ns <em class="replaceable"><code>number</code></em>; </span>]
@@ -2385,6 +2453,7 @@ badresp:1,adberr:0,findfail:0,valfail:0]
     [<span class="optional"> max-cache-ttl <em class="replaceable"><code>number</code></em>; </span>]
     [<span class="optional"> max-zone-ttl ( <code class="constant">unlimited</code> | <em class="replaceable"><code>number</code></em> ; </span>]
     [<span class="optional"> serial-update-method <code class="constant">increment</code>|<code class="constant">unixtime</code>|<code class="constant">date</code>; </span>]
+    [<span class="optional"> servfail-ttl <em class="replaceable"><code>number</code></em>; </span>]
     [<span class="optional"> sig-validity-interval <em class="replaceable"><code>number</code></em> [<span class="optional"><em class="replaceable"><code>number</code></em></span>] ; </span>]
     [<span class="optional"> sig-signing-nodes <em class="replaceable"><code>number</code></em> ; </span>]
     [<span class="optional"> sig-signing-signatures <em class="replaceable"><code>number</code></em> ; </span>]
@@ -2393,17 +2462,20 @@ badresp:1,adberr:0,findfail:0,valfail:0]
     [<span class="optional"> use-ixfr <em class="replaceable"><code>yes_or_no</code></em> ; </span>]
     [<span class="optional"> provide-ixfr <em class="replaceable"><code>yes_or_no</code></em>; </span>]
     [<span class="optional"> request-ixfr <em class="replaceable"><code>yes_or_no</code></em>; </span>]
+    [<span class="optional"> request-expire <em class="replaceable"><code>yes_or_no</code></em>; </span>]
     [<span class="optional"> treat-cr-as-space <em class="replaceable"><code>yes_or_no</code></em> ; </span>]
     [<span class="optional"> min-refresh-time <em class="replaceable"><code>number</code></em> ; </span>]
     [<span class="optional"> max-refresh-time <em class="replaceable"><code>number</code></em> ; </span>]
     [<span class="optional"> min-retry-time <em class="replaceable"><code>number</code></em> ; </span>]
     [<span class="optional"> max-retry-time <em class="replaceable"><code>number</code></em> ; </span>]
+    [<span class="optional"> nta-lifetime <em class="replaceable"><code>duration</code></em> ; </span>]
+    [<span class="optional"> nta-recheck <em class="replaceable"><code>duration</code></em> ; </span>]
     [<span class="optional"> port <em class="replaceable"><code>ip_port</code></em>; </span>]
     [<span class="optional"> dscp <em class="replaceable"><code>ip_dscp</code></em></span>] ;
     [<span class="optional"> additional-from-auth <em class="replaceable"><code>yes_or_no</code></em> ; </span>]
     [<span class="optional"> additional-from-cache <em class="replaceable"><code>yes_or_no</code></em> ; </span>]
     [<span class="optional"> random-device <em class="replaceable"><code>path_name</code></em> ; </span>]
-    [<span class="optional"> max-cache-size <em class="replaceable"><code>size_spec</code></em> ; </span>]
+    [<span class="optional"> max-cache-size <em class="replaceable"><code>size_or_percent</code></em> ; </span>]
     [<span class="optional"> match-mapped-addresses <em class="replaceable"><code>yes_or_no</code></em>; </span>]
     [<span class="optional"> filter-aaaa-on-v4 ( <em class="replaceable"><code>yes_or_no</code></em> | <em class="replaceable"><code>break-dnssec</code></em> ); </span>]
     [<span class="optional"> filter-aaaa-on-v6 ( <em class="replaceable"><code>yes_or_no</code></em> | <em class="replaceable"><code>break-dnssec</code></em> ); </span>]
@@ -2435,6 +2507,8 @@ badresp:1,adberr:0,findfail:0,valfail:0]
     [<span class="optional"> max-recursion-queries <em class="replaceable"><code>number</code></em> ; </span>]
     [<span class="optional"> masterfile-format
             (<code class="constant">text</code>|<code class="constant">raw</code>|<code class="constant">map</code>) ; </span>]
+    [<span class="optional"> masterfile-style
+            (<code class="constant">relative</code>|<code class="constant">full</code>) ; </span>]
     [<span class="optional"> empty-server <em class="replaceable"><code>name</code></em> ; </span>]
     [<span class="optional"> empty-contact <em class="replaceable"><code>name</code></em> ; </span>]
     [<span class="optional"> empty-zones-enable <em class="replaceable"><code>yes_or_no</code></em> ; </span>]
@@ -2466,17 +2540,30 @@ badresp:1,adberr:0,findfail:0,valfail:0]
     [<span class="optional"> response-policy {
         zone <em class="replaceable"><code>zone_name</code></em>
         [<span class="optional"> policy <em class="replaceable"><code>(given | disabled | passthru | drop |
-                  nxdomain | nodata | cname domain</code></em>) </span>]
+                  tcp-only | nxdomain | nodata | cname domain</code></em>) </span>]
         [<span class="optional"> recursive-only <em class="replaceable"><code>yes_or_no</code></em> </span>]
+        [<span class="optional"> log <em class="replaceable"><code>yes_or_no</code></em> </span>]
         [<span class="optional"> max-policy-ttl <em class="replaceable"><code>number</code></em> </span>]
         ; [<span class="optional">...</span>]
     } [<span class="optional"> recursive-only <em class="replaceable"><code>yes_or_no</code></em> </span>]
       [<span class="optional"> max-policy-ttl <em class="replaceable"><code>number</code></em> </span>]
       [<span class="optional"> break-dnssec <em class="replaceable"><code>yes_or_no</code></em> </span>]
       [<span class="optional"> min-ns-dots <em class="replaceable"><code>number</code></em> </span>]
+      [<span class="optional"> nsip-wait-recurse <em class="replaceable"><code>yes_or_no</code></em> </span>]
       [<span class="optional"> qname-wait-recurse <em class="replaceable"><code>yes_or_no</code></em> </span>]
       [<span class="optional"> automatic-interface-scan <em class="replaceable"><code>yes_or_no</code></em> </span>]
     ; </span>]
+    [<span class="optional"> catalog-zones {
+        zone <em class="replaceable"><code>quoted_string</code></em>
+            [<span class="optional"> default-masters
+                [<span class="optional">port <em class="replaceable"><code>ip_port</code></em></span>]
+                [<span class="optional">dscp <em class="replaceable"><code>ip_dscp</code></em></span>]
+                { ( <em class="replaceable"><code>masters_list</code></em> | <em class="replaceable"><code>ip_addr</code></em> [<span class="optional">port <em class="replaceable"><code>ip_port</code></em></span>] [<span class="optional">key <em class="replaceable"><code>key</code></em></span>] ) ; [<span class="optional">...</span>] }</span>]
+          [<span class="optional">in-memory <em class="replaceable"><code>yes_or_no</code></em></span>]
+          [<span class="optional">min-update-interval <em class="replaceable"><code>interval</code></em></span>]
+        ; [<span class="optional">...</span>] };
+    ; </span>]
+    [<span class="optional">v6-bias <em class="replaceable"><code>number</code></em> ; </span>]
 };
 </pre>
 </div>
@@ -2594,6 +2681,171 @@ badresp:1,adberr:0,findfail:0,valfail:0]
                 was started. The directory specified should be an absolute
                 path.
               </p></dd>
+<dt><span class="term"><span class="command"><strong>dnstap</strong></span></span></dt>
+<dd>
+<p>
+                <span class="command"><strong>dnstap</strong></span> is a fast, flexible method
+                for capturing and logging DNS traffic. Developed by
+                Robert Edmonds at Farsight Security, Inc., and supported
+                by multiple DNS implementations, <span class="command"><strong>dnstap</strong></span>
+                uses
+                <span class="command"><strong>libfstrm</strong></span> (a lightweight high-speed
+                framing library, see
+                <a class="link" href="https://github.com/farsightsec/fstrm" target="_top">https://github.com/farsightsec/fstrm</a>) to send
+                event payloads which are encoded using Protocol Buffers
+                (<span class="command"><strong>libprotobuf-c</strong></span>, a mechanism for
+                serializing structured data developed
+                by Google, Inc.; see
+                <a class="link" href="https://developers.google.com/protocol-buffers/" target="_top">https://developers.google.com/protocol-buffers</a>).
+              </p>
+<p>
+                To enable <span class="command"><strong>dnstap</strong></span> at compile time,
+                the <span class="command"><strong>fstrm</strong></span> and <span class="command"><strong>protobuf-c</strong></span>
+                libraries must be available, and BIND must be configured with
+                <code class="option">--enable-dnstap</code>.
+              </p>
+<p>
+                The <span class="command"><strong>dnstap</strong></span> option is a bracketed list
+                of message types to be logged. These may be set differently
+                for each view. Supported types are <code class="literal">client</code>,
+                <code class="literal">auth</code>, <code class="literal">resolver</code>, and
+                <code class="literal">forwarder</code>.  Specifying type
+                <code class="literal">all</code> will cause all <span class="command"><strong>dnstap</strong></span>
+                messages to be logged, regardless of type.
+              </p>
+<p>
+                Each type may take an additional argument to indicate whether
+                to log <code class="literal">query</code> messages or
+                <code class="literal">response</code> messages; if not specified,
+                both queries and responses are logged.
+              </p>
+<p>
+                Example: To log all authoritative queries and responses,
+                recursive client responses, and upstream queries sent by
+                the resolver, use:
+</p>
+<pre class="programlisting">dnstap {
+  auth;
+  client response;
+  resolver query;
+};
+</pre>
+<p>
+              </p>
+<p>
+                Logged <span class="command"><strong>dnstap</strong></span> messages can be parsed
+                using the <span class="command"><strong>dnstap-read</strong></span> utility (see
+                <a class="xref" href="man.dnstap-read.html" title="dnstap-read"><span class="refentrytitle"><span class="application">dnstap-read</span></span>(1)</a> for details).
+              </p>
+<p>
+                For more information on <span class="command"><strong>dnstap</strong></span>, see
+                <a class="link" href="http://dnstap.info" target="_top">http://dnstap.info</a>.
+              </p>
+<p>
+                The fstrm library has a number of tunables that are exposed
+                in <code class="filename">named.conf</code>, and can be modified
+                if necessary to improve performance or prevent loss of data.
+                These are:
+              </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                    <span class="command"><strong>fstrm-set-buffer-hint</strong></span>: The
+                    threshold number of bytes to accumulate in the output
+                    buffer before forcing a buffer flush. The minimum is
+                    1024, the maximum is 65536, and the default is 8192.
+                  </li>
+<li class="listitem">
+                    <span class="command"><strong>fstrm-set-flush-timeout</strong></span>: The number
+                    of seconds to allow unflushed data to remain in the
+                    output buffer. The minimum is 1 second, the maximum is
+                    600 seconds (10 minutes), and the default is 1 second.
+                  </li>
+<li class="listitem">
+                    <span class="command"><strong>fstrm-set-output-notify-threshold</strong></span>:
+                    The number of outstanding queue entries to allow on
+                    an input queue before waking the I/O thread.
+                    The minimum is 1 and the default is 32.
+                  </li>
+<li class="listitem">
+                    <span class="command"><strong>fstrm-set-output-queue-model</strong></span>:
+                    Controls the queuing semantics to use for queue
+                    objects. The default is <code class="literal">mpsc</code>
+                    (multiple producer, single consumer); the other
+                    option is <code class="literal">spsc</code> (single producer,
+                    single consumer).
+                  </li>
+<li class="listitem">
+                    <span class="command"><strong>fstrm-set-input-queue-size</strong></span>: The
+                    number of queue entries to allocate for each
+                    input queue. This value must be a power of 2.
+                    The minimum is 2, the maximum is 16384, and
+                    the default is 512.
+                  </li>
+<li class="listitem">
+                    <span class="command"><strong>fstrm-set-output-queue-size</strong></span>:
+                    The number of queue entries to allocate for each
+                    output queue. The minimum is 2, the maximum is
+                    system-dependent and based on <code class="option">IOV_MAX</code>,
+                    and the default is 64.
+                  </li>
+<li class="listitem">
+                    <span class="command"><strong>fstrm-set-reopen-interval</strong></span>:
+                    The number of seconds to wait between attempts to
+                    reopen a closed output stream. The minimum is 1 second,
+                    the maximum is 600 seconds (10 minutes), and the default
+                    is 5 seconds.
+                  </li>
+</ul></div>
+<p>
+                Note that all of the above minimum, maximum, and default
+                values are set by the <span class="command"><strong>libfstrm</strong></span> library,
+                and may be subject to change in future versions of the
+                library. See the <span class="command"><strong>libfstrm</strong></span> documentation
+                for more information.
+              </p>
+</dd>
+<dt><span class="term"><span class="command"><strong>dnstap-output</strong></span></span></dt>
+<dd>
+<p>
+                Configures the path to which the <span class="command"><strong>dnstap</strong></span>
+                frame stream will be sent if <span class="command"><strong>dnstap</strong></span>
+                is enabled at compile time and active.
+              </p>
+<p>
+                The first argument is either <code class="literal">file</code> or
+                <code class="literal">unix</code>, indicating whether the destination
+                is a file or a UNIX domain socket.  The second argument
+                is the path of the file or socket.  (Note: when using a
+                socket, <span class="command"><strong>dnstap</strong></span> messages will
+                only be sent if another process such as
+                <span class="command"><strong>fstrm_capture</strong></span>
+                (provided with <span class="command"><strong>libfstrm</strong></span>) is listening on
+                the socket.)
+              </p>
+<p>
+                <span class="command"><strong>dnstap-output</strong></span> can only be set globally
+                in <span class="command"><strong>options</strong></span>. Currently, it can only be
+                set once while <span class="command"><strong>named</strong></span> is running;
+                once set, it cannot be changed by
+                <span class="command"><strong>rndc reload</strong></span> or
+                <span class="command"><strong>rndc reconfig</strong></span>.
+              </p>
+</dd>
+<dt><span class="term"><span class="command"><strong>dnstap-identity</strong></span></span></dt>
+<dd><p>
+                Specifies an <span class="command"><strong>identity</strong></span> string to send in
+                <span class="command"><strong>dnstap</strong></span> messages. If set to
+                <code class="literal">hostname</code>, which is the default, the
+                server's hostname will be sent. If set to
+                <code class="literal">none</code>, no identity string will be sent.
+              </p></dd>
+<dt><span class="term"><span class="command"><strong>dnstap-version</strong></span></span></dt>
+<dd><p>
+                Specifies a <span class="command"><strong>version</strong></span> string to send in
+                <span class="command"><strong>dnstap</strong></span> messages. The default is the
+                version number of the BIND release. If set to
+                <code class="literal">none</code>, no version string will be sent.
+              </p></dd>
 <dt><span class="term"><span class="command"><strong>geoip-directory</strong></span></span></dt>
 <dd><p>
                 Specifies the directory containing GeoIP
@@ -2628,9 +2880,18 @@ badresp:1,adberr:0,findfail:0,valfail:0]
                 then managed keys for the server will be tracked in a single
                 file called <code class="filename">managed-keys.bind</code>.
                 Otherwise, managed keys will be tracked in separate files,
-                one file per view; each file name will be the SHA256 hash
-                of the view name, followed by the extension
+                one file per view; each file name will be the view name
+                (or, if it contains characters that are incompatible with
+                use as a file name, the SHA256 hash of the view name),
+                followed by the extension
                 <code class="filename">.mkeys</code>.
+              </p>
+<p>
+                (Note: in previous releases, file names for views
+                always used the SHA256 hash of the view name. To ensure
+                compatibility after upgrade, if a file using the old
+                name format is found to exist, it will be used instead
+                of the new format.)
               </p>
 </dd>
 <dt><span class="term"><span class="command"><strong>named-xfer</strong></span></span></dt>
@@ -2710,6 +2971,27 @@ badresp:1,adberr:0,findfail:0,valfail:0]
                 usage statistics to on exit. If not specified,
                 the default is <code class="filename">named.memstats</code>.
               </p></dd>
+<dt><span class="term"><span class="command"><strong>lock-file</strong></span></span></dt>
+<dd>
+<p>
+                The pathname of a file on which <span class="command"><strong>named</strong></span> will
+                attempt to acquire a file lock when starting up for
+                the first time; if unsuccessful, the server will
+                will terminate, under the assumption that another
+                server is already running.  If not specified, the default is
+                <code class="filename">/var/run/named/named.lock</code>.
+              </p>
+<p>
+                Specifying <span class="command"><strong>lock-file none</strong></span> disables the
+                use of a lock file.  <span class="command"><strong>lock-file</strong></span> is
+                ignored if <span class="command"><strong>named</strong></span> was run using the <code class="option">-X</code>
+                option, which overrides it.  Changes to
+                <span class="command"><strong>lock-file</strong></span> are ignored if
+                <span class="command"><strong>named</strong></span> is being reloaded or
+                reconfigured; it is only effective when the server is
+                first started up.
+              </p>
+</dd>
 <dt><span class="term"><span class="command"><strong>pid-file</strong></span></span></dt>
 <dd><p>
                 The pathname of the file the server writes its process ID
@@ -3013,7 +3295,7 @@ options {
                 if they appear in a domain name's AAAA records, and
                 DNS64 will be applied to any A records the domain
                 name owns.  If not defined, <span class="command"><strong>exclude</strong></span>
-                defaults to none.
+                defaults to ::ffff:0.0.0.0/96.
               </p>
 <p>
                 A optional <span class="command"><strong>suffix</strong></span> can also
@@ -3095,10 +3377,70 @@ options {
                   via dynamic update; this is not yet implemented.)
                 </p>
 </dd>
+<dt><span class="term"><span class="command"><strong>nta-lifetime</strong></span></span></dt>
+<dd>
+<p>
+                  Species the default lifetime, in seconds,
+                  that will be used for negative trust anchors added
+                  via <span class="command"><strong>rndc nta</strong></span>.
+                </p>
+<p>
+                  A negative trust anchor selectively disables
+                  DNSSEC validation for zones that are known to be
+                  failing because of misconfiguration rather than
+                  an attack.  When data to be validated is
+                  at or below an active NTA (and above any other
+                  configured trust anchors), <span class="command"><strong>named</strong></span> will
+                  abort the DNSSEC validation process and treat the data as
+                  insecure rather than bogus.  This continues until the
+                  NTA's lifetime is elapsed. NTAs persist
+                  across <span class="command"><strong>named</strong></span> restarts.
+                </p>
+<p>
+                  For convenience, TTL-style time unit suffixes can be
+                  used to specify the NTA lifetime in seconds, minutes
+                  or hours.  <code class="option">nta-lifetime</code> defaults to
+                  one hour.  It cannot exceed one week.
+                </p>
+</dd>
+<dt><span class="term"><span class="command"><strong>nta-recheck</strong></span></span></dt>
+<dd>
+<p>
+                  Species how often to check whether negative
+                  trust anchors added via <span class="command"><strong>rndc nta</strong></span>
+                  are still necessary.
+                </p>
+<p>
+                  A negative trust anchor is normally used when a
+                  domain has stopped validating due to operator error;
+                  it temporarily disables DNSSEC validation for that
+                  domain. In the interest of ensuring that DNSSEC
+                  validation is turned back on as soon as possible,
+                  <span class="command"><strong>named</strong></span> will periodically send a
+                  query to the domain, ignoring negative trust anchors,
+                  to find out whether it can now be validated.  If so,
+                  the negative trust anchor is allowed to expire early.
+                </p>
+<p>
+                  Validity checks can be disabled for an individual
+                  NTA by using <span class="command"><strong>rndc nta -f</strong></span>, or
+                  for all NTAs by setting <code class="option">nta-recheck</code>
+                  to zero.
+                </p>
+<p>
+                  For convenience, TTL-style time unit suffixes can be
+                  used to specify the NTA recheck interval in seconds,
+                  minutes or hours.  The default is five minutes.  It
+                  cannot be longer than <code class="option">nta-lifetime</code>
+                  (which cannot be longer than a week).
+                </p>
+</dd>
 <dt><span class="term"><span class="command"><strong>max-zone-ttl</strong></span></span></dt>
 <dd>
 <p>
-                Specifies a maximum permissible TTL value.
+                Specifies a maximum permissible TTL value in seconds.
+                For convenience, TTL-style time unit suffixes may be
+                used to specify the maximum value.
                 When loading a zone file using a
                 <code class="option">masterfile-format</code> of
                 <code class="constant">text</code> or <code class="constant">raw</code>,
@@ -3110,9 +3452,9 @@ options {
                 This is useful in DNSSEC-signed zones because when
                 rolling to a new DNSKEY, the old key needs to remain
                 available until RRSIG records have expired from
-                caches.  The<code class="option">max-zone-ttl</code> option guarantees
+                caches.  The <code class="option">max-zone-ttl</code> option guarantees
                 that the largest TTL in the zone will be no higher
-                the set value.
+                than the set value.
               </p>
 <p>
                 (NOTE: Because <code class="constant">map</code>-format files
@@ -3145,6 +3487,15 @@ options {
                 since the UNIX epoch, unless the serial number is
                 already greater than or equal to that value, in which
                 case it is simply incremented by one.
+              </p>
+<p>
+                When set to
+                <span class="command"><strong>serial-update-method date;</strong></span>, the
+                new SOA serial number will be the current date
+                in the form "YYYYMMDD", followed by two zeroes,
+                unless the existing serial number is already greater
+                than or equal to that value, in which case it is
+                incremented by one.
               </p>
 </dd>
 <dt><span class="term"><span class="command"><strong>zone-statistics</strong></span></span></dt>
@@ -3203,8 +3554,7 @@ options {
 <dt><span class="term"><span class="command"><strong>allow-new-zones</strong></span></span></dt>
 <dd><p>
                   If <strong class="userinput"><code>yes</code></strong>, then zones can be
-                  added at runtime via <span class="command"><strong>rndc addzone</strong></span>
-                  or deleted via <span class="command"><strong>rndc delzone</strong></span>.
+                  added at runtime via <span class="command"><strong>rndc addzone</strong></span>.
                   The default is <strong class="userinput"><code>no</code></strong>.
                 </p></dd>
 <dt><span class="term"><span class="command"><strong>auth-nxdomain</strong></span></span></dt>
@@ -3476,6 +3826,15 @@ options {
                   is
                   <span class="command"><strong>flush-zones-on-shutdown</strong></span> <strong class="userinput"><code>no</code></strong>.
                 </p></dd>
+<dt><span class="term"><span class="command"><strong>geoip-use-ecs</strong></span></span></dt>
+<dd><p>
+                  When BIND is compiled with GeoIP support and configured
+                  with "geoip" ACL elements, this option indicates whether
+                  the EDNS Client Subnet option, if present in a request,
+                  should be used for matching against the GeoIP database.
+                  The default is
+                  <span class="command"><strong>geoip-use-ecs</strong></span> <strong class="userinput"><code>yes</code></strong>.
+                </p></dd>
 <dt><span class="term"><span class="command"><strong>has-old-clients</strong></span></span></dt>
 <dd><p>
                   This option was incorrectly implemented
@@ -3503,13 +3862,61 @@ options {
                   incremental zone
                   transfers, use <span class="command"><strong>provide-ixfr</strong></span> <strong class="userinput"><code>no</code></strong>.
                 </p></dd>
-<dt><span class="term"><span class="command"><strong>minimal-responses</strong></span></span></dt>
+<dt><span class="term"><span class="command"><strong>message-compression</strong></span></span></dt>
 <dd><p>
-                  If <strong class="userinput"><code>yes</code></strong>, then when generating
+                  If <strong class="userinput"><code>yes</code></strong>, DNS name compression is
+                  used in responses to regular queries (not including
+                  AXFR or IXFR, which always uses compression).  Setting
+                  this option to <strong class="userinput"><code>no</code></strong> reduces CPU
+                  usage on servers and may improve throughput.  However,
+                  it increases response size, which may cause more queries
+                  to be processed using TCP; a server with compression
+                  disabled is out of compliance with RFC 1123 Section
+                  6.1.3.2. The default is <strong class="userinput"><code>yes</code></strong>.
+                </p></dd>
+<dt><span class="term"><span class="command"><strong>minimal-responses</strong></span></span></dt>
+<dd>
+<p>
+                  If set to <strong class="userinput"><code>yes</code></strong>, then when generating
                   responses the server will only add records to the authority
                   and additional data sections when they are required (e.g.
                   delegations, negative responses).  This may improve the
                   performance of the server.
+                </p>
+<p>
+                  When set to <strong class="userinput"><code>no-auth</code></strong>, the
+                  server will omit records from the authority section
+                  unless they are required, but it may still add
+                  records to the additional section.  When set to
+                  <strong class="userinput"><code>no-auth-recursive</code></strong>, this
+                  is only done if the query is recursive.  These
+                  settings are useful when answering stub clients,
+                  which usually ignore the authority section.
+                  <strong class="userinput"><code>no-auth-recursive</code></strong> is
+                  designed for mixed-mode servers which handle
+                  both authoritative and recursive queries.
+                </p>
+<p>
+                  The default is <strong class="userinput"><code>no</code></strong>.
+                </p>
+</dd>
+<dt><span class="term"><span class="command"><strong>minimal-any</strong></span></span></dt>
+<dd><p>
+                  If set to <strong class="userinput"><code>yes</code></strong>, then when
+                  generating a positive response to a query of type
+                  ANY over UDP, the server will reply with only one
+                  of the RRsets for the query name, and its covering
+                  RRSIGs if any, instead of replying with all known
+                  RRsets for the name.  Similarly, a query for type
+                  RRSIG will be answered with the RRSIG records covering
+                  only one type. This can reduce the impact of some kinds
+                  of attack traffic, without harming legitimate
+                  clients.  (Note, however, that the RRset returned is the
+                  first one found in the database; it is not necessarily
+                  the smallest available RRset.)
+                  Additionally, <code class="option">minimal-responses</code> is
+                  turned on for these queries, so no unnecessary records
+                  will be added to the authority or additional sections.
                   The default is <strong class="userinput"><code>no</code></strong>.
                 </p></dd>
 <dt><span class="term"><span class="command"><strong>multiple-cnames</strong></span></span></dt>
@@ -3594,36 +4001,57 @@ options {
                 </p></dd>
 <dt><span class="term"><span class="command"><strong>request-sit</strong></span></span></dt>
 <dd><p>
-                  If <strong class="userinput"><code>yes</code></strong>, then a SIT (Source
-                  Identity Token) EDNS option is sent along with
-                  the query.  If the resolver has previously talked
-                  to the server, the SIT returned in the previous
-                  transaction is sent. This is used by the server
-                  to determine whether the resolver has talked to
-                  it before. A resolver sending the correct SIT is
-                  assumed not to be an off-path attacker sending a
-                  spoofed-source query; the query is therefore
-                  unlikely to be part of a reflection/amplification
-                  attack, so resolvers sending a correct SIT option
-                  are not subject to response rate limiting (RRL).
-                  Resolvers which do not send a correct SIT option
-                  may be limited to receiving smaller responses via
-                  the <span class="command"><strong>nosit-udp-size</strong></span> option.
+                  This experimental option is obsolete.
                 </p></dd>
-<dt><span class="term"><span class="command"><strong>nosit-udp-size</strong></span></span></dt>
+<dt><span class="term"><span class="command"><strong>require-server-cookie</strong></span></span></dt>
 <dd><p>
-                  Sets the maximum size of UDP responses that will
-                  be sent to queries without a valid source identity
-                  token.  A value below 128 will be silently raised
-                  to 128. The default value is 4096, but the
-                  <span class="command"><strong>max-udp-size</strong></span> option may further
-                  limit the response size.
+                  Require a valid server cookie before sending a full
+                  response to a UDP request from a cookie aware client.
+                  BADCOOKIE is sent if there is a bad or no existent
+                  server cookie.
+                </p></dd>
+<dt><span class="term"><span class="command"><strong>send-cookie</strong></span></span></dt>
+<dd><p>
+                  If <strong class="userinput"><code>yes</code></strong>, then a COOKIE EDNS
+                  option is sent along with the query.  If the
+                  resolver has previously talked to the server, the
+                  COOKIE returned in the previous transaction is sent.
+                  This is used by the server to determine whether
+                  the resolver has talked to it before. A resolver
+                  sending the correct COOKIE is assumed not to be an
+                  off-path attacker sending a spoofed-source query;
+                  the query is therefore unlikely to be part of a
+                  reflection/amplification attack, so resolvers
+                  sending a correct COOKIE option are not subject to
+                  response rate limiting (RRL).  Resolvers which
+                  do not send a correct COOKIE option may be limited
+                  to receiving smaller responses via the
+                  <span class="command"><strong>nocookie-udp-size</strong></span> option.
+                </p></dd>
+<dt><span class="term"><span class="command"><strong>nocookie-udp-size</strong></span></span></dt>
+<dd><p>
+                  Sets the maximum size of UDP responses that will be
+                  sent to queries without a valid server COOKIE. A value
+                  below 128 will be silently raised to 128. The default
+                  value is 4096, but the <span class="command"><strong>max-udp-size</strong></span>
+                  option may further limit the response size.
                 </p></dd>
 <dt><span class="term"><span class="command"><strong>sit-secret</strong></span></span></dt>
 <dd><p>
+                  This experimental option is obsolete.
+                </p></dd>
+<dt><span class="term"><span class="command"><strong>cookie-algorithm</strong></span></span></dt>
+<dd><p>
+                  Set the algorithm to be used when generating the
+                  server cookie.  One of "aes", "sha1" or "sha256".
+                  The default is "aes" if supported by the cryptographic
+                  library or otherwise "sha256".
+                </p></dd>
+<dt><span class="term"><span class="command"><strong>cookie-secret</strong></span></span></dt>
+<dd><p>
                   If set, this is a shared secret used for generating
-                  and verifying Source Identity Token EDNS options
-                  within a anycast cluster.  If not set the system
+                  and verifying EDNS COOKIE options
+                  within an anycast cluster.  If not set, the system
                   will generate a random secret at startup.  The
                   shared secret is encoded as a hex string and needs
                   to be 128 bits for AES128, 160 bits for SHA1 and
@@ -3644,6 +4072,34 @@ options {
                     9.
                   </p>
 </div>
+</dd>
+<dt><span class="term"><span class="command"><strong>trust-anchor-telemetry</strong></span></span></dt>
+<dd>
+<p>
+                  Causes <span class="command"><strong>named</strong></span> to send specially-formed
+                  queries once per day to domains for which trust anchors
+                  have been configured via <span class="command"><strong>trusted-keys</strong></span>,
+                  <span class="command"><strong>managed-keys</strong></span>,
+                  <span class="command"><strong>dnssec-validation auto</strong></span>, or
+                  <span class="command"><strong>dnssec-lookaside auto</strong></span>.
+                </p>
+<p>
+                  The query name used for these queries has the
+                  form "_ta-xxxx(-xxxx)(...)".&lt;domain&gt;, where
+                  each "xxxx" is a group of four hexadecimal digits
+                  representing the key ID of a trusted DNSSEC key.
+                  The key IDs for each domain are sorted smallest
+                  to largest prior to encoding. The query type is NULL.
+                </p>
+<p>
+                  By monitoring these queries, zone operators will
+                  be able to see which resolvers have been updated to
+                  trust a new key; this may help them decide when it
+                  is safe to remove an old one.
+                </p>
+<p>
+                  The default is <strong class="userinput"><code>yes</code></strong>.
+                </p>
 </dd>
 <dt><span class="term"><span class="command"><strong>use-id-pool</strong></span></span></dt>
 <dd><p>
@@ -3673,6 +4129,13 @@ options {
 <dd><p>
                   See the description of
                   <span class="command"><strong>request-ixfr</strong></span> in
+                  <a class="xref" href="Bv9ARM.ch06.html#server_statement_definition_and_usage" title="server Statement Definition and Usage">the section called &#8220;<span class="command"><strong>server</strong></span> Statement Definition and
+            Usage&#8221;</a>.
+                </p></dd>
+<dt><span class="term"><span class="command"><strong>request-expire</strong></span></span></dt>
+<dd><p>
+                  See the description of
+                  <span class="command"><strong>request-expire</strong></span> in
                   <a class="xref" href="Bv9ARM.ch06.html#server_statement_definition_and_usage" title="server Statement Definition and Usage">the section called &#8220;<span class="command"><strong>server</strong></span> Statement Definition and
             Usage&#8221;</a>.
                 </p></dd>
@@ -4423,6 +4886,14 @@ options {
                   <span class="command"><strong>filter-aaaa-on-v4</strong></span>
                   is applies.  The default is <strong class="userinput"><code>any</code></strong>.
                 </p></dd>
+<dt><span class="term"><span class="command"><strong>keep-response-order</strong></span></span></dt>
+<dd><p>
+                  Specifies a list of addresses to which the server
+                  will send responses to TCP queries in the same order
+                  in which they were received.  This disables the
+                  processing of TCP queries in parallel. The default
+                  is <strong class="userinput"><code>none</code></strong>.
+                </p></dd>
 <dt><span class="term"><span class="command"><strong>no-case-compress</strong></span></span></dt>
 <dd>
 <p>
@@ -4476,11 +4947,13 @@ options {
 </dd>
 <dt><span class="term"><span class="command"><strong>resolver-query-timeout</strong></span></span></dt>
 <dd><p>
-                  The amount of time the resolver will spend attempting
-                  to resolve a recursive query before failing.  The default
-                  and minimum is <code class="literal">10</code> and the maximum is
-                  <code class="literal">30</code>.  Setting it to <code class="literal">0</code>
-                  will result in the default being used.
+                  The amount of time in seconds that the resolver
+                  will spend attempting to resolve a recursive
+                  query before failing.  The default and minimum
+                  is <code class="literal">10</code> and the maximum is
+                  <code class="literal">30</code>.  Setting it to
+                  <code class="literal">0</code> will result in the default
+                  being used.
                 </p></dd>
 </dl></div>
 </div>
@@ -4765,9 +5238,27 @@ avoid-v6-udp-ports {};
                   minutes (1
                   hour).  The maximum value is 28 days (40320 minutes).
                 </p></dd>
+<dt><span class="term"><span class="command"><strong>notify-rate</strong></span></span></dt>
+<dd><p>
+                  The rate at which NOTIFY requests will be sent
+                  during normal zone maintenance operations. (NOTIFY
+                  requests due to initial zone loading are subject
+                  to a separate rate limit; see below.) The default is
+                  20 per second.
+                  The lowest possible rate is one per second; when set
+                  to zero, it will be silently raised to one.
+                </p></dd>
+<dt><span class="term"><span class="command"><strong>startup-notify-rate</strong></span></span></dt>
+<dd><p>
+                  The rate at which NOTIFY requests will be sent
+                  when the name server is first starting up, or when
+                  zones have been newly added to the nameserver.
+                  The default is 20 per second.
+                  The lowest possible rate is one per second; when set
+                  to zero, it will be silently raised to one.
+                </p></dd>
 <dt><span class="term"><span class="command"><strong>serial-query-rate</strong></span></span></dt>
-<dd>
-<p>
+<dd><p>
                   Slave servers will periodically query master
                   servers to find out if zone serial numbers have
                   changed. Each such query uses a minute amount of
@@ -4779,15 +5270,7 @@ avoid-v6-udp-ports {};
                   per second.  The default is 20 per second.
                   The lowest possible rate is one per second; when set
                   to zero, it will be silently raised to one.
-                </p>
-<p>
-                  In addition to controlling the rate SOA refresh
-                  queries are issued at,
-                  <span class="command"><strong>serial-query-rate</strong></span> also controls
-                  the rate at which NOTIFY messages are sent from
-                  both master and slave zones.
-                </p>
-</dd>
+                </p></dd>
 <dt><span class="term"><span class="command"><strong>serial-queries</strong></span></span></dt>
 <dd><p>
                   In BIND 8, the <span class="command"><strong>serial-queries</strong></span>
@@ -4821,6 +5304,34 @@ avoid-v6-udp-ports {};
                   per-server basis by using the <span class="command"><strong>server</strong></span>
                   statement.
                 </p></dd>
+<dt><span class="term"><span class="command"><strong>transfer-message-size</strong></span></span></dt>
+<dd>
+<p>
+                  This is an upper bound on the uncompressed size of DNS
+                  messages used in zone transfers over TCP.  If a message
+                  grows larger than this size, additional messages will be
+                  used to complete the zone transfer.  (Note, however,
+                  that this is a hint, not a hard limit; if a message
+                  contains a single resource record whose RDATA does not
+                  fit within the size limit, a larger message will be
+                  permitted so the record can be transferred.)
+                </p>
+<p>
+                  Valid values are between 512 and 65535 octets, and any
+                  values outside that range will be adjusted to the nearest
+                  value within it.  The default is <code class="literal">20480</code>,
+                  which was selected to improve message compression:
+                  most DNS messages of this size will compress to less
+                  than 16536 bytes.  Larger messages cannot be compressed
+                  as effectively, because 16536 is the largest permissible
+                  compression offset pointer in a DNS message.
+                </p>
+<p>
+                  This option is mainly intended for server testing;
+                  there is rarely any benefit in setting a value other
+                  than the default.
+                </p>
+</dd>
 <dt><span class="term"><span class="command"><strong>transfers-in</strong></span></span></dt>
 <dd><p>
                   The maximum number of inbound zone transfers
@@ -5124,7 +5635,7 @@ avoid-v6-udp-ports { 40000; range 50000 60000; };
 <dd><p>
                   The maximum number of simultaneous client TCP
                   connections that the server will accept.
-                  The default is <code class="literal">100</code>.
+                  The default is <code class="literal">150</code>.
                 </p></dd>
 <dt>
 <a name="clients-per-query"></a><span class="term"><a name="cpq_term"></a><span class="command"><strong>clients-per-query</strong></span>, </span><span class="term"><span class="command"><strong>max-clients-per-query</strong></span></span>
@@ -5211,10 +5722,6 @@ avoid-v6-udp-ports { 40000; range 50000 60000; };
                   next time a fetch is sent to that domain, it is
                   recreated with the counters set to zero.)
                 </p>
-<p>
-                  (Note: This option is only available when BIND is
-                  built with <span class="command"><strong>configure --enable-fetchlimit</strong></span>.)
-                </p>
 </dd>
 <dt>
 <a name="fetches-per-server"></a><span class="term"><span class="command"><strong>fetches-per-server</strong></span></span>
@@ -5260,10 +5767,6 @@ avoid-v6-udp-ports { 40000; range 50000 60000; };
                   can be used to adjust the parameters for this
                   calculation.
                 </p>
-<p>
-                  (Note: This option is only available when BIND is
-                  built with <span class="command"><strong>configure --enable-fetchlimit</strong></span>.)
-                </p>
 </dd>
 <dt><span class="term"><span class="command"><strong>fetch-quota-params</strong></span></span></dt>
 <dd>
@@ -5295,10 +5798,6 @@ avoid-v6-udp-ports { 40000; range 50000 60000; };
                   precision of 1/100: at most two places after
                   the decimal point are significant.
                 </p>
-<p>
-                  (Note: This option is only available when BIND is
-                  built with <span class="command"><strong>configure --enable-fetchlimit</strong></span>.)
-                </p>
 </dd>
 <dt><span class="term"><span class="command"><strong>reserved-sockets</strong></span></span></dt>
 <dd>
@@ -5319,7 +5818,7 @@ avoid-v6-udp-ports { 40000; range 50000 60000; };
 <dt><span class="term"><span class="command"><strong>max-cache-size</strong></span></span></dt>
 <dd><p>
                   The maximum amount of memory to use for the
-                  server's cache, in bytes.
+                  server's cache, in bytes or % of total physical memory.
                   When the amount of data in the cache
                   reaches this limit, the server will cause records to
                   expire prematurely based on an LRU based strategy so
@@ -5332,7 +5831,14 @@ avoid-v6-udp-ports { 40000; range 50000 60000; };
                   and reset to 2MB.
                   In a server with multiple views, the limit applies
                   separately to the cache of each view.
-                  The default is <strong class="userinput"><code>unlimited</code></strong>.
+                  The default is <strong class="userinput"><code>90%</code></strong>.
+                  On systems where detection of amount of physical
+                  memory is not supported values represented as %
+                  fall back to unlimited.
+                  Note that the detection of physical memory is done only
+                  once at startup, so <span class="command"><strong>named</strong></span> will not
+                  adjust the cache size if the amount of physical memory
+                  is changed during runtime.
                 </p></dd>
 <dt><span class="term"><span class="command"><strong>tcp-listen-queue</strong></span></span></dt>
 <dd><p>
@@ -5673,20 +6179,31 @@ avoid-v6-udp-ports { 40000; range 50000 60000; };
 <a name="tuning"></a>Tuning</h4></div></div></div>
 <div class="variablelist"><dl class="variablelist">
 <dt><span class="term"><span class="command"><strong>lame-ttl</strong></span></span></dt>
-<dd>
-<p>
+<dd><p>
                   Sets the number of seconds to cache a
                   lame server indication. 0 disables caching. (This is
                   <span class="bold"><strong>NOT</strong></span> recommended.)
                   The default is <code class="literal">600</code> (10 minutes) and the
                   maximum value is
                   <code class="literal">1800</code> (30 minutes).
+                </p></dd>
+<dt><span class="term"><span class="command"><strong>servfail-ttl</strong></span></span></dt>
+<dd>
+<p>
+                  Sets the number of seconds to cache a
+                  SERVFAIL response due to DNSSEC validation failure or
+                  other general server failure.  If set to
+                  <code class="literal">0</code>, SERVFAIL caching is disabled.
+                  The SERVFAIL cache is not consulted if a query has
+                  the CD (Checking Disabled) bit set; this allows a
+                  query that failed due to DNSSEC validation to be retried
+                  without waiting for the SERVFAIL TTL to expire.
                 </p>
 <p>
-                  Lame-ttl also controls the amount of time DNSSEC
-                  validation failures are cached.  There is a minimum
-                  of 30 seconds applied to bad cache entries if the
-                  lame-ttl is set to less than 30 seconds.
+                  The maximum value is <code class="literal">30</code>
+                  seconds; any higher value will be silently
+                  reduced. The default is <code class="literal">1</code>
+                  second.
                 </p>
 </dd>
 <dt><span class="term"><span class="command"><strong>max-ncache-ttl</strong></span></span></dt>
@@ -5704,8 +6221,8 @@ avoid-v6-udp-ports { 40000; range 50000 60000; };
 <dt><span class="term"><span class="command"><strong>max-cache-ttl</strong></span></span></dt>
 <dd><p>
                   Sets the maximum time for which the server will
-                  cache ordinary (positive) answers. The default is
-                  one week (7 days).
+                  cache ordinary (positive) answers in seconds.
+                  The default is 604800 (one week).
                   A value of zero may cause all queries to return
                   SERVFAIL, because of lost caches of intermediate
                   RRsets (such as NS and glue AAAA/A records) in the
@@ -5812,9 +6329,8 @@ avoid-v6-udp-ports { 40000; range 50000 60000; };
                 </p>
 <p>
                   These options allow the administrator to set a minimum and
-                  maximum
-                  refresh and retry time either per-zone, per-view, or
-                  globally.
+                  maximum refresh and retry time in seconds per-zone,
+                  per-view, or globally.
                   These options are valid for slave and stub zones,
                   and clamp the SOA refresh and retry times to the specified
                   values.
@@ -5943,6 +6459,28 @@ avoid-v6-udp-ports { 40000; range 50000 60000; };
                   file.
                 </p>
 </dd>
+<dt><span class="term"><span class="command"><strong>masterfile-style</strong></span></span></dt>
+<dd>
+<p>
+                  Specifies the formatting of zone files during dump
+                  when the <code class="option">masterfile-format</code> is
+                  <code class="constant">text</code>. (This option is ignored
+                  with any other <code class="option">masterfile-format</code>.)
+                </p>
+<p>
+                  When set to <code class="constant">relative</code>,
+                  records are printed in a multi-line format with owner
+                  names expressed relative to a shared origin.  When set
+                  to <code class="constant">full</code>, records are printed in
+                  a single-line format with absolute owner names.
+                  The <code class="constant">full</code> format is most suitable
+                  when a zone file needs to be processed automatically
+                  by a script.  The <code class="constant">relative</code> format
+                  is more human-readable, and is thus suitable when a
+                  zone is to be edited by hand.  The default is
+                  <code class="constant">relative</code>.
+                </p>
+</dd>
 <dt>
 <a name="max-recursion-depth"></a><span class="term"><span class="command"><strong>max-recursion-depth</strong></span></span>
 </dt>
@@ -5964,7 +6502,7 @@ avoid-v6-udp-ports { 40000; range 50000 60000; };
                   may be sent while servicing a recursive query.
                   If more queries are sent, the recursive query
                   is terminated and returns SERVFAIL. Queries to
-                  look up top level comains such as "com" and "net"
+                  look up top level domains such as "com" and "net"
                   and the DNS root zone are exempt from this limitation.
                   The default is 75.
                 </p></dd>
@@ -6018,6 +6556,12 @@ avoid-v6-udp-ports { 40000; range 50000 60000; };
                   The default eligibility TTL is <code class="literal">9</code>.
                 </p>
 </dd>
+<dt><span class="term"><span class="command"><strong>v6-bias</strong></span></span></dt>
+<dd><p>
+                  When determining the next nameserver to try
+                  preference IPv6 nameservers by this many milliseconds.
+                  The default is <code class="literal">50</code> milliseconds.
+                </p></dd>
 </dl></div>
 </div>
 <div class="section">
@@ -6092,7 +6636,8 @@ avoid-v6-udp-ports { 40000; range 50000 60000; };
 <div class="titlepage"><div><div><h4 class="title">
 <a name="empty"></a>Built-in Empty Zones</h4></div></div></div>
 <p>
-            Named has some built-in empty zones (SOA and NS records only).
+            The <span class="command"><strong>named</strong></span> server has some built-in
+            empty zones (SOA and NS records only).
             These are for zones that should normally be answered locally
             and which queries should not be sent to the Internet's root
             servers.  The official servers which cover these namespaces
@@ -6104,9 +6649,10 @@ avoid-v6-udp-ports { 40000; range 50000 60000; };
             IPv6 unknown address.
           </p>
 <p>
-            Named will attempt to determine if a built-in zone already exists
-            or is active (covered by a forward-only forwarding declaration)
-            and will not create an empty zone in that case.
+            The server will attempt to determine if a built-in zone
+            already exists or is active (covered by a forward-only
+            forwarding declaration) and will not create an empty
+            zone in that case.
           </p>
 <p>
             The current list of empty zones is:
@@ -6578,14 +7124,36 @@ deny-answer-aliases { "example.net"; };
                     policy records.
                   </p></dd>
 <dt><span class="term"><span class="command"><strong>RPZ-NSIP</strong></span></span></dt>
-<dd><p>
-                    NSIP triggers are encoded like IP triggers except as
+<dd>
+<p>
+                    NSIP triggers match the IP addresses of authoritative
+                    servers.  They are enncoded like IP triggers, except as
                     subdomains of <span class="command"><strong>rpz-nsip</strong></span>.
                     NSDNAME and NSIP triggers are checked only for names with at
                     least <span class="command"><strong>min-ns-dots</strong></span> dots.
-                    The default value of <span class="command"><strong>min-ns-dots</strong></span> is 1 to
-                    exclude top level domains.
-                  </p></dd>
+                    The default value of <span class="command"><strong>min-ns-dots</strong></span> is
+                    1, to exclude top level domains.
+                  </p>
+<p>
+                    If a name server's IP address is not yet known,
+                    <span class="command"><strong>named</strong></span> will recursively look up
+                    the IP address before applying an RPZ-NSIP rule.
+                    This can cause a processing delay. To speed up
+                    processing at the cost of precision, the
+                    <span class="command"><strong>nsip-wait-recurse</strong></span> option
+                    can be used: when set to <strong class="userinput"><code>no</code></strong>,
+                    RPZ-NSIP rules will only be applied when a name
+                    servers's IP address has already been looked up and
+                    cached.  If a server's IP address is not in the
+                    cache, then the RPZ-NSIP rule will be ignored,
+                    but the address will be looked up in the
+                    background, and the rule will be applied
+                    to subsequent queries.  The default is
+                    <strong class="userinput"><code>yes</code></strong>, meaning RPZ-NSIP
+                    rules should always be applied even if an
+                    address needs to be looked up first.
+                  </p>
+</dd>
 </dl></div>
 <p>
           </p>
@@ -6632,7 +7200,7 @@ deny-answer-aliases { "example.net"; };
             Any of the policies can be used with any of the triggers.
             For example, while the <span class="command"><strong>TCP-only</strong></span> policy is
             commonly used with <span class="command"><strong>client-IP</strong></span> triggers,
-            it cn be used with any type of trigger to force the use of
+            it can be used with any type of trigger to force the use of
             TCP for responses with owner names in a zone.
             </p>
 <div class="variablelist"><dl class="variablelist">
@@ -6681,7 +7249,7 @@ deny-answer-aliases { "example.net"; };
 <p>
                     A special form of local data is a CNAME whose target is a
                     wildcard such as *.example.com.
-                    It is used as if were an ordinary CNAME after the astrisk (*)
+                    It is used as if were an ordinary CNAME after the asterisk (*)
                     has been replaced with the query name.
                     The purpose for this special form is query logging in the
                     walled garden's authority DNS server.
@@ -6783,8 +7351,8 @@ deny-answer-aliases { "example.net"; };
             The TTL of a record modified by RPZ policies is set from the
             TTL of the relevant record in policy zone.  It is then limited
             to a maximum value.
-            The <span class="command"><strong>max-policy-ttl</strong></span> clause changes that
-            maximum from its default of 5.
+            The <span class="command"><strong>max-policy-ttl</strong></span> clause changes the
+            maximum seconds from its default of 5.
           </p>
 <p>
             For example, you might use this option statement
@@ -6855,6 +7423,11 @@ example.com                 CNAME   rpz-tcp-only.
             Responses rewritten by RPZ are counted in the
             <span class="command"><strong>RPZRewrites</strong></span> statistics.
           </p>
+<p>
+            The <span class="command"><strong>log</strong></span> clause can be used to optionally
+            turn off rewrite logging for a particular response policy
+            zone. By default, all rewrites are logged.
+          </p>
 </div>
 <div class="section">
 <div class="titlepage"><div><div><h4 class="title">
@@ -6922,7 +7495,7 @@ example.com                 CNAME   rpz-tcp-only.
             valid domain result in NXDOMAIN errors, and are identical
             regardless of query type.
             They are limited by <span class="command"><strong>nxdomains-per-second</strong></span>
-            (default base <span class="command"><strong>responses-per-second</strong></span>).
+            (default <span class="command"><strong>responses-per-second</strong></span>).
             This controls some attacks using random names, but
             can be relaxed or turned off (set to 0)
             on servers that expect many legitimate
@@ -7004,6 +7577,30 @@ example.com                 CNAME   rpz-tcp-only.
             but are counted to compute the query per second rate.
           </p>
 <p>
+            The optional <span class="command"><strong>domain</strong></span> clause specifies
+            the namespace to which rate limits will apply.  It
+            is possible to use different rate limits for different names
+            by specifying multiple <span class="command"><strong>rate-limit</strong></span> blocks
+            with different <span class="command"><strong>domain</strong></span> clauses.
+            The <span class="command"><strong>rate-limit</strong></span> statement's
+            <span class="command"><strong>domain</strong></span> most closely matches the query
+            name will be the one applied to a given query.
+          </p>
+<p>
+            Rate limiters for different name spaces maintain
+            separate counters: If, for example, there is a
+            <span class="command"><strong>rate-limit</strong></span> statement for "com" and
+            another for "example.com", queries matching "example.com"
+            will not be debited against the rate limiter for "com".
+          </p>
+<p>
+            If a <span class="command"><strong>rate-limit</strong></span> statement does not specify a
+            <span class="command"><strong>domain</strong></span>, then it applies to the root domain
+            (".") and thus affects the entire DNS namespace, except those
+            portions covered by other <span class="command"><strong>rate-limit</strong></span>
+            statements.
+          </p>
+<p>
             Communities of DNS clients can be given their own parameters or no
             rate limiting by putting
             <span class="command"><strong>rate-limit</strong></span> statements in <span class="command"><strong>view</strong></span>
@@ -7017,39 +7614,36 @@ example.com                 CNAME   rpz-tcp-only.
           </p>
 <p>
             UDP responses of all kinds can be limited with the
-            <span class="command"><strong>all-per-second</strong></span> phrase.
-            This rate limiting is unlike the rate limiting provided by
+            <span class="command"><strong>all-per-second</strong></span> phrase.  This rate
+            limiting is unlike the rate limiting provided by
             <span class="command"><strong>responses-per-second</strong></span>,
             <span class="command"><strong>errors-per-second</strong></span>, and
             <span class="command"><strong>nxdomains-per-second</strong></span> on a DNS server
-            which are often invisible to the victim of a DNS reflection attack.
-            Unless the forged requests of the attack are the same as the
-            legitimate requests of the victim, the victim's requests are
-            not affected.
-            Responses affected by an <span class="command"><strong>all-per-second</strong></span> limit
-            are always dropped; the <span class="command"><strong>slip</strong></span> value has no
-            effect.
-            An <span class="command"><strong>all-per-second</strong></span> limit should be
-            at least 4 times as large as the other limits,
-            because single DNS clients often send bursts of legitimate
-            requests.
-            For example, the receipt of a single mail message can prompt
-            requests from an SMTP server for NS, PTR, A, and AAAA records
-            as the incoming SMTP/TCP/IP connection is considered.
-            The SMTP server can need additional NS, A, AAAA, MX, TXT, and SPF
-            records as it considers the STMP <span class="command"><strong>Mail From</strong></span>
-            command.
-            Web browsers often repeatedly resolve the same names that
-            are repeated in HTML &lt;IMG&gt; tags in a page.
-            <span class="command"><strong>All-per-second</strong></span> is similar to the
-            rate limiting offered by firewalls but often inferior.
-            Attacks that justify ignoring the
-            contents of DNS responses are likely to be attacks on the
-            DNS server itself.
-            They usually should be discarded before the DNS server
-            spends resources making TCP connections or parsing DNS requests,
-            but that rate limiting must be done before the
-            DNS server sees the requests.
+            which are often invisible to the victim of a DNS
+            reflection attack.  Unless the forged requests of the
+            attack are the same as the legitimate requests of the
+            victim, the victim's requests are not affected.  Responses
+            affected by an <span class="command"><strong>all-per-second</strong></span> limit
+            are always dropped; the <span class="command"><strong>slip</strong></span> value
+            has no effect.  An <span class="command"><strong>all-per-second</strong></span>
+            limit should be at least 4 times as large as the other
+            limits, because single DNS clients often send bursts
+            of legitimate requests.  For example, the receipt of a
+            single mail message can prompt requests from an SMTP
+            server for NS, PTR, A, and AAAA records as the incoming
+            SMTP/TCP/IP connection is considered.  The SMTP server
+            can need additional NS, A, AAAA, MX, TXT, and SPF records
+            as it considers the STMP <span class="command"><strong>Mail From</strong></span>
+            command.  Web browsers often repeatedly resolve the
+            same names that are repeated in HTML &lt;IMG&gt; tags
+            in a page.  <span class="command"><strong>all-per-second</strong></span> is similar
+            to the rate limiting offered by firewalls but often
+            inferior.  Attacks that justify ignoring the contents
+            of DNS responses are likely to be attacks on the DNS
+            server itself.  They usually should be discarded before
+            the DNS server spends resources make TCP connections
+            or parsing DNS requests, but that rate limiting must
+            be done before the DNS server sees the requests.
           </p>
 <p>
             The maximum size of the table used to track requests and
@@ -7077,6 +7671,46 @@ example.com                 CNAME   rpz-tcp-only.
             <span class="command"><strong>RateSlipped</strong></span> and <span class="command"><strong>RespTruncated</strong></span>.
           </p>
 </div>
+<div class="section">
+<div class="titlepage"></div>
+<p>
+            Named supports NXDOMAIN redirection via two methods:
+            </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">Redirect zone <a class="xref" href="Bv9ARM.ch06.html#zone_statement_grammar" title="zone Statement Grammar">the section called &#8220;<span class="command"><strong>zone</strong></span>
+            Statement Grammar&#8221;</a>
+</li>
+<li class="listitem">Redirect namespace</li>
+</ul></div>
+<p>
+          </p>
+<p>
+            With both methods when named gets a NXDOMAIN response
+            it examines a separate namespace to see if the NXDOMAIN
+            response should be replaced with an alternative response.
+          </p>
+<p>
+            With a redirect zone (<span class="command"><strong>zone "." { type redirect; };</strong></span>), the
+            data used to replace the NXDOMAIN is held in a single
+            zone which is not part of the normal namespace.  All the
+            redirect information is contained in the zone; there are
+            no delegations.
+          </p>
+<p>
+            With a redirect namespace (<span class="command"><strong>option { nxdomain-redirect
+            &lt;suffix&gt; };</strong></span>) the data used to replace the
+            NXDOMAIN is part of the normal namespace and is looked up by
+            appending the specified suffix to the original query name.
+            This roughly doubles the cache required to process NXDOMAIN
+            responses as you have the original NXDOMAIN response and
+            the replacement data or a NXDOMAIN indicating that there
+            is no replacement.
+          </p>
+<p>
+            If both a redirect zone and a redirect namespace are configured,
+            the redirect zone is tried first.
+          </p>
+</div>
 </div>
 <div class="section">
 <div class="titlepage"><div><div><h3 class="title">
@@ -7085,11 +7719,14 @@ example.com                 CNAME   rpz-tcp-only.
     [<span class="optional"> bogus <em class="replaceable"><code>yes_or_no</code></em> ; </span>]
     [<span class="optional"> provide-ixfr <em class="replaceable"><code>yes_or_no</code></em> ; </span>]
     [<span class="optional"> request-ixfr <em class="replaceable"><code>yes_or_no</code></em> ; </span>]
+    [<span class="optional"> request-expire <em class="replaceable"><code>yes_or_no</code></em> ; </span>]
     [<span class="optional"> request-nsid <em class="replaceable"><code>yes_or_no</code></em> ; </span>]
-    [<span class="optional"> request-sit <em class="replaceable"><code>yes_or_no</code></em> ; </span>]
+    [<span class="optional"> send-cookie <em class="replaceable"><code>yes_or_no</code></em> ; </span>]
     [<span class="optional"> edns <em class="replaceable"><code>yes_or_no</code></em> ; </span>]
     [<span class="optional"> edns-udp-size <em class="replaceable"><code>number</code></em> ; </span>]
+    [<span class="optional"> edns-version <em class="replaceable"><code>number</code></em> ; </span>]
     [<span class="optional"> max-udp-size <em class="replaceable"><code>number</code></em> ; </span>]
+    [<span class="optional"> tcp-only <em class="replaceable"><code>yes_or_no</code></em> ; </span>]
     [<span class="optional"> transfers <em class="replaceable"><code>number</code></em> ; </span>]
     [<span class="optional"> transfer-format <em class="replaceable"><code>( one-answer | many-answers )</code></em> ; ]</span>]
     [<span class="optional"> keys { <em class="replaceable"><code>key_id</code></em> }; </span>]
@@ -7182,6 +7819,18 @@ example.com                 CNAME   rpz-tcp-only.
             is buggy and crashes or corrupts data when IXFR is used.
           </p>
 <p>
+            The <span class="command"><strong>request-expire</strong></span> clause determines
+            whether the local server, when acting as a slave, will
+            request the EDNS EXPIRE value.  The EDNS EXPIRE value
+            indicates the remaining time before the zone data will
+            expire and need to be be refreshed.  This is used
+            when a secondary server transfers a zone from another
+            secondary server; when transferring from the primary, the
+            expiration timer is set from the EXPIRE field of the SOA
+            record instead.
+            The default is <span class="command"><strong>yes</strong></span>.
+          </p>
+<p>
             The <span class="command"><strong>edns</strong></span> clause determines whether
             the local server will attempt to use EDNS when communicating
             with the remote server.  The default is <span class="command"><strong>yes</strong></span>.
@@ -7206,12 +7855,33 @@ example.com                 CNAME   rpz-tcp-only.
             <span class="command"><strong>options/view</strong></span> behavior in future releases.)
           </p>
 <p>
+            The <span class="command"><strong>edns-version</strong></span> option sets the
+            maximum EDNS VERSION that will be sent to the server(s)
+            by the resolver.  The actual EDNS version sent is still
+            subject to normal EDNS version negotiation rules (see
+            RFC 6891), the maximum EDNS version supported by the
+            server, and any other heuristics that indicate that a
+            lower version should be sent.  This option is intended
+            to be used when a remote server reacts badly to a given
+            EDNS version or higher; it should be set to the highest
+            version the remote server is known to support.  Valid
+            values are 0 to 255; higher values will be silently
+            adjusted.  This option will not be needed until higher
+            EDNS versions than 0 are in use.
+          </p>
+<p>
             The <span class="command"><strong>max-udp-size</strong></span> option sets the
-            maximum EDNS UDP message size <span class="command"><strong>named</strong></span> will send.  Valid
-            values are 512 to 4096 bytes (values outside this range will
-            be silently adjusted).  This option is useful when you
-            know that there is a firewall that is blocking large
-            replies from <span class="command"><strong>named</strong></span>.
+            maximum EDNS UDP message size <span class="command"><strong>named</strong></span>
+            will send.  Valid values are 512 to 4096 bytes (values
+            outside this range will be silently adjusted).  This
+            option is useful when you know that there is a firewall
+            that is blocking large replies from <span class="command"><strong>named</strong></span>.
+          </p>
+<p>
+            The <span class="command"><strong>tcp-only</strong></span> option sets the transport
+            protocol to TCP. The default is to use the UDP transport
+            and to fallback on TCP only when a truncated response
+            is received.
           </p>
 <p>
             The server supports two zone transfer methods. The first, <span class="command"><strong>one-answer</strong></span>,
@@ -7290,13 +7960,13 @@ example.com                 CNAME   rpz-tcp-only.
             option level.
           </p>
 <p>
-            The <span class="command"><strong>request-sit</strong></span> clause determines
-            whether the local server will add a SIT EDNS option
+            The <span class="command"><strong>send-cookie</strong></span> clause determines
+            whether the local server will add a COOKIE EDNS option
             to requests sent to the server.  This overrides
-            <span class="command"><strong>request-sit</strong></span> set at the view or
-            option level.  Named may determine that SIT is not
-            supported by the remote server and not add a SIT
-            EDNS option to requests.
+            <span class="command"><strong>send-cookie</strong></span> set at the view or
+            option level.  The <span class="command"><strong>named</strong></span> server may
+            determine that COOKIE is not supported by the remote server
+            and not add a COOKIE EDNS option to requests.
           </p>
 </div>
 <div class="section">
@@ -7396,7 +8066,9 @@ example.com                 CNAME   rpz-tcp-only.
           <a class="link" href="http://127.0.0.1:8888/xml/v3/mem" target="_top">http://127.0.0.1:8888/xml/v3/mem</a>
           (memory manager statistics),
           <a class="link" href="http://127.0.0.1:8888/xml/v3/tasks" target="_top">http://127.0.0.1:8888/xml/v3/tasks</a>
-          (task manager statistics).
+          (task manager statistics), and
+          <a class="link" href="http://127.0.0.1:8888/xml/v3/traffic" target="_top">http://127.0.0.1:8888/xml/v3/traffic</a>
+          (traffic sizes).
         </p>
 <p>
           The full set of statistics can also be read in JSON format at
@@ -7413,7 +8085,9 @@ example.com                 CNAME   rpz-tcp-only.
           <a class="link" href="http://127.0.0.1:8888/json/v1/mem" target="_top">http://127.0.0.1:8888/json/v1/mem</a>
           (memory manager statistics),
           <a class="link" href="http://127.0.0.1:8888/json/v1/tasks" target="_top">http://127.0.0.1:8888/json/v1/tasks</a>
-          (task manager statistics).
+          (task manager statistics), and
+          <a class="link" href="http://127.0.0.1:8888/json/v1/traffic" target="_top">http://127.0.0.1:8888/json/v1/traffic</a>
+          (traffic sizes).
         </p>
 </div>
 <div class="section">
@@ -7463,6 +8137,10 @@ example.com                 CNAME   rpz-tcp-only.
             set in both places, they are additive: keys defined at the top
             level are inherited by all views, but keys defined in a view
             are only used within that view.
+          </p>
+<p>
+            Validation below specified names can be temporarily disabled
+            by using <span class="command"><strong>rndc nta</strong></span>.
           </p>
 </div>
 <div class="section">
@@ -7755,7 +8433,6 @@ view "external" {
     [<span class="optional"> ixfr-base <em class="replaceable"><code>string</code></em> ; </span>]
     [<span class="optional"> ixfr-from-differences <em class="replaceable"><code>yes_or_no</code></em>; </span>]
     [<span class="optional"> ixfr-tmp-file <em class="replaceable"><code>string</code></em> ; </span>]
-    [<span class="optional"> request-ixfr <em class="replaceable"><code>yes_or_no</code></em> ; </span>]
     [<span class="optional"> maintain-ixfr-base <em class="replaceable"><code>yes_or_no</code></em> ; </span>]
     [<span class="optional"> max-ixfr-log-size <em class="replaceable"><code>number</code></em> ; </span>]
     [<span class="optional"> max-transfer-idle-out <em class="replaceable"><code>number</code></em> ; </span>]
@@ -7780,7 +8457,7 @@ view "external" {
     [<span class="optional"> auto-dnssec <code class="constant">allow</code>|<code class="constant">maintain</code>|<code class="constant">off</code>; </span>]
     [<span class="optional"> inline-signing <em class="replaceable"><code>yes_or_no</code></em>; </span>]
     [<span class="optional"> zero-no-soa-ttl <em class="replaceable"><code>yes_or_no</code></em> ; </span>]
-    [<span class="optional"> serial-update-method <code class="constant">increment</code>|<code class="constant">unixtime</code>; </span>]
+    [<span class="optional"> serial-update-method <code class="constant">increment</code>|<code class="constant">unixtime</code>|<code class="constant">date</code>; </span>]
     [<span class="optional"> max-zone-ttl <em class="replaceable"><code>number</code></em> ; </span>]
 };
 
@@ -7811,6 +8488,7 @@ zone <em class="replaceable"><code>zone_name</code></em> [<span class="optional"
     [<span class="optional"> ixfr-base <em class="replaceable"><code>string</code></em> ; </span>]
     [<span class="optional"> ixfr-from-differences <em class="replaceable"><code>yes_or_no</code></em>; </span>]
     [<span class="optional"> ixfr-tmp-file <em class="replaceable"><code>string</code></em> ; </span>]
+    [<span class="optional"> request-ixfr <em class="replaceable"><code>yes_or_no</code></em> ; </span>]
     [<span class="optional"> maintain-ixfr-base <em class="replaceable"><code>yes_or_no</code></em> ; </span>]
     [<span class="optional"> masters [<span class="optional">port <em class="replaceable"><code>ip_port</code></em></span>] [<span class="optional">dscp <em class="replaceable"><code>ip_dscp</code></em></span>] { ( <em class="replaceable"><code>masters_list</code></em> | <em class="replaceable"><code>ip_addr</code></em>
                               [<span class="optional">port <em class="replaceable"><code>ip_port</code></em></span>]
@@ -8714,7 +9392,7 @@ example.com. NS ns2.example.net.
                     unsigned zone is transferred in or loaded from
                     disk and a signed version of the zone is served,
                     with possibly, a different serial number.  This
-                    behaviour is disabled by default.
+                    behavior is disabled by default.
                   </p></dd>
 <dt><span class="term"><span class="command"><strong>multi-master</strong></span></span></dt>
 <dd><p>
@@ -11968,6 +12646,33 @@ HOST-127.EXAMPLE. MX 0 .
 </tr>
 <tr>
 <td>
+                      <p><span class="command"><strong>QryNXRedir</strong></span></p>
+                    </td>
+<td>
+                      <p><span class="command"><strong></strong></span></p>
+                    </td>
+<td>
+                      <p>
+                        Queries resulted in NXDOMAIN that were redirected.
+                      </p>
+                    </td>
+</tr>
+<tr>
+<td>
+                      <p><span class="command"><strong>QryNXRedirRLookup</strong></span></p>
+                    </td>
+<td>
+                      <p><span class="command"><strong></strong></span></p>
+                    </td>
+<td>
+                      <p>
+                        Queries resulted in NXDOMAIN that were redirected
+                        and resulted in a successful remote lookup.
+                      </p>
+                    </td>
+</tr>
+<tr>
+<td>
                       <p><span class="command"><strong>XfrReqDone</strong></span></p>
                     </td>
 <td>
@@ -12845,6 +13550,6 @@ HOST-127.EXAMPLE. MX 0 .
 </tr>
 </table>
 </div>
-<p xmlns:db="http://docbook.org/ns/docbook" style="text-align: center;">BIND 9.10.4-P2</p>
+<p xmlns:db="http://docbook.org/ns/docbook" style="text-align: center;">BIND 9.11.0</p>
 </body>
 </html>

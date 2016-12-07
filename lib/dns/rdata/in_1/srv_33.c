@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004, 2005, 2007, 2009, 2015  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1999-2001, 2003  Internet Software Consortium.
+ * Copyright (C) 1999-2001, 2003-2005, 2007, 2009, 2015, 2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id: srv_33.c,v 1.47 2009/12/04 22:06:37 tbox Exp $ */
@@ -109,7 +100,7 @@ totext_in_srv(ARGS_TOTEXT) {
 	dns_rdata_toregion(rdata, &region);
 	num = uint16_fromregion(&region);
 	isc_region_consume(&region, 2);
-	sprintf(buf, "%u", num);
+	snprintf(buf, sizeof(buf), "%u", num);
 	RETERR(str_totext(buf, target));
 	RETERR(str_totext(" ", target));
 
@@ -118,7 +109,7 @@ totext_in_srv(ARGS_TOTEXT) {
 	 */
 	num = uint16_fromregion(&region);
 	isc_region_consume(&region, 2);
-	sprintf(buf, "%u", num);
+	snprintf(buf, sizeof(buf), "%u", num);
 	RETERR(str_totext(buf, target));
 	RETERR(str_totext(" ", target));
 
@@ -127,7 +118,7 @@ totext_in_srv(ARGS_TOTEXT) {
 	 */
 	num = uint16_fromregion(&region);
 	isc_region_consume(&region, 2);
-	sprintf(buf, "%u", num);
+	snprintf(buf, sizeof(buf), "%u", num);
 	RETERR(str_totext(buf, target));
 	RETERR(str_totext(" ", target));
 
@@ -302,19 +293,44 @@ freestruct_in_srv(ARGS_FREESTRUCT) {
 
 static inline isc_result_t
 additionaldata_in_srv(ARGS_ADDLDATA) {
+	char buf[sizeof("_65000._tcp")];
+	dns_fixedname_t fixed;
 	dns_name_t name;
 	dns_offsets_t offsets;
 	isc_region_t region;
+	isc_uint16_t port;
+	isc_result_t result;
 
 	REQUIRE(rdata->type == dns_rdatatype_srv);
 	REQUIRE(rdata->rdclass == dns_rdataclass_in);
 
 	dns_name_init(&name, offsets);
 	dns_rdata_toregion(rdata, &region);
-	isc_region_consume(&region, 6);
+	isc_region_consume(&region, 4);
+	port = uint16_fromregion(&region);
+	isc_region_consume(&region, 2);
 	dns_name_fromregion(&name, &region);
 
-	return ((add)(arg, &name, dns_rdatatype_a));
+	if (dns_name_equal(&name, dns_rootname))
+		return (ISC_R_SUCCESS);
+
+	result = (add)(arg, &name, dns_rdatatype_a);
+	if (result != ISC_R_SUCCESS)
+		return (result);
+
+	dns_fixedname_init(&fixed);
+	snprintf(buf, sizeof(buf), "_%u._tcp", port);
+	result = dns_name_fromstring2(dns_fixedname_name(&fixed), buf, NULL,
+				      0, NULL);
+	if (result != ISC_R_SUCCESS)
+		return (ISC_R_SUCCESS);
+
+	result = dns_name_concatenate(dns_fixedname_name(&fixed), &name,
+				      dns_fixedname_name(&fixed), NULL);
+	if (result != ISC_R_SUCCESS)
+		return (ISC_R_SUCCESS);
+
+	return ((add)(arg, dns_fixedname_name(&fixed), dns_rdatatype_tlsa));
 }
 
 static inline isc_result_t

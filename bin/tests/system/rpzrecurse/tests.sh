@@ -1,18 +1,10 @@
 #!/bin/sh
 #
-# Copyright (C) 2015  Internet Systems Consortium, Inc. ("ISC")
+# Copyright (C) 2015, 2016  Internet Systems Consortium, Inc. ("ISC")
 #
-# Permission to use, copy, modify, and/or distribute this software for any
-# purpose with or without fee is hereby granted, provided that the above
-# copyright notice and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-# AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
-# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
-# OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-# PERFORMANCE OF THIS SOFTWARE.
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 SYSTEMTESTTOP=..
 . $SYSTEMTESTTOP/conf.sh
@@ -240,8 +232,58 @@ grep "status: NOERROR" dig.out.${t} > /dev/null 2>&1 || {
     echo "I:test $t failed: query failed"
     status=1
 }
-grep "^l2.l1.l0.[[:space:]]*[0-9]*[[:space:]]*IN[[:space:]]*A[[:space:]]*10.53.0.2" dig.out.${t} > /dev/null 2>&1 || {
+grep "^l2.l1.l0.[ 	]*[0-9]*[ 	]*IN[ 	]*A[ 	]*10.53.0.2" dig.out.${t} > /dev/null 2>&1 || {
     echo "I:test $t failed: didn't get expected answer"
+    status=1
+}
+
+# Check CLIENT-IP behavior #2
+t=`expr $t + 1`
+echo "I:testing CLIENT-IP behavior #2 (${t})"
+run_server clientip2
+$DIG $DIGOPTS l2.l1.l0 a @10.53.0.2 -p 5300 -b 10.53.0.1 > dig.out.${t}.1
+grep "status: SERVFAIL" dig.out.${t}.1 > /dev/null 2>&1 || {
+    echo "I:test $t failed: query failed"
+    status=1
+}
+$DIG $DIGOPTS l2.l1.l0 a @10.53.0.2 -p 5300 -b 10.53.0.2 > dig.out.${t}.2
+grep "status: NXDOMAIN" dig.out.${t}.2 > /dev/null 2>&1 || {
+    echo "I:test $t failed: query failed"
+    status=1
+}
+$DIG $DIGOPTS l2.l1.l0 a @10.53.0.2 -p 5300 -b 10.53.0.3 > dig.out.${t}.3
+grep "status: NOERROR" dig.out.${t}.3 > /dev/null 2>&1 || {
+    echo "I:test $t failed: query failed"
+    status=1
+}
+grep "^l2.l1.l0.[ 	]*[0-9]*[ 	]*IN[ 	]*A[ 	]*10.53.0.1" dig.out.${t}.3 > /dev/null 2>&1 || {
+    echo "I:test $t failed: didn't get expected answer"
+    status=1
+}
+$DIG $DIGOPTS l2.l1.l0 a @10.53.0.2 -p 5300 -b 10.53.0.4 > dig.out.${t}.4
+grep "status: SERVFAIL" dig.out.${t}.4 > /dev/null 2>&1 || {
+    echo "I:test $t failed: query failed"
+    status=1
+}
+
+# Check RPZ log clause
+t=`expr $t + 1`
+echo "I:testing RPZ log clause (${t})"
+run_server log
+cur=`awk 'BEGIN {l=0} /^/ {l++} END { print l }' ns2/named.run`
+$DIG $DIGOPTS l2.l1.l0 a @10.53.0.2 -p 5300 -b 10.53.0.4 > dig.out.${t}
+$DIG $DIGOPTS l2.l1.l0 a @10.53.0.2 -p 5300 -b 10.53.0.3 >> dig.out.${t}
+$DIG $DIGOPTS l2.l1.l0 a @10.53.0.2 -p 5300 -b 10.53.0.2 >> dig.out.${t}
+sed -n "$cur,"'$p' < ns2/named.run | grep "view recursive: rpz CLIENT-IP Local-Data rewrite l2.l1.l0 via 32.4.0.53.10.rpz-client-ip.log1" > /dev/null && {
+    echo "I: failed: unexpected rewrite message for policy zone log1 was logged"
+    status=1
+}
+sed -n "$cur,"'$p' < ns2/named.run | grep "view recursive: rpz CLIENT-IP Local-Data rewrite l2.l1.l0 via 32.3.0.53.10.rpz-client-ip.log2" > /dev/null || {
+    echo "I: failed: expected rewrite message for policy zone log2 was not logged"
+    status=1
+}
+sed -n "$cur,"'$p' < ns2/named.run | grep "view recursive: rpz CLIENT-IP Local-Data rewrite l2.l1.l0 via 32.2.0.53.10.rpz-client-ip.log3" > /dev/null || {
+    echo "I: failed: expected rewrite message for policy zone log3 was not logged"
     status=1
 }
 
@@ -289,4 +331,30 @@ grep "status: NOERROR" dig.out.${t}.2 > /dev/null || {
     status=1
 }
 
-exit $status
+t=`expr $t + 1`
+echo "I:checking 'nsip-wait-recurse no' is faster than 'nsip-wait-recurse yes' ($t)"
+echo "I:timing 'nsip-wait-recurse yes' (default)"
+ret=0
+t1=`$PERL -e 'print time()."\n";'`
+$DIG -p 5300 @10.53.0.3 foo.child.example.tld a > dig.out.yes.$t
+t2=`$PERL -e 'print time()."\n";'`
+p1=`expr $t2 - $t1`
+echo "I:elasped time $p1 seconds"
+
+$RNDC  -c ../common/rndc.conf -s 10.53.0.3 -p 9953 flush
+cp -f ns3/named2.conf ns3/named.conf
+$RNDC  -c ../common/rndc.conf -s 10.53.0.3 -p 9953 reload > /dev/null
+
+echo "I:timing 'nsip-wait-recurse no'"
+t3=`$PERL -e 'print time()."\n";'`
+$DIG -p 5300 @10.53.0.3 foo.child.example.tld a > dig.out.no.$t
+t4=`$PERL -e 'print time()."\n";'`
+p2=`expr $t4 - $t3`
+echo "I:elasped time $p2 seconds"
+
+if test $p1 -le $p2; then ret=1; fi
+if test $ret != 0; then echo "I:failed"; fi
+status=`expr $status + $ret`
+
+echo "I:exit status: $status"
+[ $status -eq 0 ] || exit 1

@@ -1,17 +1,9 @@
 /*
- * Copyright (C) 2013-2015  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2013-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id$ */
@@ -137,8 +129,8 @@ load_geoip(const char *dir) {
 }
 
 static isc_boolean_t
-do_lookup_string(const char *addr, dns_geoip_subtype_t subtype,
-		 const char *string)
+do_lookup_string(const char *addr, isc_uint8_t *scope,
+		 dns_geoip_subtype_t subtype, const char *string)
 {
 	dns_geoip_elem_t elt;
 	struct in_addr in4;
@@ -150,12 +142,12 @@ do_lookup_string(const char *addr, dns_geoip_subtype_t subtype,
 	elt.subtype = subtype;
 	strcpy(elt.as_string, string);
 
-	return (dns_geoip_match(&na, &geoip, &elt));
+	return (dns_geoip_match(&na, scope, &geoip, &elt));
 }
 
 static isc_boolean_t
-do_lookup_string_v6(const char *addr, dns_geoip_subtype_t subtype,
-		    const char *string)
+do_lookup_string_v6(const char *addr, isc_uint8_t *scope,
+		    dns_geoip_subtype_t subtype, const char *string)
 {
 	dns_geoip_elem_t elt;
 	struct in6_addr in6;
@@ -167,11 +159,13 @@ do_lookup_string_v6(const char *addr, dns_geoip_subtype_t subtype,
 	elt.subtype = subtype;
 	strcpy(elt.as_string, string);
 
-	return (dns_geoip_match(&na, &geoip, &elt));
+	return (dns_geoip_match(&na, scope, &geoip, &elt));
 }
 
 static isc_boolean_t
-do_lookup_int(const char *addr, dns_geoip_subtype_t subtype, int id) {
+do_lookup_int(const char *addr, isc_uint8_t *scope,
+	      dns_geoip_subtype_t subtype, int id)
+{
 	dns_geoip_elem_t elt;
 	struct in_addr in4;
 	isc_netaddr_t na;
@@ -182,7 +176,7 @@ do_lookup_int(const char *addr, dns_geoip_subtype_t subtype, int id) {
 	elt.subtype = subtype;
 	elt.as_int = id;
 
-	return (dns_geoip_match(&na, &geoip, &elt));
+	return (dns_geoip_match(&na, scope, &geoip, &elt));
 }
 
 /*
@@ -197,6 +191,7 @@ ATF_TC_HEAD(country, tc) {
 ATF_TC_BODY(country, tc) {
 	isc_result_t result;
 	isc_boolean_t match;
+	isc_uint8_t scope;
 
 	UNUSED(tc);
 
@@ -211,16 +206,30 @@ ATF_TC_BODY(country, tc) {
 		atf_tc_skip("Database not available");
 	}
 
-	match = do_lookup_string("10.53.0.1", dns_geoip_country_code, "AU");
+	match = do_lookup_string("10.53.0.1", &scope,
+				 dns_geoip_country_code, "AU");
 	ATF_CHECK(match);
+	ATF_CHECK_EQ(scope, 32);
 
-	match = do_lookup_string("10.53.0.1",
+	match = do_lookup_string("10.53.0.1", &scope,
 				 dns_geoip_country_code3, "AUS");
 	ATF_CHECK(match);
+	ATF_CHECK_EQ(scope, 32);
 
-	match = do_lookup_string("10.53.0.1",
+	match = do_lookup_string("10.53.0.1", &scope,
 				 dns_geoip_country_name, "Australia");
 	ATF_CHECK(match);
+	ATF_CHECK_EQ(scope, 32);
+
+	match = do_lookup_string("192.0.2.128", &scope,
+				 dns_geoip_country_code, "O1");
+	ATF_CHECK(match);
+	ATF_CHECK_EQ(scope, 24);
+
+	match = do_lookup_string("192.0.2.128", &scope,
+				 dns_geoip_country_name, "Other");
+	ATF_CHECK(match);
+	ATF_CHECK_EQ(scope, 24);
 
 	dns_test_end();
 }
@@ -233,6 +242,7 @@ ATF_TC_HEAD(country_v6, tc) {
 ATF_TC_BODY(country_v6, tc) {
 	isc_result_t result;
 	isc_boolean_t match;
+	isc_uint8_t scope;
 
 	UNUSED(tc);
 
@@ -247,17 +257,20 @@ ATF_TC_BODY(country_v6, tc) {
 		atf_tc_skip("Database not available");
 	}
 
-	match = do_lookup_string_v6("fd92:7065:b8e:ffff::1",
+	match = do_lookup_string_v6("fd92:7065:b8e:ffff::1", &scope,
 				    dns_geoip_country_code, "AU");
 	ATF_CHECK(match);
+	ATF_CHECK_EQ(scope, 128);
 
-	match = do_lookup_string_v6("fd92:7065:b8e:ffff::1",
+	match = do_lookup_string_v6("fd92:7065:b8e:ffff::1", &scope,
 				    dns_geoip_country_code3, "AUS");
 	ATF_CHECK(match);
+	ATF_CHECK_EQ(scope, 128);
 
-	match = do_lookup_string_v6("fd92:7065:b8e:ffff::1",
+	match = do_lookup_string_v6("fd92:7065:b8e:ffff::1", &scope,
 				    dns_geoip_country_name, "Australia");
 	ATF_CHECK(match);
+	ATF_CHECK_EQ(scope, 128);
 
 	dns_test_end();
 }
@@ -284,42 +297,42 @@ ATF_TC_BODY(city, tc) {
 		atf_tc_skip("Database not available");
 	}
 
-	match = do_lookup_string("10.53.0.1",
+	match = do_lookup_string("10.53.0.1", NULL,
 				 dns_geoip_city_continentcode, "NA");
 	ATF_CHECK(match);
 
-	match = do_lookup_string("10.53.0.1",
+	match = do_lookup_string("10.53.0.1", NULL,
 				 dns_geoip_city_countrycode, "US");
 	ATF_CHECK(match);
 
-	match = do_lookup_string("10.53.0.1",
+	match = do_lookup_string("10.53.0.1", NULL,
 				 dns_geoip_city_countrycode3, "USA");
 	ATF_CHECK(match);
 
-	match = do_lookup_string("10.53.0.1",
+	match = do_lookup_string("10.53.0.1", NULL,
 				 dns_geoip_city_countryname, "United States");
 	ATF_CHECK(match);
 
-	match = do_lookup_string("10.53.0.1",
+	match = do_lookup_string("10.53.0.1", NULL,
 				 dns_geoip_city_region, "CA");
 	ATF_CHECK(match);
 
-	match = do_lookup_string("10.53.0.1",
+	match = do_lookup_string("10.53.0.1", NULL,
 				 dns_geoip_city_regionname, "California");
 	ATF_CHECK(match);
 
-	match = do_lookup_string("10.53.0.1",
+	match = do_lookup_string("10.53.0.1", NULL,
 				 dns_geoip_city_name, "Redwood City");
 	ATF_CHECK(match);
 
-	match = do_lookup_string("10.53.0.1",
+	match = do_lookup_string("10.53.0.1", NULL,
 				 dns_geoip_city_postalcode, "94063");
 	ATF_CHECK(match);
 
-	match = do_lookup_int("10.53.0.1", dns_geoip_city_areacode, 650);
+	match = do_lookup_int("10.53.0.1", NULL, dns_geoip_city_areacode, 650);
 	ATF_CHECK(match);
 
-	match = do_lookup_int("10.53.0.1", dns_geoip_city_metrocode, 807);
+	match = do_lookup_int("10.53.0.1", NULL, dns_geoip_city_metrocode, 807);
 	ATF_CHECK(match);
 
 	dns_test_end();
@@ -347,36 +360,36 @@ ATF_TC_BODY(city_v6, tc) {
 		atf_tc_skip("Database not available");
 	}
 
-	match = do_lookup_string_v6("fd92:7065:b8e:ffff::1",
+	match = do_lookup_string_v6("fd92:7065:b8e:ffff::1", NULL,
 				    dns_geoip_city_continentcode, "NA");
 	ATF_CHECK(match);
 
-	match = do_lookup_string_v6("fd92:7065:b8e:ffff::1",
+	match = do_lookup_string_v6("fd92:7065:b8e:ffff::1", NULL,
 				    dns_geoip_city_countrycode, "US");
 	ATF_CHECK(match);
 
-	match = do_lookup_string_v6("fd92:7065:b8e:ffff::1",
+	match = do_lookup_string_v6("fd92:7065:b8e:ffff::1", NULL,
 				    dns_geoip_city_countrycode3, "USA");
 	ATF_CHECK(match);
 
-	match = do_lookup_string_v6("fd92:7065:b8e:ffff::1",
+	match = do_lookup_string_v6("fd92:7065:b8e:ffff::1", NULL,
 				    dns_geoip_city_countryname,
 				    "United States");
 	ATF_CHECK(match);
 
-	match = do_lookup_string_v6("fd92:7065:b8e:ffff::1",
+	match = do_lookup_string_v6("fd92:7065:b8e:ffff::1", NULL,
 				    dns_geoip_city_region, "CA");
 	ATF_CHECK(match);
 
-	match = do_lookup_string_v6("fd92:7065:b8e:ffff::1",
+	match = do_lookup_string_v6("fd92:7065:b8e:ffff::1", NULL,
 				    dns_geoip_city_regionname, "California");
 	ATF_CHECK(match);
 
-	match = do_lookup_string_v6("fd92:7065:b8e:ffff::1",
+	match = do_lookup_string_v6("fd92:7065:b8e:ffff::1", NULL,
 				    dns_geoip_city_name, "Redwood City");
 	ATF_CHECK(match);
 
-	match = do_lookup_string_v6("fd92:7065:b8e:ffff::1",
+	match = do_lookup_string_v6("fd92:7065:b8e:ffff::1", NULL,
 				    dns_geoip_city_postalcode, "94063");
 	ATF_CHECK(match);
 
@@ -406,15 +419,15 @@ ATF_TC_BODY(region, tc) {
 		atf_tc_skip("Database not available");
 	}
 
-	match = do_lookup_string("10.53.0.1",
+	match = do_lookup_string("10.53.0.1", NULL,
 				 dns_geoip_region_code, "CA");
 	ATF_CHECK(match);
 
-	match = do_lookup_string("10.53.0.1",
+	match = do_lookup_string("10.53.0.1", NULL,
 				 dns_geoip_region_name, "California");
 	ATF_CHECK(match);
 
-	match = do_lookup_string("10.53.0.1",
+	match = do_lookup_string("10.53.0.1", NULL,
 				 dns_geoip_region_countrycode, "US");
 	ATF_CHECK(match);
 
@@ -448,30 +461,30 @@ ATF_TC_BODY(best, tc) {
 		atf_tc_skip("Database not available");
 	}
 
-	match = do_lookup_string("10.53.0.4",
+	match = do_lookup_string("10.53.0.4", NULL,
 				 dns_geoip_countrycode, "US");
 	ATF_CHECK(match);
 
-	match = do_lookup_string("10.53.0.4",
+	match = do_lookup_string("10.53.0.4", NULL,
 				 dns_geoip_countrycode3, "USA");
 	ATF_CHECK(match);
 
-	match = do_lookup_string("10.53.0.4",
+	match = do_lookup_string("10.53.0.4", NULL,
 				 dns_geoip_countryname, "United States");
 	ATF_CHECK(match);
 
-	match = do_lookup_string("10.53.0.4",
+	match = do_lookup_string("10.53.0.4", NULL,
 				 dns_geoip_regionname, "Virginia");
 	ATF_CHECK(match);
 
-	match = do_lookup_string("10.53.0.4",
+	match = do_lookup_string("10.53.0.4", NULL,
 				 dns_geoip_region, "VA");
 	ATF_CHECK(match);
 
 	GeoIP_delete(geoip.city_v4);
 	geoip.city_v4 = NULL;
 
-	match = do_lookup_string("10.53.0.4",
+	match = do_lookup_string("10.53.0.4", NULL,
 				 dns_geoip_countrycode, "AU");
 	ATF_CHECK(match);
 
@@ -479,26 +492,26 @@ ATF_TC_BODY(best, tc) {
 	 * Note, region doesn't support code3 or countryname, so
 	 * the next two would be answered from the country database instead
 	 */
-	match = do_lookup_string("10.53.0.4",
+	match = do_lookup_string("10.53.0.4", NULL,
 				 dns_geoip_countrycode3, "CAN");
 	ATF_CHECK(match);
 
-	match = do_lookup_string("10.53.0.4",
+	match = do_lookup_string("10.53.0.4", NULL,
 				 dns_geoip_countryname, "Canada");
 	ATF_CHECK(match);
 
 	GeoIP_delete(geoip.region);
 	geoip.region = NULL;
 
-	match = do_lookup_string("10.53.0.4",
+	match = do_lookup_string("10.53.0.4", NULL,
 				 dns_geoip_countrycode, "CA");
 	ATF_CHECK(match);
 
-	match = do_lookup_string("10.53.0.4",
+	match = do_lookup_string("10.53.0.4", NULL,
 				 dns_geoip_countrycode3, "CAN");
 	ATF_CHECK(match);
 
-	match = do_lookup_string("10.53.0.4",
+	match = do_lookup_string("10.53.0.4", NULL,
 				 dns_geoip_countryname, "Canada");
 	ATF_CHECK(match);
 
@@ -529,7 +542,7 @@ ATF_TC_BODY(asnum, tc) {
 	}
 
 
-	match = do_lookup_string("10.53.0.3", dns_geoip_as_asnum,
+	match = do_lookup_string("10.53.0.3", NULL, dns_geoip_as_asnum,
 				 "AS100003 Three Network Labs");
 	ATF_CHECK(match);
 
@@ -558,7 +571,7 @@ ATF_TC_BODY(isp, tc) {
 		atf_tc_skip("Database not available");
 	}
 
-	match = do_lookup_string("10.53.0.1", dns_geoip_isp_name,
+	match = do_lookup_string("10.53.0.1", NULL, dns_geoip_isp_name,
 				 "One Systems, Inc.");
 	ATF_CHECK(match);
 
@@ -587,7 +600,7 @@ ATF_TC_BODY(org, tc) {
 		atf_tc_skip("Database not available");
 	}
 
-	match = do_lookup_string("10.53.0.2", dns_geoip_org_name,
+	match = do_lookup_string("10.53.0.2", NULL, dns_geoip_org_name,
 				 "Two Technology Ltd.");
 	ATF_CHECK(match);
 
@@ -616,7 +629,7 @@ ATF_TC_BODY(domain, tc) {
 		atf_tc_skip("Database not available");
 	}
 
-	match = do_lookup_string("10.53.0.4",
+	match = do_lookup_string("10.53.0.4", NULL,
 				 dns_geoip_domain_name, "four.com");
 	ATF_CHECK(match);
 
@@ -645,16 +658,16 @@ ATF_TC_BODY(netspeed, tc) {
 		atf_tc_skip("Database not available");
 	}
 
-	match = do_lookup_int("10.53.0.1", dns_geoip_netspeed_id, 0);
+	match = do_lookup_int("10.53.0.1", NULL, dns_geoip_netspeed_id, 0);
 	ATF_CHECK(match);
 
-	match = do_lookup_int("10.53.0.2", dns_geoip_netspeed_id, 1);
+	match = do_lookup_int("10.53.0.2", NULL, dns_geoip_netspeed_id, 1);
 	ATF_CHECK(match);
 
-	match = do_lookup_int("10.53.0.3", dns_geoip_netspeed_id, 2);
+	match = do_lookup_int("10.53.0.3", NULL, dns_geoip_netspeed_id, 2);
 	ATF_CHECK(match);
 
-	match = do_lookup_int("10.53.0.4", dns_geoip_netspeed_id, 3);
+	match = do_lookup_int("10.53.0.4", NULL, dns_geoip_netspeed_id, 3);
 	ATF_CHECK(match);
 
 	dns_test_end();

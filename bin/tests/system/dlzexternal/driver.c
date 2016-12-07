@@ -1,17 +1,9 @@
 /*
- * Copyright (C) 2011-2015  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2011-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /*
@@ -26,7 +18,6 @@
 #include <stdarg.h>
 
 #include <isc/log.h>
-#include <isc/print.h>
 #include <isc/result.h>
 #include <isc/string.h>
 #include <isc/types.h>
@@ -344,11 +335,11 @@ dlz_findzonedb(void *dbdata, const char *name,
 		methods->sourceip(clientinfo, &src);
 		fmt_address(src, addrbuf, sizeof(addrbuf));
 	}
-	fprintf(stderr, "findzonedb: connection from: %s\n", addrbuf);
 
 	state->log(ISC_LOG_INFO,
 		   "dlz_example: dlz_findzonedb called with name '%s' "
-		   "in zone DB '%s'", name, state->zone_name);
+		   "in zone DB '%s' from %s",
+		   name, state->zone_name, addrbuf);
 
 	/*
 	 * Returning ISC_R_NOTFOUND will cause the query logic to
@@ -407,9 +398,12 @@ dlz_lookup(const char *zone, const char *name, void *dbdata,
 	isc_result_t result;
 	struct dlz_example_data *state = (struct dlz_example_data *)dbdata;
 	isc_boolean_t found = ISC_FALSE;
+	void *dbversion = NULL;
 	isc_sockaddr_t *src;
 	char full_name[256];
 	char buf[512];
+	static char last[256] = { 0 };
+	static int count = 0;
 	int i;
 
 	UNUSED(zone);
@@ -420,8 +414,45 @@ dlz_lookup(const char *zone, const char *name, void *dbdata,
 	if (strcmp(name, "@") == 0) {
 		strncpy(full_name, state->zone_name, 255);
 		full_name[255] = '\0';
-	} else
+	} else if (strcmp(state->zone_name, ".") == 0)
+		snprintf(full_name, 255, "%s.", name);
+	else
 		snprintf(full_name, 255, "%s.%s", name, state->zone_name);
+
+	/*
+	 * For test purposes, log all calls to dlz_lookup()
+	 */
+	if (strncasecmp(full_name, last, 255) == 0)
+		count++;
+	else {
+		count = 1;
+		strncpy(last, full_name, 255);
+	}
+	state->log(ISC_LOG_INFO, "lookup #%d for %s", count, full_name);
+
+	/*
+	 * If we need to know the database version (as set in
+	 * the 'newversion' dlz function) we can pick it up from the
+	 * clientinfo.
+	 *
+	 * This allows a lookup to query the correct version of the DNS
+	 * data, if the DLZ can differentiate between versions.
+	 *
+	 * For example, if a new database transaction is created by
+	 * 'newversion', the lookup should query within the same
+	 * transaction scope if it can.
+	 *
+	 * If the DLZ only operates on 'live' data, then version
+	 * wouldn't necessarily be needed.
+	 */
+	if (clientinfo != NULL &&
+	    clientinfo->version >= DNS_CLIENTINFO_VERSION) {
+		dbversion = clientinfo->dbversion;
+		if (dbversion != NULL && *(isc_boolean_t *)dbversion)
+			state->log(ISC_LOG_INFO,
+				   "dlz_example: lookup against live "
+				   "transaction");
+	}
 
 	if (strcmp(name, "source-addr") == 0) {
 		strcpy(buf, "unknown");
@@ -435,7 +466,8 @@ dlz_lookup(const char *zone, const char *name, void *dbdata,
 			fmt_address(src, buf, sizeof(buf));
 		}
 
-		fprintf(stderr, "lookup: connection from: %s\n", buf);
+		state->log(ISC_LOG_INFO,
+			   "dlz_example: lookup connection from %s", buf);
 
 		found = ISC_TRUE;
 		result = state->putrr(lookup, "TXT", 0, buf);
@@ -455,6 +487,24 @@ dlz_lookup(const char *zone, const char *name, void *dbdata,
 			return (result);
 	}
 
+	/* Tests for DLZ redirection zones */
+	if (strcmp(name, "*") == 0 && strcmp(zone, ".") == 0) {
+		result = state->putrr(lookup, "A", 0, "100.100.100.2");
+		found = ISC_TRUE;
+		if (result != ISC_R_SUCCESS)
+			return (result);
+	}
+
+	if (strcmp(name, "long.name.is.not.there") == 0 &&
+	    strcmp(zone, ".") == 0)
+	{
+		result = state->putrr(lookup, "A", 0, "100.100.100.3");
+		found = ISC_TRUE;
+		if (result != ISC_R_SUCCESS)
+			return (result);
+	}
+
+	/* Answer from current records */
 	for (i = 0; i < MAX_RECORDS; i++) {
 		if (strcasecmp(state->current[i].name, full_name) == 0) {
 			found = ISC_TRUE;

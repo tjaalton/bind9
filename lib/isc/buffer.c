@@ -1,21 +1,10 @@
 /*
- * Copyright (C) 2004-2008, 2012, 2014, 2015  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1998-2002  Internet Software Consortium.
+ * Copyright (C) 1998-2002, 2004-2008, 2012, 2014-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-
-/* $Id: buffer.c,v 1.49 2008/09/25 04:02:39 tbox Exp $ */
 
 /*! \file */
 
@@ -23,6 +12,7 @@
 
 #include <isc/buffer.h>
 #include <isc/mem.h>
+#include <isc/print.h>
 #include <isc/region.h>
 #include <isc/string.h>
 #include <isc/util.h>
@@ -62,6 +52,7 @@ isc_buffer_reinit(isc_buffer_t *b, void *base, unsigned int length) {
 	 */
 	REQUIRE(b->length <= length);
 	REQUIRE(base != NULL);
+	REQUIRE(!b->autore);
 
 	(void)memmove(base, b->base, b->length);
 	b->base = base;
@@ -82,6 +73,13 @@ isc__buffer_invalidate(isc_buffer_t *b) {
 }
 
 void
+isc_buffer_setautorealloc(isc_buffer_t *b, isc_boolean_t enable) {
+	REQUIRE(ISC_BUFFER_VALID(b));
+	REQUIRE(b->mctx != NULL);
+	b->autore = enable;
+}
+
+void
 isc__buffer_region(isc_buffer_t *b, isc_region_t *r) {
 	/*
 	 * Make 'r' refer to the region of 'b'.
@@ -94,7 +92,7 @@ isc__buffer_region(isc_buffer_t *b, isc_region_t *r) {
 }
 
 void
-isc__buffer_usedregion(isc_buffer_t *b, isc_region_t *r) {
+isc__buffer_usedregion(const isc_buffer_t *b, isc_region_t *r) {
 	/*
 	 * Make 'r' refer to the used region of 'b'.
 	 */
@@ -281,8 +279,13 @@ isc_buffer_getuint8(isc_buffer_t *b) {
 
 void
 isc__buffer_putuint8(isc_buffer_t *b, isc_uint8_t val) {
+	isc_result_t result;
 	REQUIRE(ISC_BUFFER_VALID(b));
-	REQUIRE(b->used + 1 <= b->length);
+	if (b->autore) {
+		result = isc_buffer_reserve(&b, 1);
+		REQUIRE(result == ISC_R_SUCCESS);
+	}
+	REQUIRE(isc_buffer_availablelength(b) >= 1);
 
 	ISC__BUFFER_PUTUINT8(b, val);
 }
@@ -310,16 +313,26 @@ isc_buffer_getuint16(isc_buffer_t *b) {
 
 void
 isc__buffer_putuint16(isc_buffer_t *b, isc_uint16_t val) {
+	isc_result_t result;
 	REQUIRE(ISC_BUFFER_VALID(b));
-	REQUIRE(b->used + 2 <= b->length);
+	if (b->autore) {
+		result = isc_buffer_reserve(&b, 2);
+		REQUIRE(result == ISC_R_SUCCESS);
+	}
+	REQUIRE(isc_buffer_availablelength(b) >= 2);
 
 	ISC__BUFFER_PUTUINT16(b, val);
 }
 
 void
 isc__buffer_putuint24(isc_buffer_t *b, isc_uint32_t val) {
+	isc_result_t result;
 	REQUIRE(ISC_BUFFER_VALID(b));
-	REQUIRE(b->used + 3 <= b->length);
+	if (b->autore) {
+		result = isc_buffer_reserve(&b, 3);
+		REQUIRE(result == ISC_R_SUCCESS);
+	}
+	REQUIRE(isc_buffer_availablelength(b) >= 3);
 
 	ISC__BUFFER_PUTUINT24(b, val);
 }
@@ -349,8 +362,13 @@ isc_buffer_getuint32(isc_buffer_t *b) {
 
 void
 isc__buffer_putuint32(isc_buffer_t *b, isc_uint32_t val) {
+	isc_result_t result;
 	REQUIRE(ISC_BUFFER_VALID(b));
-	REQUIRE(b->used + 4 <= b->length);
+	if (b->autore) {
+		result = isc_buffer_reserve(&b, 4);
+		REQUIRE(result == ISC_R_SUCCESS);
+	}
+	REQUIRE(isc_buffer_availablelength(b) >= 4);
 
 	ISC__BUFFER_PUTUINT32(b, val);
 }
@@ -382,11 +400,16 @@ isc_buffer_getuint48(isc_buffer_t *b) {
 
 void
 isc__buffer_putuint48(isc_buffer_t *b, isc_uint64_t val) {
+	isc_result_t result;
 	isc_uint16_t valhi;
 	isc_uint32_t vallo;
 
 	REQUIRE(ISC_BUFFER_VALID(b));
-	REQUIRE(b->used + 6 <= b->length);
+	if (b->autore) {
+		result = isc_buffer_reserve(&b, 6);
+		REQUIRE(result == ISC_R_SUCCESS);
+	}
+	REQUIRE(isc_buffer_availablelength(b) >= 6);
 
 	valhi = (isc_uint16_t)(val >> 32);
 	vallo = (isc_uint32_t)(val & 0xFFFFFFFF);
@@ -398,8 +421,13 @@ void
 isc__buffer_putmem(isc_buffer_t *b, const unsigned char *base,
 		   unsigned int length)
 {
+	isc_result_t result;
 	REQUIRE(ISC_BUFFER_VALID(b));
-	REQUIRE(b->used + length <= b->length);
+	if (b->autore) {
+		result = isc_buffer_reserve(&b, length);
+		REQUIRE(result == ISC_R_SUCCESS);
+	}
+	REQUIRE(isc_buffer_availablelength(b) >= length);
 
 	ISC__BUFFER_PUTMEM(b, base, length);
 }
@@ -408,6 +436,7 @@ void
 isc__buffer_putstr(isc_buffer_t *b, const char *source) {
 	unsigned int l;
 	unsigned char *cp;
+	isc_result_t result;
 
 	REQUIRE(ISC_BUFFER_VALID(b));
 	REQUIRE(source != NULL);
@@ -416,18 +445,66 @@ isc__buffer_putstr(isc_buffer_t *b, const char *source) {
 	 * Do not use ISC__BUFFER_PUTSTR(), so strlen is only done once.
 	 */
 	l = strlen(source);
-
-	REQUIRE(l <= isc_buffer_availablelength(b));
+	if (b->autore) {
+		result = isc_buffer_reserve(&b, l);
+		REQUIRE(result == ISC_R_SUCCESS);
+	}
+	REQUIRE(isc_buffer_availablelength(b) >= l);
 
 	cp = isc_buffer_used(b);
 	memmove(cp, source, l);
 	b->used += l;
 }
 
+void
+isc_buffer_putdecint(isc_buffer_t *b, isc_int64_t v) {
+	unsigned int l=0;
+	unsigned char *cp;
+	char buf[21];
+	isc_result_t result;
+
+	REQUIRE(ISC_BUFFER_VALID(b));
+
+	/* xxxwpk do it more low-level way ? */
+	l = snprintf(buf, 21, "%" ISC_PRINT_QUADFORMAT "d", v);
+	RUNTIME_CHECK(l <= 21);
+	if (b->autore) {
+		result = isc_buffer_reserve(&b, l);
+		REQUIRE(result == ISC_R_SUCCESS);
+	}
+	REQUIRE(isc_buffer_availablelength(b) >= l);
+
+	cp = isc_buffer_used(b);
+	memmove(cp, buf, l);
+	b->used += l;
+}
+
+isc_result_t
+isc_buffer_dup(isc_mem_t *mctx, isc_buffer_t **dstp, const isc_buffer_t *src) {
+	isc_buffer_t *dst = NULL;
+	isc_region_t region;
+	isc_result_t result;
+
+	REQUIRE(dstp != NULL && *dstp == NULL);
+	REQUIRE(ISC_BUFFER_VALID(src));
+
+	isc_buffer_usedregion(src, &region);
+
+	result = isc_buffer_allocate(mctx, &dst, region.length);
+	if (result != ISC_R_SUCCESS)
+		return (result);
+
+	result = isc_buffer_copyregion(dst, &region);
+	RUNTIME_CHECK(result == ISC_R_SUCCESS); /* NOSPACE is impossible */
+	*dstp = dst;
+	return (ISC_R_SUCCESS);
+}
+
 isc_result_t
 isc_buffer_copyregion(isc_buffer_t *b, const isc_region_t *r) {
 	unsigned char *base;
 	unsigned int available;
+	isc_result_t result;
 
 	REQUIRE(ISC_BUFFER_VALID(b));
 	REQUIRE(r != NULL);
@@ -437,6 +514,11 @@ isc_buffer_copyregion(isc_buffer_t *b, const isc_region_t *r) {
 	 */
 	base = isc_buffer_used(b);
 	available = isc_buffer_availablelength(b);
+	if (b->autore) {
+		result = isc_buffer_reserve(&b, r->length);
+		if (result != ISC_R_SUCCESS)
+			return (result);
+	}
 	if (r->length > available)
 		return (ISC_R_NOSPACE);
 	memmove(base, r->base, r->length);
@@ -450,16 +532,21 @@ isc_buffer_allocate(isc_mem_t *mctx, isc_buffer_t **dynbuffer,
 		    unsigned int length)
 {
 	isc_buffer_t *dbuf;
-
+	unsigned char * bdata;
 	REQUIRE(dynbuffer != NULL);
 	REQUIRE(*dynbuffer == NULL);
 
-	dbuf = isc_mem_get(mctx, length + sizeof(isc_buffer_t));
+	dbuf = isc_mem_get(mctx, sizeof(isc_buffer_t));
 	if (dbuf == NULL)
 		return (ISC_R_NOMEMORY);
 
-	isc_buffer_init(dbuf, ((unsigned char *)dbuf) + sizeof(isc_buffer_t),
-			length);
+	bdata = isc_mem_get(mctx, length);
+	if (bdata == NULL) {
+		isc_mem_put(mctx, dbuf, sizeof(isc_buffer_t));
+		return (ISC_R_NOMEMORY);
+	}
+
+	isc_buffer_init(dbuf, bdata, length);
 	dbuf->mctx = mctx;
 
 	ENSURE(ISC_BUFFER_VALID(dbuf));
@@ -469,9 +556,67 @@ isc_buffer_allocate(isc_mem_t *mctx, isc_buffer_t **dynbuffer,
 	return (ISC_R_SUCCESS);
 }
 
+isc_result_t
+isc_buffer_reallocate(isc_buffer_t **dynbuffer, unsigned int length) {
+	unsigned char *bdata;
+
+	REQUIRE(dynbuffer != NULL);
+	REQUIRE(ISC_BUFFER_VALID(*dynbuffer));
+	REQUIRE((*dynbuffer)->mctx != NULL);
+
+	if ((*dynbuffer)->length > length)
+		return (ISC_R_NOSPACE);
+
+	/*
+	 * XXXMUKS: This is far more expensive than plain realloc() as
+	 * it doesn't remap pages, but does ordinary copy. So is
+	 * isc_mem_reallocate(), which has additional issues.
+	 */
+	bdata = isc_mem_get((*dynbuffer)->mctx, length);
+	if (bdata == NULL)
+		return (ISC_R_NOMEMORY);
+
+	memmove(bdata, (*dynbuffer)->base, (*dynbuffer)->length);
+	isc_mem_put((*dynbuffer)->mctx, (*dynbuffer)->base,
+		    (*dynbuffer)->length);
+
+	(*dynbuffer)->base = bdata;
+	(*dynbuffer)->length = length;
+
+	return (ISC_R_SUCCESS);
+}
+
+isc_result_t
+isc_buffer_reserve(isc_buffer_t **dynbuffer, unsigned int size) {
+	isc_uint64_t len;
+
+	REQUIRE(dynbuffer != NULL);
+	REQUIRE(ISC_BUFFER_VALID(*dynbuffer));
+
+	len = (*dynbuffer)->length;
+	if ((len - (*dynbuffer)->used) >= size)
+		return (ISC_R_SUCCESS);
+
+	if ((*dynbuffer)->mctx == NULL)
+		return (ISC_R_NOSPACE);
+
+	/* Round to nearest buffer size increment */
+	len = size + (*dynbuffer)->used;
+	len = (len + ISC_BUFFER_INCR - 1 - ((len - 1) % ISC_BUFFER_INCR));
+
+	/* Cap at UINT_MAX */
+	if (len > UINT_MAX) {
+		len = UINT_MAX;
+	}
+
+	if ((len - (*dynbuffer)->used) < size)
+		return (ISC_R_NOMEMORY);
+
+	return (isc_buffer_reallocate(dynbuffer, (unsigned int) len));
+}
+
 void
 isc_buffer_free(isc_buffer_t **dynbuffer) {
-	unsigned int real_length;
 	isc_buffer_t *dbuf;
 	isc_mem_t *mctx;
 
@@ -481,11 +626,10 @@ isc_buffer_free(isc_buffer_t **dynbuffer) {
 
 	dbuf = *dynbuffer;
 	*dynbuffer = NULL;	/* destroy external reference */
-
-	real_length = dbuf->length + sizeof(isc_buffer_t);
 	mctx = dbuf->mctx;
 	dbuf->mctx = NULL;
-	isc_buffer_invalidate(dbuf);
 
-	isc_mem_put(mctx, dbuf, real_length);
+	isc_mem_put(mctx, dbuf->base, dbuf->length);
+	isc_buffer_invalidate(dbuf);
+	isc_mem_put(mctx, dbuf, sizeof(isc_buffer_t));
 }

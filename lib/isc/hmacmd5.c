@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004-2007, 2009, 2013-2015  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 2000, 2001  Internet Software Consortium.
+ * Copyright (C) 2000, 2001, 2004-2007, 2009, 2013-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id: hmacmd5.c,v 1.16 2009/02/06 23:47:42 tbox Exp $ */
@@ -24,6 +15,10 @@
 
 #include "config.h"
 
+#include <pk11/site.h>
+
+#ifndef PK11_MD5_DISABLE
+
 #include <isc/assertions.h>
 #include <isc/hmacmd5.h>
 #include <isc/md5.h>
@@ -33,7 +28,7 @@
 #include <isc/types.h>
 #include <isc/util.h>
 
-#if PKCS11CRYPTO || PKCS11CRYPTOWITHHMAC
+#if PKCS11CRYPTO
 #include <pk11/internal.h>
 #include <pk11/pk11.h>
 #endif
@@ -78,7 +73,9 @@ isc_hmacmd5_sign(isc_hmacmd5_t *ctx, unsigned char *digest) {
 	HMAC_CTX_cleanup(ctx);
 }
 
-#elif PKCS11CRYPTOWITHHMAC
+#elif PKCS11CRYPTO
+
+#ifndef PK11_MD5_HMAC_REPLACE
 
 static CK_BBOOL truevalue = TRUE;
 static CK_BBOOL falsevalue = FALSE;
@@ -151,8 +148,8 @@ isc_hmacmd5_sign(isc_hmacmd5_t *ctx, unsigned char *digest) {
 	ctx->object = CK_INVALID_HANDLE;
 	pk11_return_session(ctx);
 }
-
-#elif PKCS11CRYPTO
+#else
+/* Replace missing CKM_MD5_HMAC PKCS#11 mechanism */
 
 #define PADLEN 64
 #define IPAD 0x36
@@ -238,6 +235,7 @@ isc_hmacmd5_sign(isc_hmacmd5_t *ctx, unsigned char *digest) {
 			 (CK_ULONG_PTR) &len));
 	pk11_return_session(ctx);
 }
+#endif
 
 #else
 
@@ -328,3 +326,17 @@ isc_hmacmd5_verify2(isc_hmacmd5_t *ctx, unsigned char *digest, size_t len) {
 	isc_hmacmd5_sign(ctx, newdigest);
 	return (isc_safe_memequal(digest, newdigest, len));
 }
+
+#else /* !PK11_MD5_DISABLE */
+#ifdef WIN32
+/* Make the Visual Studio linker happy */
+#include <isc/util.h>
+
+void isc_hmacmd5_init() { INSIST(0); }
+void isc_hmacmd5_invalidate() { INSIST(0); }
+void isc_hmacmd5_sign() { INSIST(0); }
+void isc_hmacmd5_update() { INSIST(0); }
+void isc_hmacmd5_verify() { INSIST(0); }
+void isc_hmacmd5_verify2() { INSIST(0); }
+#endif
+#endif /* PK11_MD5_DISABLE */

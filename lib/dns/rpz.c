@@ -1,17 +1,9 @@
 /*
- * Copyright (C) 2011-2015  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2011-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /*! \file */
@@ -978,34 +970,43 @@ name2data(dns_rpz_zones_t *rpzs, dns_rpz_num_t rpz_num,
 	(void)dns_name_concatenate(&tmp_name, dns_rootname, trig_name, NULL);
 }
 
-/*
- * Find the first differing bit in a key (IP address) word.
+#ifndef HAVE_BUILTIN_CLZ
+/**
+ * \brief Count Leading Zeros: Find the location of the left-most set
+ * bit.
  */
-static inline int
-ffs_keybit(dns_rpz_cidr_word_t w) {
-	int bit;
+static inline unsigned int
+clz(dns_rpz_cidr_word_t w) {
+	unsigned int bit;
 
 	bit = DNS_RPZ_CIDR_WORD_BITS-1;
+
 	if ((w & 0xffff0000) != 0) {
 		w >>= 16;
 		bit -= 16;
 	}
+
 	if ((w & 0xff00) != 0) {
 		w >>= 8;
 		bit -= 8;
 	}
+
 	if ((w & 0xf0) != 0) {
 		w >>= 4;
 		bit -= 4;
 	}
+
 	if ((w & 0xc) != 0) {
 		w >>= 2;
 		bit -= 2;
 	}
+
 	if ((w & 2) != 0)
 		--bit;
+
 	return (bit);
 }
+#endif
 
 /*
  * Find the first differing bit in two keys (IP addresses).
@@ -1024,12 +1025,14 @@ diff_keys(const dns_rpz_cidr_key_t *key1, dns_rpz_prefix_t prefix1,
 	/*
 	 * find the first differing words
 	 */
-	for (i = 0;
-	     bit < maxbit;
-	     i++, bit += DNS_RPZ_CIDR_WORD_BITS) {
+	for (i = 0; bit < maxbit; i++, bit += DNS_RPZ_CIDR_WORD_BITS) {
 		delta = key1->w[i] ^ key2->w[i];
-		if (delta != 0) {
-			bit += ffs_keybit(delta);
+		if (ISC_UNLIKELY(delta != 0)) {
+#ifdef HAVE_BUILTIN_CLZ
+			bit += __builtin_clz(delta);
+#else
+			bit += clz(delta);
+#endif
 			break;
 		}
 	}
@@ -1173,7 +1176,7 @@ search(dns_rpz_zones_t *rpzs,
 				rpzs->cidr = new_parent;
 			else
 				parent->child[cur_num] = new_parent;
-			child_num = DNS_RPZ_IP_BIT(&cur->ip, tgt_prefix+1);
+			child_num = DNS_RPZ_IP_BIT(&cur->ip, tgt_prefix);
 			new_parent->child[child_num] = cur;
 			cur->parent = new_parent;
 			new_parent->set = *tgt_set;

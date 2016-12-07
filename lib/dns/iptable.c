@@ -1,20 +1,10 @@
 /*
- * Copyright (C) 2007-2009, 2013  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2007-2009, 2013, 2014, 2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-
-/* $Id: iptable.c,v 1.15 2009/02/18 23:47:48 tbox Exp $ */
 
 #include <config.h>
 
@@ -54,8 +44,8 @@ dns_iptable_create(isc_mem_t *mctx, dns_iptable_t **target) {
 	return (result);
 }
 
-isc_boolean_t dns_iptable_neg = ISC_FALSE;
-isc_boolean_t dns_iptable_pos = ISC_TRUE;
+static isc_boolean_t dns_iptable_neg = ISC_FALSE;
+static isc_boolean_t dns_iptable_pos = ISC_TRUE;
 
 /*
  * Add an IP prefix to an existing IP table
@@ -64,15 +54,23 @@ isc_result_t
 dns_iptable_addprefix(dns_iptable_t *tab, isc_netaddr_t *addr,
 		      isc_uint16_t bitlen, isc_boolean_t pos)
 {
+	return(dns_iptable_addprefix2(tab, addr, bitlen, pos, ISC_FALSE));
+}
+
+isc_result_t
+dns_iptable_addprefix2(dns_iptable_t *tab, isc_netaddr_t *addr,
+		       isc_uint16_t bitlen, isc_boolean_t pos,
+		       isc_boolean_t is_ecs)
+{
 	isc_result_t result;
 	isc_prefix_t pfx;
 	isc_radix_node_t *node = NULL;
-	int family;
+	int i;
 
 	INSIST(DNS_IPTABLE_VALID(tab));
 	INSIST(tab->radix);
 
-	NETADDR_TO_PREFIX_T(addr, pfx, bitlen);
+	NETADDR_TO_PREFIX_T(addr, pfx, bitlen, is_ecs);
 
 	result = isc_radix_insert(tab->radix, &node, NULL, &pfx);
 	if (result != ISC_R_SUCCESS) {
@@ -81,28 +79,20 @@ dns_iptable_addprefix(dns_iptable_t *tab, isc_netaddr_t *addr,
 	}
 
 	/* If a node already contains data, don't overwrite it */
-	family = pfx.family;
-	if (family == AF_UNSPEC) {
+	if (pfx.family == AF_UNSPEC) {
 		/* "any" or "none" */
 		INSIST(pfx.bitlen == 0);
-		if (pos) {
-			if (node->data[0] == NULL)
-				node->data[0] = &dns_iptable_pos;
-			if (node->data[1] == NULL)
-				node->data[1] = &dns_iptable_pos;
-		} else {
-			if (node->data[0] == NULL)
-				node->data[0] = &dns_iptable_neg;
-			if (node->data[1] == NULL)
-				node->data[1] = &dns_iptable_neg;
+		for (i = 0; i < 4; i++) {
+			if (node->data[i] == NULL)
+				node->data[i] = pos ? &dns_iptable_pos
+						    : &dns_iptable_neg;
 		}
 	} else {
 		/* any other prefix */
-		if (node->data[ISC_IS6(family)] == NULL) {
-			if (pos)
-				node->data[ISC_IS6(family)] = &dns_iptable_pos;
-			else
-				node->data[ISC_IS6(family)] = &dns_iptable_neg;
+		int offset = ISC_RADIX_OFF(&pfx);
+		if (node->data[offset] == NULL) {
+			node->data[offset] = pos ? &dns_iptable_pos
+						 : &dns_iptable_neg;
 		}
 	}
 
@@ -118,7 +108,7 @@ dns_iptable_merge(dns_iptable_t *tab, dns_iptable_t *source, isc_boolean_t pos)
 {
 	isc_result_t result;
 	isc_radix_node_t *node, *new_node;
-	int max_node = 0;
+	int i, max_node = 0;
 
 	RADIX_WALK (source->radix->head, node) {
 		new_node = NULL;
@@ -135,20 +125,15 @@ dns_iptable_merge(dns_iptable_t *tab, dns_iptable_t *source, isc_boolean_t pos)
 		 * could be a security risk.  To prevent this, we
 		 * just leave the negative nodes negative.
 		 */
-		if (!pos) {
-			if (node->data[0] &&
-			    *(isc_boolean_t *) node->data[0] == ISC_TRUE)
-				new_node->data[0] = &dns_iptable_neg;
-
-			if (node->data[1] &&
-			    *(isc_boolean_t *) node->data[1] == ISC_TRUE)
-				new_node->data[1] = &dns_iptable_neg;
+		for (i = 0; i < 4; i++) {
+			if (!pos) {
+				if (node->data[i] &&
+				    *(isc_boolean_t *) node->data[i])
+					new_node->data[i] = &dns_iptable_neg;
+			}
+			if (node->node_num[i] > max_node)
+				max_node = node->node_num[i];
 		}
-
-		if (node->node_num[0] > max_node)
-			max_node = node->node_num[0];
-		if (node->node_num[1] > max_node)
-			max_node = node->node_num[1];
 	} RADIX_WALK_END;
 
 	tab->radix->num_added_node += max_node;

@@ -1,16 +1,8 @@
-# Copyright (C) 2012, 2013, 2015  Internet Systems Consortium, Inc. ("ISC")
+# Copyright (C) 2012, 2013, 2015, 2016  Internet Systems Consortium, Inc. ("ISC")
 #
-# Permission to use, copy, modify, and/or distribute this software for any
-# purpose with or without fee is hereby granted, provided that the above
-# copyright notice and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-# AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
-# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
-# OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-# PERFORMANCE OF THIS SOFTWARE.
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
 # test response rate limiting
@@ -23,6 +15,7 @@ SYSTEMTESTTOP=..
 ns1=10.53.0.1			    # root, defining the others
 ns2=10.53.0.2			    # test server
 ns3=10.53.0.3			    # secondary test server
+ns4=10.53.0.4			    # log-only test server
 ns7=10.53.0.7			    # whitelisted client
 
 USAGE="$0: [-x]"
@@ -70,7 +63,7 @@ HOME=/dev/null; export HOME
 digcmd () {
     OFILE=$1; shift
     DIG_DOM=$1; shift
-    ARGS="+nosearch +time=1 +tries=1 +ignore -p 5300 $* $DIG_DOM @$ns2"
+    ARGS="+nocookie +nosearch +time=1 +tries=1 +ignore -p 5300 $* $DIG_DOM @$ns2"
     #echo I:dig $ARGS 1>&2
     START=`date +%y%m%d%H%M.%S`
     RESULT=`$DIG $ARGS 2>&1 | tee $OFILE=TEMP				\
@@ -87,7 +80,6 @@ digcmd () {
     touch -t $START "$OFILE=$RESULT"
 }
 
-
 #   $1=number of tests  $2=target domain  $3=dig options
 QNUM=1
 burst () {
@@ -96,13 +88,17 @@ burst () {
     CNTS=`$PERL -e 'for ( $i = 0; $i < '$BURST_LIMIT'; $i++) { printf "%03d\n", '$QNUM' + $i; }'`
     for CNT in $CNTS
     do
-	eval BURST_DOM="$BURST_DOM_BASE"
-	FILE="dig.out-$BURST_DOM-$CNT"
-	digcmd $FILE $BURST_DOM $* &
+        eval BURST_DOM="$BURST_DOM_BASE"
+        FILE="dig.out-$BURST_DOM-$CNT"
+        digcmd $FILE $BURST_DOM $* &
     done
     QNUM=`expr $QNUM + $BURST_LIMIT`
 }
 
+# compare integers $1 and $2; ensure the difference is no more than $3
+range () {
+    $PERL -e 'if (abs(int($ARGV[0]) - int($ARGV[1])) > int($ARGV[2])) { exit(1) }' $1 $2 $3
+}
 
 #   $1=domain  $2=IP address  $3=# of IP addresses  $4=TC  $5=drop
 #	$6=NXDOMAIN  $7=SERVFAIL or other errors
@@ -117,26 +113,27 @@ ck_result() {
     NXDOMAIN=`ls dig.out-$1-*=NXDOMAIN  dig.out-$1-*=NXDOMAINTC	2>/dev/null \
 							| wc -l`
     SERVFAIL=`ls dig.out-$1-*=SERVFAIL			2>/dev/null | wc -l`
-    if test $ADDRS -ne "$3"; then
-	setret "I:"$ADDRS" instead of $3 '$2' responses for $1"
-	BAD=yes
-    fi
-    if test $TC -ne "$4"; then
-	setret "I:"$TC" instead of $4 truncation responses for $1"
-	BAD=yes
-    fi
-    if test $DROP -ne "$5"; then
-	setret "I:"$DROP" instead of $5 dropped responses for $1"
-	BAD=yes
-    fi
-    if test $NXDOMAIN -ne "$6"; then
-	setret "I:"$NXDOMAIN" instead of $6 NXDOMAIN responses for $1"
-	BAD=yes
-    fi
-    if test $SERVFAIL -ne "$7"; then
-	setret "I:"$SERVFAIL" instead of $7 error responses for $1"
-	BAD=yes
-    fi
+    
+    range $ADDRS "$3" 1 ||
+    setret "I:"$ADDRS" instead of $3 '$2' responses for $1" &&
+    BAD=yes
+    
+    range $TC "$4" 1 ||
+    setret "I:"$TC" instead of $4 truncation responses for $1" &&
+    BAD=yes
+    
+    range $DROP "$5" 1 ||
+    setret "I:"$DROP" instead of $5 dropped responses for $1" &&
+    BAD=yes
+    
+    range $NXDOMAIN "$6" 1 ||
+    setret "I:"$NXDOMAIN" instead of $6 NXDOMAIN responses for $1" &&
+    BAD=yes
+    
+    range $SERVFAIL "$7" 1 ||
+    setret "I:"$SERVFAIL" instead of $7 error responses for $1" &&
+    BAD=yes
+    
     if test -z "$BAD"; then
 	rm -f dig.out-$1-*
     fi
@@ -150,9 +147,9 @@ ckstats () {
     C=`sed -n -e "s/[	 ]*\([0-9]*\).responses $TYPE for rate limits.*/\1/p"  \
 	    ns2/named.stats | tail -1`
     C=`expr 0$C + 0`
-    if test "$C" -ne $EXPECTED; then
-	setret "I:wrong $LABEL $TYPE statistics of $C instead of $EXPECTED"
-    fi
+    
+    range "$C" $EXPECTED 1 ||
+    setret "I:wrong $LABEL $TYPE statistics of $C instead of $EXPECTED"
 }
 
 
@@ -251,8 +248,34 @@ $RNDC -c $SYSTEMTESTTOP/common/rndc.conf -p 9953 -s $ns2 stats
 ckstats final dropped 56
 ckstats final truncated 23
 
+#########
+sec_start
+
+$DIG +nocookie +nosearch +time=1 +tries=1 +ignore -p 5300 @$ns4 A a7.tld4 > /dev/null 2>&1
+$DIG +nocookie +nosearch +time=1 +tries=1 +ignore -p 5300 @$ns4 A a7.tld4 > /dev/null 2>&1
+$DIG +nocookie +nosearch +time=1 +tries=1 +ignore -p 5300 @$ns4 A a7.tld4 > /dev/null 2>&1
+$DIG +nocookie +nosearch +time=1 +tries=1 +ignore -p 5300 @$ns4 A a7.tld4 > /dev/null 2>&1
+$DIG +nocookie +nosearch +time=1 +tries=1 +ignore -p 5300 @$ns4 A a7.tld4 > /dev/null 2>&1
+$DIG +nocookie +nosearch +time=1 +tries=1 +ignore -p 5300 @$ns4 A a7.tld4 > /dev/null 2>&1
+$DIG +nocookie +nosearch +time=1 +tries=1 +ignore -p 5300 @$ns4 A a7.tld4 > /dev/null 2>&1
+$DIG +nocookie +nosearch +time=1 +tries=1 +ignore -p 5300 @$ns4 A a7.tld4 > /dev/null 2>&1
+$DIG +nocookie +nosearch +time=1 +tries=1 +ignore -p 5300 @$ns4 A a7.tld4 > /dev/null 2>&1
+$DIG +nocookie +nosearch +time=1 +tries=1 +ignore -p 5300 @$ns4 A a7.tld4 > /dev/null 2>&1
+$DIG +nocookie +nosearch +time=1 +tries=1 +ignore -p 5300 @$ns4 A a7.tld4 > /dev/null 2>&1
+
+grep "would limit" ns4/named.run >/dev/null 2>&1 ||
+setret "I: \"would limit\" not found in log file."
+
+$NAMED -gc broken.conf > broken.out 2>&1 & 
+sleep 2
+grep "min-table-size 1" broken.out > /dev/null || setret "I: min-table-size 0 was not changed to 1"
+
+if [ -f named.pid ]; then
+    kill `cat named.pid`
+    setret "I: named should not have started, but did"
+fi
 
 echo "I:exit status: $ret"
-# exit $ret
-[ $ret -ne 0 ] && echo "I:test failure overridden"
-exit 0
+[ $ret -eq 0 ] || exit 1
+#[ $ret -ne 0 ] && echo "I:test failure overridden"
+#[ $status -eq 0 ] || exit 1

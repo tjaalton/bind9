@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004, 2005, 2007, 2009-2015  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 2000, 2001, 2003  Internet Software Consortium.
+ * Copyright (C) 2000, 2001, 2003-2005, 2007, 2009-2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /*! \file */
@@ -27,15 +18,17 @@
 
 #include <isc/base32.h>
 #include <isc/buffer.h>
+#include <isc/commandline.h>
 #include <isc/dir.h>
 #include <isc/entropy.h>
+#include <isc/file.h>
 #include <isc/heap.h>
 #include <isc/list.h>
 #include <isc/mem.h>
+#include <isc/print.h>
 #include <isc/string.h>
 #include <isc/time.h>
 #include <isc/util.h>
-#include <isc/print.h>
 
 #include <dns/db.h>
 #include <dns/dbiterator.h>
@@ -472,6 +465,8 @@ key_collision(dst_key_t *dstkey, dns_name_t *name, const char *dir,
 	isc_uint16_t id, oldid;
 	isc_uint32_t rid, roldid;
 	dns_secalg_t alg;
+	char filename[ISC_DIR_NAMEMAX];
+	isc_buffer_t fileb;
 
 	if (exact != NULL)
 		*exact = ISC_FALSE;
@@ -479,6 +474,28 @@ key_collision(dst_key_t *dstkey, dns_name_t *name, const char *dir,
 	id = dst_key_id(dstkey);
 	rid = dst_key_rid(dstkey);
 	alg = dst_key_alg(dstkey);
+
+	/*
+	 * For HMAC and Diffie Hellman just check if there is a
+	 * direct collision as they can't be revoked.  Additionally
+	 * dns_dnssec_findmatchingkeys only handles DNSKEY which is
+	 * not used for HMAC.
+	 */
+	switch (alg) {
+	case DST_ALG_HMACMD5:
+	case DST_ALG_HMACSHA1:
+	case DST_ALG_HMACSHA224:
+	case DST_ALG_HMACSHA256:
+	case DST_ALG_HMACSHA384:
+	case DST_ALG_HMACSHA512:
+	case DST_ALG_DH:
+		isc_buffer_init(&fileb, filename, sizeof(filename));
+		result = dst_key_buildfilename(dstkey, DST_TYPE_PRIVATE,
+					       dir, &fileb);
+		if (result != ISC_R_SUCCESS)
+			return (ISC_TRUE);
+		return (isc_file_exists(filename));
+	}
 
 	ISC_LIST_INIT(matchkeys);
 	result = dns_dnssec_findmatchingkeys(name, dir, mctx, &matchkeys);
@@ -1833,4 +1850,21 @@ verifyzone(dns_db_t *db, dns_dbversion_t *ver,
 			}
 		}
 	}
+}
+
+isc_boolean_t
+isoptarg(const char *arg, char **argv, void(*usage)(void)) {
+	if (!strcasecmp(isc_commandline_argument, arg)) {
+		if (argv[isc_commandline_index] == NULL) {
+			fprintf(stderr, "%s: missing argument -%c %s\n",
+				program, isc_commandline_option,
+				isc_commandline_argument);
+			usage();
+		}
+		isc_commandline_argument = argv[isc_commandline_index];
+		/* skip to next arguement */
+		isc_commandline_index++;
+		return (ISC_TRUE);
+	}
+	return (ISC_FALSE);
 }

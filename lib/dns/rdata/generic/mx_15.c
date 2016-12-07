@@ -1,18 +1,9 @@
 /*
- * Copyright (C) 2004, 2005, 2007, 2009, 2012, 2015  Internet Systems Consortium, Inc. ("ISC")
- * Copyright (C) 1998-2001, 2003  Internet Software Consortium.
+ * Copyright (C) 1998-2001, 2003-2005, 2007, 2009, 2012, 2015, 2016  Internet Systems Consortium, Inc. ("ISC")
  *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 /* $Id: mx_15.c,v 1.58 2009/12/04 22:06:37 tbox Exp $ */
@@ -25,6 +16,8 @@
 #include <string.h>
 
 #include <isc/net.h>
+
+#include <dns/fixedname.h>
 
 #define RRTYPE_MX_ATTRIBUTES (0)
 
@@ -251,8 +244,15 @@ freestruct_mx(ARGS_FREESTRUCT) {
 	mx->mctx = NULL;
 }
 
+static unsigned char port25_offset[] = { 0, 3 };
+static unsigned char port25_ndata[] = "\003_25\004_tcp";
+static dns_name_t port25 =
+	 DNS_NAME_INITNONABSOLUTE(port25_ndata, port25_offset);
+
 static inline isc_result_t
 additionaldata_mx(ARGS_ADDLDATA) {
+	isc_result_t result;
+	dns_fixedname_t fixed;
 	dns_name_t name;
 	dns_offsets_t offsets;
 	isc_region_t region;
@@ -264,7 +264,20 @@ additionaldata_mx(ARGS_ADDLDATA) {
 	isc_region_consume(&region, 2);
 	dns_name_fromregion(&name, &region);
 
-	return ((add)(arg, &name, dns_rdatatype_a));
+	if (dns_name_equal(&name, dns_rootname))
+		return (ISC_R_SUCCESS);
+
+	result = (add)(arg, &name, dns_rdatatype_a);
+	if (result != ISC_R_SUCCESS)
+		return (result);
+
+	dns_fixedname_init(&fixed);
+	result = dns_name_concatenate(&port25, &name,
+				      dns_fixedname_name(&fixed), NULL);
+	if (result != ISC_R_SUCCESS)
+		return (ISC_R_SUCCESS);
+
+	return ((add)(arg, dns_fixedname_name(&fixed), dns_rdatatype_tlsa));
 }
 
 static inline isc_result_t

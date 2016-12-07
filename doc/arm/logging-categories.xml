@@ -1,17 +1,9 @@
 <!--
- - Copyright (C) 2015  Internet Systems Consortium, Inc. ("ISC")
+ - Copyright (C) 2015, 2016  Internet Systems Consortium, Inc. ("ISC")
  -
- - Permission to use, copy, modify, and/or distribute this software for any
- - purpose with or without fee is hereby granted, provided that the above
- - copyright notice and this permission notice appear in all copies.
- -
- - THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
- - REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- - AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
- - INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- - LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
- - OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- - PERFORMANCE OF THIS SOFTWARE.
+ - This Source Code Form is subject to the terms of the Mozilla Public
+ - License, v. 2.0. If a copy of the MPL was not distributed with this
+ - file, You can obtain one at http://mozilla.org/MPL/2.0/.
 -->
 
 <!-- Converted by db4-upgrade version 1.0 -->
@@ -113,6 +105,16 @@
       </row>
       <row rowsep="0">
 	<entry colname="1">
+	  <para><command>dnstap</command></para>
+	</entry>
+	<entry colname="2">
+	  <para>
+	    The "dnstap" DNS traffic capture system.
+	  </para>
+	</entry>
+      </row>
+      <row rowsep="0">
+	<entry colname="1">
 	  <para><command>edns-disabled</command></para>
 	</entry>
 	<entry colname="2">
@@ -208,11 +210,14 @@
 	    class and type.  Next it reports whether the
 	    Recursion Desired flag was set (+ if set, -
 	    if not set), if the query was signed (S),
-	    EDNS was in use (E), if TCP was used (T), if
-	    DO (DNSSEC Ok) was set (D), or if CD (Checking
-	    Disabled) was set (C).  After this the
-	    destination address the query was sent to is
-	    reported.
+	    EDNS was in used along with the EDNS version
+	    number (E(#)), if TCP was used (T), if DO
+	    (DNSSEC Ok) was set (D), if CD (Checking
+	    Disabled) was set (C), if a valid DNS Server
+	    COOKIE was received (V), or if a DNS COOKIE
+	    option without a valid Server COOKIE was
+	    present (K).  After this the destination
+	    address the query was sent to is reported.
 	  </para>
 
 	  <para>
