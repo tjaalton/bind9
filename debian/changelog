@@ -1,3 +1,12 @@
+bind9 (1:9.10.3.dfsg.P4-10.1) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * Add explicit ordering for nss-lookup.target in bind9.service,
+    lwresd.service. Patches by Michael Biebl <biebl@debian.org>.
+    (Closes: #826243, #826245)
+
+ -- Christian Hofstaedtler <zeha@debian.org>  Sat, 02 Jul 2016 14:32:50 +0200
+
 bind9 (1:9.10.3.dfsg.P4-10) unstable; urgency=medium
 
   * Use python3
