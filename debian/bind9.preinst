@@ -1,0 +1,7 @@
+#!/bin/sh
+# pre install script for the Debian bind9 package
+
+set -e
+
+#DEBHELPER#
+exit 0

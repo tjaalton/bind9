@@ -1,0 +1,19 @@
+--- a/isc-config.sh.in
++++ b/isc-config.sh.in
+@@ -12,7 +12,6 @@
+ exec_prefix=@exec_prefix@
+ exec_prefix_set=
+ includedir=@includedir@
+-libdir=@libdir@
+ 
+ usage()
+ {
+@@ -131,7 +130,7 @@
+ 	if test x"${exec_prefix_set}" = x"true"; then
+ 		libs="-L${exec_prefix}/lib"
+ 	else
+-		libs="-L${libdir}"
++		libs=
+ 	fi
+ 	if test x"$libirs" = x"true" ; then
+ 		libs="$libs -lirs"

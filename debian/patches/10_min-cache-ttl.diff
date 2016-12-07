@@ -1,0 +1,219 @@
+Author: Michael Milligan <milli@acmeps.com>
+Date:   Fri Mar 20 15:01:03 2009 -0600
+
+    Add min-cache-ttl and min-ncache-ttl keywords
+
+    Sometimes it is useful to set a 'floor' on the TTL for records
+    to be cached.  Some sites like to use ridiculously low TTLs for
+    some reason, and that often is not compatible with slow links.
+
+    Signed-off-by: Michael Milligan <milli@acmeps.com>
+    Signed-off-by: LaMont Jones <lamont@debian.org>
+
+--- a/bin/named/config.c
++++ b/bin/named/config.c
+@@ -155,6 +155,8 @@
+ 	servfail-ttl 1;\n\
+ 	max-ncache-ttl 10800; /* 3 hours */\n\
+ 	max-cache-ttl 604800; /* 1 week */\n\
++	min-ncache-ttl 0; /* 0 hours */\n\
++	min-cache-ttl 0; /* 0 seconds */\n\
+ 	transfer-format many-answers;\n\
+ 	max-cache-size 90%;\n\
+ 	check-names master fail;\n\
+--- a/bin/named/server.c
++++ b/bin/named/server.c
+@@ -3649,6 +3649,18 @@
+ 	if (view->maxncachettl > 7 * 24 * 3600)
+ 		view->maxncachettl = 7 * 24 * 3600;
+ 
++	obj = NULL;
++	result = ns_config_get(maps, "min-cache-ttl", &obj);
++	INSIST(result == ISC_R_SUCCESS);
++	view->mincachettl = cfg_obj_asuint32(obj);
++
++	obj = NULL;
++	result = ns_config_get(maps, "min-ncache-ttl", &obj);
++	INSIST(result == ISC_R_SUCCESS);
++	view->minncachettl = cfg_obj_asuint32(obj);
++	if (view->minncachettl > 7 * 24 * 3600)
++		view->minncachettl = 7 * 24 * 3600;
++
+ 	/*
+ 	 * Configure the view's cache.
+ 	 *
+--- a/bin/tests/named.conf
++++ b/bin/tests/named.conf
+@@ -45,6 +45,7 @@
+ 	memstatistics-file "named.memstats";	// _PATH_MEMSTATS
+ 
+ 	max-cache-ttl 999;
++	min-cache-ttl 666;
+ 	auth-nxdomain yes;		// always set AA on NXDOMAIN.
+ 					// don't set this to 'no' unless
+ 					// you know what you're doing -- older
+@@ -147,6 +148,7 @@
+ 	min-refresh-time 777;
+ 
+ 	max-ncache-ttl 333;
++	min-ncache-ttl 222;
+ 	min-roots 15;
+ 	serial-queries 34;
+ 
+--- a/lib/dns/include/dns/ncache.h
++++ b/lib/dns/include/dns/ncache.h
+@@ -52,12 +52,12 @@
+ 
+ isc_result_t
+ dns_ncache_add(dns_message_t *message, dns_db_t *cache, dns_dbnode_t *node,
+-	       dns_rdatatype_t covers, isc_stdtime_t now, dns_ttl_t maxttl,
++	       dns_rdatatype_t covers, isc_stdtime_t now, dns_ttl_t minttl, dns_ttl_t maxttl,
+ 	       dns_rdataset_t *addedrdataset);
+ isc_result_t
+ dns_ncache_addoptout(dns_message_t *message, dns_db_t *cache,
+ 		     dns_dbnode_t *node, dns_rdatatype_t covers,
+-		     isc_stdtime_t now, dns_ttl_t maxttl,
++		     isc_stdtime_t now, dns_ttl_t minttl, dns_ttl_t maxttl,
+ 		     isc_boolean_t optout, dns_rdataset_t *addedrdataset);
+ /*%<
+  * Convert the authority data from 'message' into a negative cache
+--- a/lib/dns/include/dns/view.h
++++ b/lib/dns/include/dns/view.h
+@@ -147,6 +147,8 @@
+ 	isc_boolean_t			sendcookie;
+ 	dns_ttl_t			maxcachettl;
+ 	dns_ttl_t			maxncachettl;
++	dns_ttl_t			mincachettl;
++	dns_ttl_t			minncachettl;
+ 	isc_uint32_t			nta_lifetime;
+ 	isc_uint32_t			nta_recheck;
+ 	char				*nta_file;
+--- a/lib/dns/ncache.c
++++ b/lib/dns/ncache.c
+@@ -40,7 +40,7 @@
+ 
+ static isc_result_t
+ addoptout(dns_message_t *message, dns_db_t *cache, dns_dbnode_t *node,
+-	  dns_rdatatype_t covers, isc_stdtime_t now, dns_ttl_t maxttl,
++	  dns_rdatatype_t covers, isc_stdtime_t now, dns_ttl_t minttl, dns_ttl_t maxttl,
+ 	  isc_boolean_t optout, isc_boolean_t secure,
+ 	  dns_rdataset_t *addedrdataset);
+ 
+@@ -90,26 +90,26 @@
+ 
+ isc_result_t
+ dns_ncache_add(dns_message_t *message, dns_db_t *cache, dns_dbnode_t *node,
+-	       dns_rdatatype_t covers, isc_stdtime_t now, dns_ttl_t maxttl,
++	       dns_rdatatype_t covers, isc_stdtime_t now, dns_ttl_t minttl, dns_ttl_t maxttl,
+ 	       dns_rdataset_t *addedrdataset)
+ {
+-	return (addoptout(message, cache, node, covers, now, maxttl,
++	return (addoptout(message, cache, node, covers, now, minttl, maxttl,
+ 			  ISC_FALSE, ISC_FALSE, addedrdataset));
+ }
+ 
+ isc_result_t
+ dns_ncache_addoptout(dns_message_t *message, dns_db_t *cache,
+ 		     dns_dbnode_t *node, dns_rdatatype_t covers,
+-		     isc_stdtime_t now, dns_ttl_t maxttl,
++		     isc_stdtime_t now, dns_ttl_t minttl, dns_ttl_t maxttl,
+ 		     isc_boolean_t optout, dns_rdataset_t *addedrdataset)
+ {
+-	return (addoptout(message, cache, node, covers, now, maxttl,
++	return (addoptout(message, cache, node, covers, now, minttl, maxttl,
+ 			  optout, ISC_TRUE, addedrdataset));
+ }
+ 
+ static isc_result_t
+ addoptout(dns_message_t *message, dns_db_t *cache, dns_dbnode_t *node,
+-	  dns_rdatatype_t covers, isc_stdtime_t now, dns_ttl_t maxttl,
++	  dns_rdatatype_t covers, isc_stdtime_t now, dns_ttl_t minttl, dns_ttl_t maxttl,
+ 	  isc_boolean_t optout, isc_boolean_t secure,
+ 	  dns_rdataset_t *addedrdataset)
+ {
+@@ -176,6 +176,8 @@
+ 				    type == dns_rdatatype_nsec3) {
+ 					if (ttl > rdataset->ttl)
+ 						ttl = rdataset->ttl;
++					if (ttl < minttl)
++						ttl = minttl;
+ 					if (trust > rdataset->trust)
+ 						trust = rdataset->trust;
+ 					/*
+--- a/lib/dns/resolver.c
++++ b/lib/dns/resolver.c
+@@ -558,7 +558,9 @@
+ static isc_result_t ncache_adderesult(dns_message_t *message,
+ 				      dns_db_t *cache, dns_dbnode_t *node,
+ 				      dns_rdatatype_t covers,
+-				      isc_stdtime_t now, dns_ttl_t maxttl,
++				      isc_stdtime_t now,
++				      dns_ttl_t minttl,
++				      dns_ttl_t maxttl,
+ 				      isc_boolean_t optout,
+ 				      isc_boolean_t secure,
+ 				      dns_rdataset_t *ardataset,
+@@ -4968,7 +4970,7 @@
+ 			ttl = 0;
+ 
+ 		result = ncache_adderesult(fctx->rmessage, fctx->cache, node,
+-					   covers, now, ttl, vevent->optout,
++					   covers, now, fctx->res->view->minncachettl, ttl, vevent->optout,
+ 					   vevent->secure, ardataset, &eresult);
+ 		if (result != ISC_R_SUCCESS)
+ 			goto noanswer_response;
+@@ -5437,6 +5439,12 @@
+ 			rdataset->ttl = res->view->maxcachettl;
+ 
+ 		/*
++		 * Enforce configured minimum cache TTL.
++		 */
++		if (rdataset->ttl < res->view->mincachettl)
++			rdataset->ttl = res->view->mincachettl;
++
++		/*
+ 		 * Mark the rdataset as being prefetch eligible.
+ 		 */
+ 		if (rdataset->ttl > fctx->res->view->prefetch_eligible)
+@@ -5789,7 +5797,7 @@
+  */
+ static isc_result_t
+ ncache_adderesult(dns_message_t *message, dns_db_t *cache, dns_dbnode_t *node,
+-		  dns_rdatatype_t covers, isc_stdtime_t now, dns_ttl_t maxttl,
++		  dns_rdatatype_t covers, isc_stdtime_t now, dns_ttl_t minttl, dns_ttl_t maxttl,
+ 		  isc_boolean_t optout, isc_boolean_t secure,
+ 		  dns_rdataset_t *ardataset, isc_result_t *eresultp)
+ {
+@@ -5802,10 +5810,10 @@
+ 	}
+ 	if (secure)
+ 		result = dns_ncache_addoptout(message, cache, node, covers,
+-					      now, maxttl, optout, ardataset);
++					      now, minttl, maxttl, optout, ardataset);
+ 	else
+ 		result = dns_ncache_add(message, cache, node, covers, now,
+-					maxttl, ardataset);
++					minttl, maxttl, ardataset);
+ 	if (result == DNS_R_UNCHANGED || result == ISC_R_SUCCESS) {
+ 		/*
+ 		 * If the cache now contains a negative entry and we
+@@ -5980,7 +5988,7 @@
+ 		ttl = 0;
+ 
+ 	result = ncache_adderesult(fctx->rmessage, fctx->cache, node,
+-				   covers, now, ttl, ISC_FALSE,
++				   covers, now, fctx->res->view->minncachettl, ttl, ISC_FALSE,
+ 				   ISC_FALSE, ardataset, &eresult);
+ 	if (result != ISC_R_SUCCESS)
+ 		goto unlock;
+--- a/lib/isccfg/namedconf.c
++++ b/lib/isccfg/namedconf.c
+@@ -1741,6 +1741,8 @@
+ 	{ "max-recursion-depth", &cfg_type_uint32, 0 },
+ 	{ "max-recursion-queries", &cfg_type_uint32, 0 },
+ 	{ "max-udp-size", &cfg_type_uint32, 0 },
++	{ "min-cache-ttl", &cfg_type_uint32, 0 },
++	{ "min-ncache-ttl", &cfg_type_uint32, 0 },
+ 	{ "min-roots", &cfg_type_uint32, CFG_CLAUSEFLAG_NOTIMP },
+ 	{ "minimal-any", &cfg_type_boolean, 0 },
+ 	{ "minimal-responses", &cfg_type_minimal, 0 },

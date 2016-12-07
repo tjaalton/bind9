@@ -1,0 +1,11 @@
+Author: LaMont Jones <lamont@debian.org>
+# Add extensions to version
+
+--- a/version
++++ b/version
+@@ -8,4 +8,4 @@
+ PATCHVER=0
+ RELEASETYPE=
+ RELEASEVER=
+-EXTENSIONS=
++EXTENSIONS="$(dpkg-parsechangelog | sed -n '/^Version/s/[^-]*//p')-$(dpkg-vendor --query Vendor)"
