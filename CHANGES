@@ -1,3 +1,31 @@
+	--- 9.10.4-P2 released ---
+
+4406.	[bug]		getrrsetbyname with a non absolute name could
+			trigger an infinite recursion bug in lwresd
+			and named with lwres configured if when combined
+			with a search list entry the resulting name is
+			too long. (CVE-2016-2775) [RT #42694]
+
+4405.	[bug]		Change 4342 introduced a regression where you could
+			not remove a delegation in a NSEC3 signed zone using
+			OPTOUT via nsupdate. [RT #42702]
+
+4387.	[bug]		Change 4336 was not complete leading to SERVFAIL
+			being return as NS records expired. [RT #42683]
+
+	--- 9.10.4-P1 released ---
+
+4368.	[bug]		Fix a crash when calling "rndc stats" on some
+			Windows builds because some Visual Studio compilers
+			generated crashing code for the "%z" printf()
+			format specifier. [RT #42380]
+
+4366.	[bug]		Address race condition when updating rbtnode bit
+			fields. [RT #42379]
+
+4363.	[port]		win32: Disable explicit triggering UAC when running
+			BINDInstall.
+
 	--- 9.10.4 released ---
 
 	--- 9.10.4rc1 released ---

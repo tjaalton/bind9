@@ -51,6 +51,20 @@ BIND 9
 	For up-to-date release notes and errata, see
 	http://www.isc.org/software/bind9/releasenotes
 
+BIND 9.10.4-P2
+
+	This version contains a fix for CVE-2016-2775 and addresses
+	two regressions introduced with BIND 9.10.4.
+
+BIND 9.10.4-P1
+
+	This version contains three urgent fixes to BIND 9.10.4:
+	1) Windows installation was failing without manual updating
+	   of BINDinstall's attributes.
+	2) Windows doesn't support the %z printf modifier.
+	3) A race condition was causing instability in the RBT
+	   tree state.
+
 BIND 9.10.4
 
 	BIND 9.10.4 is a maintenance release and addresses bugs
