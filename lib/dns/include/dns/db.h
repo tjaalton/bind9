@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2009, 2011-2014  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2004-2009, 2011-2015  Internet Systems Consortium, Inc. ("ISC")
  * Copyright (C) 1999-2003  Internet Software Consortium.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
@@ -194,7 +194,7 @@ typedef struct dns_dbmethods {
 				   dns_rdataset_t *rdataset,
 				   dns_rdataset_t *sigrdataset);
 	isc_result_t	(*setcachestats)(dns_db_t *db, isc_stats_t *stats);
-	unsigned int	(*hashsize)(dns_db_t *db);
+	size_t		(*hashsize)(dns_db_t *db);
 } dns_dbmethods_t;
 
 typedef isc_result_t
@@ -1366,7 +1366,7 @@ dns_db_nodecount(dns_db_t *db);
  * \li	The number of nodes in the database
  */
 
-unsigned int
+size_t
 dns_db_hashsize(dns_db_t *db);
 /*%<
  * For database implementations using a hash table, report the
@@ -1378,7 +1378,7 @@ dns_db_hashsize(dns_db_t *db);
  *
  * Returns:
  * \li	The number of buckets in the database's hash table, or
- *      ISC_R_NOTIMPLEMENTED.
+ *      0 if not implemented.
  */
 
 void

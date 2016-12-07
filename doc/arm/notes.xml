@@ -1,4 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE book [
+<!ENTITY mdash "&#8212;">
+<!ENTITY ouml "&#xf6;">]>
 <!--
  - Copyright (C) 2014-2016  Internet Systems Consortium, Inc. ("ISC")
  -
@@ -15,44 +17,29 @@
  - PERFORMANCE OF THIS SOFTWARE.
 -->
 
-<sect1 xmlns:xi="http://www.w3.org/2001/XInclude">
-  <xi:include href="noteversion.xml"/>
-  <sect2 id="relnotes_intro">
-    <title>Introduction</title>
+<section xmlns="http://docbook.org/ns/docbook" version="5.0"><info/>
+  <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="noteversion.xml"/>
+  <section xml:id="relnotes_intro"><info><title>Introduction</title></info>
     <para>
-      This document summarizes changes since BIND 9.10.3:
+      This document summarizes significant changes since the last
+      production release of BIND on the corresponding major release
+      branch.
+      Please see the CHANGES file for a further list of bug fixes and
+      other changes.
     </para>
-    <para>
-      BIND 9.10.3-P4 addresses the security issues described in
-      CVE-2016-1285, CVE-2016-1286 and CVE-2016-2088.
-    </para>
-    <para>
-      BIND 9.10.3-P3 addresses the security issues described in
-      CVE-2015-8704 and CVE-2015-8705. It also fixes a serious
-      regression in authoritative server selection that was
-      introduced in BIND 9.10.3.
-    </para>
-    <para>
-      BIND 9.10.3-P2 addresses the security issues described in
-      CVE-2015-3193 (OpenSSL), CVE-2015-8000 and CVE-2015-8461.
-    </para>
-    <para>
-      BIND 9.10.3-P1 was incomplete and was withdrawn prior to publication.
-    </para>
-  </sect2>
-  <sect2 id="relnotes_download">
-    <title>Download</title>
+  </section>
+
+  <section xml:id="relnotes_download"><info><title>Download</title></info>
     <para>
       The latest versions of BIND 9 software can always be found at
-      <ulink url="http://www.isc.org/downloads/"
-	>http://www.isc.org/downloads/</ulink>.
+      <link xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="http://www.isc.org/downloads/">http://www.isc.org/downloads/</link>.
       There you will find additional information about each release,
       source code, and pre-compiled versions for Microsoft Windows
       operating systems.
     </para>
-  </sect2>
-  <sect2 id="relnotes_security">
-    <title>Security Fixes</title>
+  </section>
+
+  <section xml:id="relnotes_security"><info><title>Security Fixes</title></info>
     <itemizedlist>
       <listitem>
 	<para>
@@ -91,12 +78,6 @@
       </listitem>
       <listitem>
 	<para>
-	  Named is potentially vulnerable to the OpenSSL vulnerability
-	  described in CVE-2015-3193.
-	</para>
-      </listitem>
-      <listitem>
-	<para>
 	  Incorrect reference counting could result in an INSIST
 	  failure if a socket error occurred while performing a
 	  lookup.  This flaw is disclosed in CVE-2015-8461. [RT#40945]
@@ -112,30 +93,133 @@
 	</para>
       </listitem>
     </itemizedlist>
-  </sect2>
-  <sect2 id="relnotes_features">
-    <title>New Features</title>
+
+  </section>
+
+  <section xml:id="relnotes_features"><info><title>New Features</title></info>
     <itemizedlist>
       <listitem>
 	<para>
-	  None.
+	  The following resource record types have been implemented:
+	  AVC, CSYNC, NINFO, RKEY, SINK, SMIMEA, TA, TALINK.
+ 	</para>
+      </listitem>
+      <listitem>
+        <para>
+	  Added a warning for a common misconfiguration involving forwarded
+	  RFC 1918 and IPv6 ULA (Universal Local Address) zones.
+	</para>
+      </listitem>
+      <listitem>
+	<para>
+	  Contributed software from Nominum is included in the source at
+	  contrib/dnsperf-2.1.0.0-1/. It includes dnsperf for measuring
+	  the performance of authoritative DNS servers, resperf for
+	  testing the resolution performance of a caching DNS server,
+	  resperf-report for generating a resperf report in HTML with
+	  gnuplot graphs, and queryparse to extract DNS queries from
+	  pcap capture files. This software is not installed by default
+	  with BIND.
+	</para>
+      </listitem>
+      <listitem>
+	<para>
+	  When loading a signed zone, <command>named</command> will
+	  now check whether an RRSIG's inception time is in the future,
+	  and if so, it will regenerate the RRSIG immediately. This helps
+	  when a system's clock needs to be reset backwards.
 	</para>
       </listitem>
     </itemizedlist>
-  </sect2>
-  <sect2 id="relnotes_changes">
-    <title>Feature Changes</title>
+  </section>
+
+  <section xml:id="relnotes_changes"><info><title>Feature Changes</title></info>
+    <itemizedlist>
+      <listitem>
+        <para>
+	  Updated the compiled-in addresses for H.ROOT-SERVERS.NET
+	  and L.ROOT-SERVERS.NET.
+	</para>
+      </listitem>
+      <listitem>
+	<para>
+	  The default preferred glue is now the address type of the
+	  transport the query was received over.
+	</para>
+      </listitem>
+      <listitem>
+	<para>
+	  On machines with 2 or more processors (CPU), the default value
+	  for the number of UDP listeners has been changed to the number
+	  of detected processors minus one.
+	</para>
+      </listitem>
+      <listitem>
+	<para>
+	  Zone transfers now use smaller message sizes to improve
+	  message compression. This results in reduced network usage.
+	</para>
+      </listitem>
+      <listitem>
+	<para>
+	  named -V output now also includes operating system details.
+	</para>
+      </listitem>
+    </itemizedlist>
+  </section>
+
+  <section xml:id="relnotes_port"><info><title>Porting Changes</title></info>
     <itemizedlist>
       <listitem>
 	<para>
-	  Updated the compiled in addresses for H.ROOT-SERVERS.NET.
+	  The Microsoft Windows install tool
+	  <command>BINDInstall.exe</command> which requires a
+	  non-free version of Visual Studio to be built, now uses two
+	  files (lists of flags and files) created by the Configure
+	  perl script with all the needed information which were
+	  previously compiled in the binary. Read
+	  <filename>win32utils/build.txt</filename> for more details.
+	  [RT #38915]
 	</para>
       </listitem>
     </itemizedlist>
-  </sect2>
-  <sect2 id="relnotes_bugs">
-    <title>Bug Fixes</title>
+  </section>
+
+  <section xml:id="relnotes_bugs"><info><title>Bug Fixes</title></info>
     <itemizedlist>
+      <listitem>
+	<para>
+	  rndc flushtree now works even if there wasn't a cached node
+	  at the specified name. [RT #41846]
+	</para>
+      </listitem>
+      <listitem>
+	<para>
+	  Don't emit records with zero TTL unless the records were
+	  received with a zero TTL. After being returned to waiting
+	  clients, the answer will be discarded from the cache. [RT #41687]
+	</para>
+      </listitem>
+      <listitem>
+	<para>
+	  For Windows platforms, the SIT (Source Identity Token) support
+	  was restored. (It was mistakenly partially replaced in a
+	  previous beta with new 9.11 COOKIE support.) [RT #41905]
+	</para>
+      </listitem>
+      <listitem>
+	<para>
+	  When deleting records from a zone database, interior nodes
+	  could be left empty but not deleted, damaging search
+	  performance afterward. [RT #40997] [RT #41941]
+	</para>
+      </listitem>
+      <listitem>
+	<para>
+	  The server could crash due to a use-after-free if a
+	  zone transfer timed out. [RT #41297]
+	</para>
+      </listitem>
       <listitem>
 	<para>
 	  Authoritative servers that were marked as bogus (e.g. blackholed
@@ -143,25 +227,42 @@
 	  anyway. [RT #41321]
 	</para>
       </listitem>
+      <listitem>
+	<para>
+	  Some of the options for GeoIP ACLs, including "areacode",
+	  "metrocode", and "timezone", were incorrectly documented
+	  as "area", "metro" and "tz".  Both the long and abbreviated
+	  versions are now accepted.
+	</para>
+      </listitem>
+      <listitem>
+	<para>
+	  Zones configured to use <command>map</command> format
+	  master files can't be used as policy zones because RPZ
+	  summary data isn't compiled when such zones are mapped into
+	  memory.  This limitation may be fixed in a future release,
+	  but in the meantime it has been documented, and attempting
+	  to use such zones in <command>response-policy</command>
+	  statements is now a configuration error.  [RT #38321]
+	</para>
+      </listitem>
     </itemizedlist>
-  </sect2>
-  <sect2 id="end_of_life">
-    <title>End of Life</title>
+  </section>
+
+  <section xml:id="end_of_life"><info><title>End of Life</title></info>
     <para>
       The end of life for BIND 9.10 is yet to be determined but
       will not be before BIND 9.12.0 has been released for 6 months.
-      <ulink url="https://www.isc.org/downloads/software-support-policy/"
-        >https://www.isc.org/downloads/software-support-policy/</ulink>
+      <link xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://www.isc.org/downloads/software-support-policy/">https://www.isc.org/downloads/software-support-policy/</link>
     </para>
-  </sect2>
-  <sect2 id="relnotes_thanks">
-    <title>Thank You</title>
+  </section>
+
+  <section xml:id="relnotes_thanks"><info><title>Thank You</title></info>
     <para>
       Thank you to everyone who assisted us in making this release possible.
       If you would like to contribute to ISC to assist us in continuing to
       make quality open source software, please visit our donations page at
-      <ulink url="http://www.isc.org/donate/"
-	>http://www.isc.org/donate/</ulink>.
+      <link xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="http://www.isc.org/donate/">http://www.isc.org/donate/</link>.
     </para>
-  </sect2>
-</sect1>
+  </section>
+</section>

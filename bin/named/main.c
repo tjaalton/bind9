@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2015  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2004-2016  Internet Systems Consortium, Inc. ("ISC")
  * Copyright (C) 1999-2003  Internet Software Consortium.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
@@ -304,11 +304,13 @@ static void
 lwresd_usage(void) {
 	fprintf(stderr,
 		"usage: lwresd [-4|-6] [-c conffile | -C resolvconffile] "
-		"[-d debuglevel]\n"
-		"              [-f|-g] [-n number_of_cpus] [-p port] "
-		"[-P listen-port] [-s]\n"
-		"              [-t chrootdir] [-u username] [-i pidfile]\n"
-		"              [-m {usage|trace|record|size|mctx}]\n");
+		"[-d debuglevel] [-f|-g]\n"
+		"              [-i pidfile] [-n number_of_cpus] "
+		"[-p port] [-P listen-port]\n"
+		"              [-s] [-S sockets] [-t chrootdir] [-u username] "
+		"[-U listeners]\n"
+		"              [-m {usage|trace|record|size|mctx}]\n"
+		"usage: lwresd [-v|-V]\n");
 }
 
 static void
@@ -321,8 +323,10 @@ usage(void) {
 		"usage: named [-4|-6] [-c conffile] [-d debuglevel] "
 		"[-E engine] [-f|-g]\n"
 		"             [-n number_of_cpus] [-p port] [-s] "
-		"[-t chrootdir] [-u username]\n"
-		"             [-m {usage|trace|record|size|mctx}]\n");
+		"[-S sockets] [-t chrootdir]\n"
+		"             [-u username] [-U listeners] "
+		"[-m {usage|trace|record|size|mctx}]\n"
+		"usage: named [-v|-V]\n");
 }
 
 static void
@@ -631,6 +635,7 @@ parse_command_line(int argc, char *argv[]) {
 			printf("%s %s%s%s <id:%s>\n", ns_g_product, ns_g_version,
 			       (*ns_g_description != '\0') ? " " : "",
 			       ns_g_description, ns_g_srcid);
+			printf("running on %s\n", ns_os_uname());
 			printf("built by %s with %s\n",
 			       ns_g_builder, ns_g_configargs);
 #ifdef __clang__
@@ -662,7 +667,7 @@ parse_command_line(int argc, char *argv[]) {
 			printf("linked to libxml2 version: %s\n",
 			       xmlParserVersion);
 #endif
-#ifdef HAVE_JSON
+#if defined(HAVE_JSON) && defined(JSON_C_VERSION)
 			printf("compiled with libjson-c version: %s\n",
 			       JSON_C_VERSION);
 			printf("linked to libjson-c version: %s\n",
@@ -705,6 +710,8 @@ create_managers(void) {
 	isc_result_t result;
 	unsigned int socks;
 
+	INSIST(ns_g_cpus_detected > 0);
+
 #ifdef ISC_PLATFORM_USETHREADS
 	if (ns_g_cpus == 0)
 		ns_g_cpus = ns_g_cpus_detected;
@@ -721,10 +728,8 @@ create_managers(void) {
 	if (ns_g_udpdisp == 0) {
 		if (ns_g_cpus_detected == 1)
 			ns_g_udpdisp = 1;
-		else if (ns_g_cpus_detected < 4)
-			ns_g_udpdisp = 2;
 		else
-			ns_g_udpdisp = ns_g_cpus_detected / 2;
+			ns_g_udpdisp = ns_g_cpus_detected - 1;
 	}
 	if (ns_g_udpdisp > ns_g_cpus)
 		ns_g_udpdisp = ns_g_cpus;
@@ -989,6 +994,9 @@ setup(void) {
 		      ns_g_product, ns_g_version,
 		      *ns_g_description ? " " : "", ns_g_description,
 		      ns_g_srcid, saved_command_line);
+
+	isc_log_write(ns_g_lctx, NS_LOGCATEGORY_GENERAL, NS_LOGMODULE_MAIN,
+		      ISC_LOG_NOTICE, "running on %s", ns_os_uname());
 
 	isc_log_write(ns_g_lctx, NS_LOGCATEGORY_GENERAL, NS_LOGMODULE_MAIN,
 		      ISC_LOG_NOTICE, "built with %s", ns_g_configargs);

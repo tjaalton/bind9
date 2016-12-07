@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2009, 2012-2015  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2004-2009, 2012-2016  Internet Systems Consortium, Inc. ("ISC")
  * Copyright (C) 1999-2002  Internet Software Consortium.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
@@ -83,21 +83,6 @@ struct dns_rbtnode {
 #if DNS_RBT_USEMAGIC
 	unsigned int magic;
 #endif
-	dns_rbtnode_t *parent;
-	dns_rbtnode_t *left;
-	dns_rbtnode_t *right;
-	dns_rbtnode_t *down;
-#ifdef DNS_RBT_USEHASH
-	dns_rbtnode_t *hashnext;
-#endif
-
-	/*%
-	 * Used for LRU cache.  This linked list is used to mark nodes which
-	 * have no data any longer, but we cannot unlink at that exact moment
-	 * because we did not or could not obtain a write lock on the tree.
-	 */
-	ISC_LINK(dns_rbtnode_t) deadlink;
-
 	/*@{*/
 	/*!
 	 * The following bitfields add up to a total bitwidth of 32.
@@ -129,9 +114,32 @@ struct dns_rbtnode {
 	/* node needs to be cleaned from rpz */
 	unsigned int rpz : 1;
 
+	/*@{*/
+	/*!
+	 * These values are used in the RBT DB implementation.  The appropriate
+	 * node lock must be held before accessing them.
+	 */
+	unsigned int dirty:1;
+	unsigned int wild:1;
+	unsigned int locknum:DNS_RBT_LOCKLENGTH;
+	/*@}*/
+
 #ifdef DNS_RBT_USEHASH
 	unsigned int hashval;
+	dns_rbtnode_t *uppernode;
+	dns_rbtnode_t *hashnext;
 #endif
+	dns_rbtnode_t *parent;
+	dns_rbtnode_t *left;
+	dns_rbtnode_t *right;
+	dns_rbtnode_t *down;
+
+	/*%
+	 * Used for LRU cache.  This linked list is used to mark nodes which
+	 * have no data any longer, but we cannot unlink at that exact moment
+	 * because we did not or could not obtain a write lock on the tree.
+	 */
+	ISC_LINK(dns_rbtnode_t) deadlink;
 
 	/*@{*/
 	/*!
@@ -139,9 +147,6 @@ struct dns_rbtnode {
 	 * node lock must be held before accessing them.
 	 */
 	void *data;
-	unsigned int dirty:1;
-	unsigned int wild:1;
-	unsigned int locknum:DNS_RBT_LOCKLENGTH;
 #ifndef DNS_RBT_USEISCREFCOUNT
 	unsigned int references:DNS_RBT_REFLENGTH;
 #else
@@ -657,7 +662,7 @@ dns_rbt_nodecount(dns_rbt_t *rbt);
  * \li  rbt is a valid rbt manager.
  */
 
-unsigned int
+size_t
 dns_rbt_hashsize(dns_rbt_t *rbt);
 /*%<
  * Obtain the current number of buckets in the 'rbt' hash table.
