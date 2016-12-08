@@ -1,9 +1,3 @@
-bind9 (1:9.11.0.dfsg-1~test) UNRELEASED; urgency=medium
-
-  * New upstream release
-
- -- LaMont Jones <lamont@debian.org>  Thu, 08 Dec 2016 06:39:05 -0700
-
 bind9 (1:9.10.3.dfsg.P4-10.1) unstable; urgency=medium
 
   * Non-maintainer upload.
