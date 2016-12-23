@@ -1,6 +1,20 @@
-bind9 (1:9.11.0.dfsg-1~test) UNRELEASED; urgency=medium
+bind9 (1:9.11.0.dfsg-1~1) experimental; urgency=medium
 
-  * New upstream release
+  [Internet Software Consortium, Inc]
+
+  * New upstream release: 9.11.0
+
+  [Stefan Bader]
+
+  * Use the defaults file in systemd.  Closes: #767798  LP: #1565060
+
+  [Timo Aaltonen]
+
+  * Freshen pkcs11 diff.
+
+  [LaMont Jones]
+
+  * Now build-depends python3-ply.
 
  -- LaMont Jones <lamont@debian.org>  Thu, 08 Dec 2016 06:39:05 -0700
 
