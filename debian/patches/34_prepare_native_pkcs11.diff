@@ -1,6 +1,14 @@
+Description: Prepare the tree for extra-add_native_pkcs11.diff
+
+This is from a Fedora patch:
+
+http://pkgs.fedoraproject.org/cgit/rpms/bind.git/plain/bind-9.10-dist-native-pkcs11.patch
+
+which is split in two so that these prep parts can be unapplied properly with quilt.
+
 --- a/bin/Makefile.in
 +++ b/bin/Makefile.in
-@@ -10,7 +10,7 @@
+@@ -10,7 +10,7 @@ srcdir =	@srcdir@
  VPATH =		@srcdir@
  top_srcdir =	@top_srcdir@
  
@@ -11,7 +19,7 @@
  
 --- a/bin/pkcs11/Makefile.in
 +++ b/bin/pkcs11/Makefile.in
-@@ -12,13 +12,13 @@
+@@ -12,13 +12,13 @@ top_srcdir =	@top_srcdir@
  
  @BIND9_MAKE_INCLUDES@
  
@@ -30,7 +38,7 @@
  
 --- a/configure.in
 +++ b/configure.in
-@@ -1075,12 +1075,14 @@
+@@ -1075,12 +1075,14 @@ AC_SUBST(USE_GSSAPI)
  AC_SUBST(DST_GSSAPI_INC)
  AC_SUBST(DNS_GSSAPI_LIBS)
  DNS_CRYPTO_LIBS="$DNS_GSSAPI_LIBS $DNS_CRYPTO_LIBS"
@@ -45,7 +53,32 @@
  
  #
  # was --with-randomdev specified?
-@@ -1482,16 +1484,17 @@
+@@ -1445,11 +1447,11 @@ fi
+ AC_MSG_CHECKING(for OpenSSL library)
+ OPENSSL_WARNING=
+ openssldirs="/usr /usr/local /usr/local/ssl /usr/pkg /usr/sfw"
+-if test "$want_native_pkcs11" = "yes"
+-then
+-	use_openssl="native_pkcs11"
+-	AC_MSG_RESULT(use of native PKCS11 instead)
+-fi
++#if test "$want_native_pkcs11" = "yes"
++#then
++#	use_openssl="native_pkcs11"
++#	AC_MSG_RESULT(use of native PKCS11 instead)
++#fi
+ 
+ if test "$use_openssl" = "auto"
+ then
+@@ -1462,6 +1464,7 @@ then
+ 		fi
+ 	done
+ fi
++CRYPTO_PK11=""
+ OPENSSL_ECDSA=""
+ OPENSSL_GOST=""
+ gosttype="raw"
+@@ -1482,16 +1485,17 @@ case "$with_gost" in
  		;;
  esac
  
@@ -68,7 +101,7 @@
  	no)
  		AC_MSG_RESULT(no)
  		DST_OPENSSL_INC=""
-@@ -1513,11 +1516,11 @@
+@@ -1513,11 +1517,11 @@ case "$use_openssl" in
  If you don't want OpenSSL, use --without-openssl])
  		;;
  	*)
@@ -85,7 +118,7 @@
  		if test "$use_openssl" = "yes"
  		then
  			# User did not specify a path - guess it
-@@ -1851,6 +1854,7 @@
+@@ -1851,6 +1855,7 @@ AC_SUBST(OPENSSL_ECDSA)
  AC_SUBST(OPENSSL_GOST)
  
  DNS_CRYPTO_LIBS="$DNS_CRYPTO_LIBS $DST_OPENSSL_LIBS"
@@ -93,7 +126,7 @@
  
  ISC_PLATFORM_WANTAES="#undef ISC_PLATFORM_WANTAES"
  if test "$with_aes" = "yes"
-@@ -2160,6 +2164,7 @@
+@@ -2160,6 +2165,7 @@ esac
  AC_SUBST(PKCS11LINKOBJS)
  AC_SUBST(PKCS11LINKSRCS)
  AC_SUBST(CRYPTO)
@@ -101,7 +134,7 @@
  AC_SUBST(PKCS11_ECDSA)
  AC_SUBST(PKCS11_GOST)
  AC_SUBST(PKCS11_TEST)
-@@ -5053,8 +5058,11 @@
+@@ -5053,8 +5059,11 @@ AC_CONFIG_FILES([
  	bin/delv/Makefile
  	bin/dig/Makefile
  	bin/dnssec/Makefile
@@ -113,7 +146,7 @@
  	bin/nsupdate/Makefile
  	bin/pkcs11/Makefile
  	bin/python/Makefile
-@@ -5162,6 +5170,10 @@
+@@ -5162,6 +5171,10 @@ AC_CONFIG_FILES([
  	lib/dns/include/dns/Makefile
  	lib/dns/include/dst/Makefile
  	lib/dns/tests/Makefile
@@ -124,7 +157,7 @@
  	lib/irs/Makefile
  	lib/irs/include/Makefile
  	lib/irs/include/irs/Makefile
-@@ -5185,6 +5197,24 @@
+@@ -5185,6 +5198,24 @@ AC_CONFIG_FILES([
  	lib/isc/unix/include/Makefile
  	lib/isc/unix/include/isc/Makefile
  	lib/isc/unix/include/pkcs11/Makefile
@@ -151,7 +184,7 @@
  	lib/isccc/include/isccc/Makefile
 --- a/lib/Makefile.in
 +++ b/lib/Makefile.in
-@@ -14,7 +14,7 @@
+@@ -14,7 +14,7 @@ top_srcdir =	@top_srcdir@
  # Attempt to disable parallel processing.
  .NOTPARALLEL:
  .NO_PARALLEL:
@@ -162,7 +195,7 @@
  @BIND9_MAKE_RULES@
 --- a/make/includes.in
 +++ b/make/includes.in
-@@ -40,3 +40,13 @@
+@@ -40,3 +40,13 @@ BIND9_INCLUDES = @BIND9_BIND9_BUILDINCLU
  
  TEST_INCLUDES = \
  	-I${top_srcdir}/lib/tests/include
@@ -178,7 +211,7 @@
 +	-I${top_srcdir}/lib/dns-pkcs11/include
 --- a/bin/dnssec/Makefile.in
 +++ b/bin/dnssec/Makefile.in
-@@ -16,7 +16,7 @@
+@@ -16,7 +16,7 @@ VERSION=@BIND9_VERSION@
  
  CINCLUDES =	${DNS_INCLUDES} ${ISC_INCLUDES}
  
@@ -189,7 +222,7 @@
  
 --- a/bin/named/Makefile.in
 +++ b/bin/named/Makefile.in
-@@ -40,7 +40,7 @@
+@@ -40,7 +40,7 @@ CINCLUDES =	-I${srcdir}/include -I${srcd
  		${ISCCFG_INCLUDES} ${ISCCC_INCLUDES} ${ISC_INCLUDES} \
  		${DLZDRIVER_INCLUDES} ${DBDRIVER_INCLUDES} @DST_OPENSSL_INC@
  

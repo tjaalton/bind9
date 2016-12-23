@@ -1,13 +1,6 @@
-Author: Tomas Hozza <thozza@redhat.com>
-Date:   Wed Jan 14 11:47:51 2015 UTC
-
-    Added native PKCS#11 functionality
-
-    Signed-off-by: Tomas Hozza <thozza@redhat.com>
-
 --- a/bin/dnssec-pkcs11/Makefile.in
 +++ b/bin/dnssec-pkcs11/Makefile.in
-@@ -23,18 +23,18 @@ top_srcdir =	@top_srcdir@
+@@ -14,18 +14,18 @@ VERSION=@BIND9_VERSION@
  
  @BIND9_MAKE_INCLUDES@
  
@@ -34,7 +27,7 @@ Date:   Wed Jan 14 11:47:51 2015 UTC
  
  DEPLIBS =	${DNSDEPLIBS} ${ISCDEPLIBS}
  
-@@ -43,10 +43,10 @@ LIBS =		${DNSLIBS} ${ISCLIBS} @LIBS@
+@@ -34,10 +34,10 @@ LIBS =		${DNSLIBS} ${ISCLIBS} @LIBS@
  NOSYMLIBS =	${DNSLIBS} ${ISCNOSYMLIBS} @LIBS@
  
  # Alphabetically
@@ -49,7 +42,7 @@ Date:   Wed Jan 14 11:47:51 2015 UTC
  
  OBJS =		dnssectool.@O@
  
-@@ -67,15 +67,15 @@ MANOBJS =	${MANPAGES} ${HTMLPAGES}
+@@ -58,15 +58,15 @@ MANOBJS =	${MANPAGES} ${HTMLPAGES}
  
  @BIND9_MAKE_RULES@
  
@@ -68,7 +61,7 @@ Date:   Wed Jan 14 11:47:51 2015 UTC
  	export BASEOBJS="dnssec-keygen.@O@ ${OBJS}"; \
  	${FINALBUILDCMD}
  
-@@ -83,7 +83,7 @@ dnssec-signzone.@O@: dnssec-signzone.c
+@@ -74,7 +74,7 @@ dnssec-signzone.@O@: dnssec-signzone.c
  	${LIBTOOL_MODE_COMPILE} ${CC} ${ALL_CFLAGS} -DVERSION=\"${VERSION}\" \
  		-c ${srcdir}/dnssec-signzone.c
  
@@ -77,7 +70,7 @@ Date:   Wed Jan 14 11:47:51 2015 UTC
  	export BASEOBJS="dnssec-signzone.@O@ ${OBJS}"; \
  	${FINALBUILDCMD}
  
-@@ -91,19 +91,19 @@ dnssec-verify.@O@: dnssec-verify.c
+@@ -82,19 +82,19 @@ dnssec-verify.@O@: dnssec-verify.c
  	${LIBTOOL_MODE_COMPILE} ${CC} ${ALL_CFLAGS} -DVERSION=\"${VERSION}\" \
  		-c ${srcdir}/dnssec-verify.c
  
@@ -101,7 +94,7 @@ Date:   Wed Jan 14 11:47:51 2015 UTC
  	${LIBTOOL_MODE_LINK} ${PURIFY} ${CC} ${CFLAGS} ${LDFLAGS} -o $@ \
  	dnssec-importkey.@O@ ${OBJS} ${LIBS}
  
-@@ -114,11 +114,9 @@ docclean manclean maintainer-clean::
+@@ -105,11 +105,9 @@ docclean manclean maintainer-clean::
  
  installdirs:
  	$(SHELL) ${top_srcdir}/mkinstalldirs ${DESTDIR}${sbindir}
@@ -115,7 +108,7 @@ Date:   Wed Jan 14 11:47:51 2015 UTC
  	rm -f ${TARGETS}
 --- a/bin/named-pkcs11/Makefile.in
 +++ b/bin/named-pkcs11/Makefile.in
-@@ -47,26 +47,26 @@ DLZDRIVER_INCLUDES =	@DLZ_DRIVER_INCLUDE
+@@ -36,26 +36,26 @@ DLZDRIVER_INCLUDES =	@DLZ_DRIVER_INCLUDE
  DLZDRIVER_LIBS =	@DLZ_DRIVER_LIBS@
  
  CINCLUDES =	-I${srcdir}/include -I${srcdir}/unix/include -I. \
@@ -149,7 +142,7 @@ Date:   Wed Jan 14 11:47:51 2015 UTC
  LWRESDEPLIBS =	../../lib/lwres/liblwres.@A@
  BIND9DEPLIBS =	../../lib/bind9/libbind9.@A@
  
-@@ -75,15 +75,15 @@ DEPLIBS =	${LWRESDEPLIBS} ${DNSDEPLIBS}
+@@ -64,15 +64,15 @@ DEPLIBS =	${LWRESDEPLIBS} ${DNSDEPLIBS}
  
  LIBS =		${LWRESLIBS} ${DNSLIBS} ${BIND9LIBS} \
  		${ISCCFGLIBS} ${ISCCCLIBS} ${ISCLIBS} \
@@ -159,45 +152,45 @@ Date:   Wed Jan 14 11:47:51 2015 UTC
  NOSYMLIBS =	${LWRESLIBS} ${DNSLIBS} ${BIND9LIBS} \
  		${ISCCFGLIBS} ${ISCCCLIBS} ${ISCNOSYMLIBS} \
 -		${DLZDRIVER_LIBS} ${DBDRIVER_LIBS} @LIBS@
-+		@LIBS@
++        @LIBS@
  
  SUBDIRS =	unix
  
 -TARGETS =	named@EXEEXT@ lwresd@EXEEXT@
-+TARGETS =	named-pkcs11@EXEEXT@
++TARGETS =  named-pkcs11@EXEEXT@
  
  GEOIPLINKOBJS = geoip.@O@
  
-@@ -94,8 +94,7 @@ OBJS =		builtin.@O@ client.@O@ config.@O
+@@ -83,8 +83,7 @@ OBJS =		builtin.@O@ client.@O@ config.@O
  		tkeyconf.@O@ tsigconf.@O@ update.@O@ xfrout.@O@ \
  		zoneconf.@O@ \
  		lwaddr.@O@ lwresd.@O@ lwdclient.@O@ lwderror.@O@ lwdgabn.@O@ \
 -		lwdgnba.@O@ lwdgrbn.@O@ lwdnoop.@O@ lwsearch.@O@ \
 -		${DLZDRIVER_OBJS} ${DBDRIVER_OBJS}
-+		lwdgnba.@O@ lwdgrbn.@O@ lwdnoop.@O@ lwsearch.@O@
++        lwdgnba.@O@ lwdgrbn.@O@ lwdnoop.@O@ lwsearch.@O@
  
  UOBJS =		unix/os.@O@ unix/dlz_dlopen_driver.@O@
  
-@@ -110,8 +109,7 @@ SRCS =		builtin.c client.c config.c cont
+@@ -99,8 +98,7 @@ SRCS =		builtin.c client.c config.c cont
  		tkeyconf.c tsigconf.c update.c xfrout.c \
  		zoneconf.c \
  		lwaddr.c lwresd.c lwdclient.c lwderror.c lwdgabn.c \
 -		lwdgnba.c lwdgrbn.c lwdnoop.c lwsearch.c \
 -		${DLZDRIVER_SRCS} ${DBDRIVER_SRCS}
-+		lwdgnba.c lwdgrbn.c lwdnoop.c lwsearch.c
++        lwdgnba.c lwdgrbn.c lwdnoop.c lwsearch.c
  
  MANPAGES =	named.8 lwresd.8 named.conf.5
  
-@@ -140,7 +138,7 @@ config.@O@: config.c
- 		-DNS_SYSCONFDIR=\"${sysconfdir}\" \
- 		-c ${srcdir}/config.c
+@@ -135,7 +133,7 @@ server.@O@: server.c
+ 		-DPRODUCT=\"${PRODUCT}\" \
+ 		-DVERSION=\"${VERSION}\" -c ${srcdir}/server.c
  
 -named@EXEEXT@: ${OBJS} ${UOBJS} ${DEPLIBS}
 +named-pkcs11@EXEEXT@: ${OBJS} ${UOBJS} ${DEPLIBS}
  	export MAKE_SYMTABLE="yes"; \
  	export BASEOBJS="${OBJS} ${UOBJS}"; \
  	${FINALBUILDCMD}
-@@ -167,15 +165,9 @@ statschannel.@O@: bind9.xsl.h
+@@ -162,15 +160,9 @@ statschannel.@O@: bind9.xsl.h
  
  installdirs:
  	$(SHELL) ${top_srcdir}/mkinstalldirs ${DESTDIR}${sbindir}
@@ -217,7 +210,7 @@ Date:   Wed Jan 14 11:47:51 2015 UTC
  
 --- a/lib/dns-pkcs11/Makefile.in
 +++ b/lib/dns-pkcs11/Makefile.in
-@@ -32,18 +32,18 @@ top_srcdir =	@top_srcdir@
+@@ -23,18 +23,18 @@ VERSION=@BIND9_VERSION@
  
  USE_ISC_SPNEGO = @USE_ISC_SPNEGO@
  
@@ -242,7 +235,7 @@ Date:   Wed Jan 14 11:47:51 2015 UTC
  
  # Alphabetically
  
-@@ -138,7 +138,7 @@ version.@O@: version.c
+@@ -136,28 +136,28 @@ version.@O@: version.c
  		-DLIBAGE=${LIBAGE} \
  		-c ${srcdir}/version.c
  
@@ -250,10 +243,6 @@ Date:   Wed Jan 14 11:47:51 2015 UTC
 +libdns-pkcs11.@SA@: ${OBJS}
  	${AR} ${ARFLAGS} $@ ${OBJS}
  	${RANLIB} $@
- 
-@@ -148,27 +148,27 @@ dynamic_db.@O@: dynamic_db.c
- 	-c ${srcdir}/dynamic_db.c
- 
  
 -libdns.la: ${OBJS}
 +libdns-pkcs11.la: ${OBJS}
@@ -282,12 +271,17 @@ Date:   Wed Jan 14 11:47:51 2015 UTC
 +	rm -f libdns-pkcs11.@A@ timestamp
  	rm -f gen code.h include/dns/enumtype.h include/dns/enumclass.h
  	rm -f include/dns/rdatastruct.h
+ 	rm -f dnstap.pb-c.c dnstap.pb-c.h include/dns/dnstap.pb-c.h
+@@ -165,7 +165,7 @@ clean distclean::
+ newrr::
+ 	rm -f code.h include/dns/enumtype.h include/dns/enumclass.h
+ 	rm -f include/dns/rdatastruct.h
 -	rm -f libdns.so
 +	rm -f libdns-pkcs11.so
  
- newrr::
- 	rm -f code.h include/dns/enumtype.h include/dns/enumclass.h
-@@ -196,7 +196,7 @@ code.h:	gen
+ include: include/dns/enumtype.h include/dns/enumclass.h \
+ 	include/dns/rdatastruct.h
+@@ -189,7 +189,7 @@ code.h:	gen
  	./gen -s ${srcdir} > code.h
  
  gen: gen.c
@@ -298,7 +292,7 @@ Date:   Wed Jan 14 11:47:51 2015 UTC
  rbtdb64.@O@: rbtdb64.c rbtdb.c
 --- a/lib/isc-pkcs11/Makefile.in
 +++ b/lib/isc-pkcs11/Makefile.in
-@@ -29,8 +29,8 @@ CINCLUDES =	-I${srcdir}/unix/include \
+@@ -20,8 +20,8 @@ CINCLUDES =	-I${srcdir}/unix/include \
  		-I${srcdir}/@ISC_THREAD_DIR@/include \
  		-I${srcdir}/@ISC_ARCH_DIR@/include \
  		-I./include \
@@ -309,7 +303,7 @@ Date:   Wed Jan 14 11:47:51 2015 UTC
  CWARNINGS =
  
  # Alphabetically
-@@ -109,38 +109,38 @@ version.@O@: version.c
+@@ -104,38 +104,38 @@ version.@O@: version.c
  		-DLIBAGE=${LIBAGE} \
  		-c ${srcdir}/version.c
  

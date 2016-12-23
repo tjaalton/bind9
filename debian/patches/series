@@ -6,5 +6,5 @@
 25_library_paths.diff
 #30_dynamic_db.diff
 33_resource_missing_include.diff
-#34_prepare_native_pkcs11.diff
+34_prepare_native_pkcs11.diff
 75_ctxstart_no_sighandling.diff
