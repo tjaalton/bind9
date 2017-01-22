@@ -10,3 +10,12 @@
 34_prepare_native_pkcs11.diff
 70_precise_time.diff
 75_ctxstart_no_sighandling.diff
+
+CVE-2016-2775.patch
+CVE-2016-2776.patch
+CVE-2016-8864.patch
+CVE-2016-9131.patch
+CVE-2016-9147.patch
+CVE-2016-9444.patch
+
+CVE-2016-8864-regression.patch
