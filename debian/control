@@ -6,7 +6,7 @@ Uploaders: Michael Gilbert <mgilbert@debian.org>, Robie Basak <robie.basak@canon
 Build-Depends: debhelper (>= 9), 
   dh-exec,
   libkrb5-dev,
-  libssl-dev,
+  libssl1.0-dev,
   libtool, bison,
   libdb-dev (>>4.6),
   libldap2-dev,
@@ -232,6 +232,7 @@ Package: lwresd
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends},
   adduser,
+  lsb-base (>= 3.0-6),
   libdns162 (=${binary:Version}),
   libisccfg140 (=${binary:Version}),
   libisccc140 (=${binary:Version}),
@@ -321,7 +322,7 @@ Description: Command Channel Library used by BIND
  and clients, particularly rndc.
 
 Package: libisccc-export140-udeb
-Section: libs
+Section: debian-installer
 Architecture: any
 Multi-Arch: same
 Conflicts: libbind0, libbind9-41

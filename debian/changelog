@@ -1,3 +1,31 @@
+bind9 (1:9.10.3.dfsg.P4-11) unstable; urgency=medium
+
+  * Fix some lintian warnings.
+  * Add lsb-base dependency to lwresd (closes: #848519).
+  * Fix CVE-2016-2775: crash in lwresd due to a long query name
+    (closes: #831796).
+  * Fix CVE-2016-2776: maliciously crafted query can cause named to crash
+    (closes: #839010).
+  * Fix CVE-2016-8864: incorrect handling of a DNAME record can cause
+    named to crash (closes: #842858).
+  * Fix CVE-2016-9131: maliciously crafted response to an ANY query can
+    cause named to crash (closes: #851065).
+  * Fix CVE-2016-9147: query with contradictory DNSSEC information can
+    cause named to crash (closes: #851063).
+  * Fix CVE-2016-9444: maliciously formed DNSSEC Delegation Signer (DS)
+    record can cause named to crash (closes: #851062).
+  * Openssl 1.1 is not yet supported, so build with openssl 1.0 for now
+    (closes: #828082).
+
+  [ LaMont Jones ]
+  * Update VCS fields in control.
+  * -DDIG_SIGCHASE got dropped by the change in hardening.
+
+  [ Stefan Bader ]
+  * Use the defaults file in systemd.
+
+ -- Michael Gilbert <mgilbert@debian.org>  Thu, 19 Jan 2017 04:03:28 +0000
+
 bind9 (1:9.10.3.dfsg.P4-10.1) unstable; urgency=medium
 
   * Non-maintainer upload.

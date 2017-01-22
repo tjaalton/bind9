@@ -65,10 +65,10 @@ of leaf servers with no user input required.
 
 The named configuration file named.conf is located in /etc/bind, so that all 
 static configuration files relating to bind are in one place.  If you really 
-really don't want named.conf in /etc/bind, then the best way to handle it is 
-probably to replace /etc/bind/named.conf with a symlink to the location you 
-want to use.  You could also use an option to named in the init.d script,
-but that only works for named, not for things like ndc.
+don't want named.conf in /etc/bind, then the best way to handle it is probably
+to replace /etc/bind/named.conf with a symlink to the location you want to use.
+You could also use an option to named in the init.d script, but that only works
+for named, not for things like ndc.
 
 Zone data files for the root servers, and the forward and reverse localhost
 zones are also provided in /etc/bind.
