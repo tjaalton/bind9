@@ -61,6 +61,7 @@ stamps/configure: stamps/prepare
 		--with-libtool \
 		--enable-shared \
 		--enable-static \
+		--with-gost=no \
 		--with-openssl=/usr \
 		--with-gssapi=/usr \
 		--with-gnu-ld \
