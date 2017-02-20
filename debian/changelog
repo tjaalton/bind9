@@ -1,3 +1,12 @@
+bind9 (1:9.10.3.dfsg.P4-12) unstable; urgency=high
+
+  * Merge and accept the non-maintainer upload.
+  * Fix regression caused by the fix for CVE-2016-8864 (closes: #855540).
+  * Fix CVE-2017-3135: a malicously crafted query can cause named to crash if
+    both DNS64 and RPZ are being used (closes: #855520).
+
+ -- Michael Gilbert <mgilbert@debian.org>  Sun, 19 Feb 2017 22:39:32 +0000
+
 bind9 (1:9.10.3.dfsg.P4-11.1) unstable; urgency=medium
 
   * Non-maintainer upload.

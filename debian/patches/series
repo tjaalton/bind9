@@ -19,3 +19,6 @@ CVE-2016-9147.patch
 CVE-2016-9444.patch
 
 CVE-2016-8864-regression.patch
+CVE-2016-8864-regression2.patch
+
+CVE-2017-3135.patch
