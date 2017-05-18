@@ -75,7 +75,7 @@ override_dh_auto_configure:
 		--enable-rrl \
 		--enable-filter-aaaa \
 		--enable-native-pkcs11 \
-		--with-pkcs11=\$${prefix}/lib/$(DEB_HOST_MULTIARCH)/softhsm/libsofthsm2.so \
+		--with-pkcs11=\$${prefix}/lib/softhsm/libsofthsm2.so \
 		$(EXTRA_FEATURES)
 
 	dh_auto_configure --builddirectory=build-udeb -- \
