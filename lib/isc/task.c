@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1998-2016  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 1998-2017  Internet Systems Consortium, Inc. ("ISC")
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -546,6 +546,7 @@ task_send(isc__task_t *task, isc_event_t **eventp) {
 	REQUIRE(event != NULL);
 	REQUIRE(event->ev_type > 0);
 	REQUIRE(task->state != task_state_done);
+	REQUIRE(!ISC_LINK_LINKED(event, ev_ratelink));
 
 	XTRACE("task_send");
 

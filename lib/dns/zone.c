@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1999-2016  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 1999-2017  Internet Systems Consortium, Inc. ("ISC")
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -244,6 +244,8 @@ struct dns_zone {
 	isc_uint32_t		minrefresh;
 	isc_uint32_t		maxretry;
 	isc_uint32_t		minretry;
+
+	isc_uint32_t		maxrecords;
 
 	isc_sockaddr_t		*masters;
 	isc_dscp_t		*masterdscps;
@@ -1826,7 +1828,6 @@ zone_touched(dns_zone_t *zone) {
 			return (ISC_TRUE);
 	}
 
-
 	return (ISC_FALSE);
 }
 
@@ -1906,6 +1907,8 @@ zone_load(dns_zone_t *zone, unsigned int flags, isc_boolean_t locked) {
 	 * been loaded yet, zone->loadtime will be the epoch.
 	 */
 	if (zone->masterfile != NULL) {
+		isc_time_t filetime;
+
 		/*
 		 * The file is already loaded.	If we are just doing a
 		 * "rndc reconfig", we are done.
@@ -1925,6 +1928,16 @@ zone_load(dns_zone_t *zone, unsigned int flags, isc_boolean_t locked) {
 			result = DNS_R_UPTODATE;
 			goto cleanup;
 		}
+
+
+		/*
+		 * If the file modification time is in the past
+		 * set loadtime to that value.
+		 */
+		result = isc_file_getmodtime(zone->masterfile, &filetime);
+		if (result == ISC_R_SUCCESS &&
+		    isc_time_compare(&loadtime, &filetime) > 0)
+			loadtime = filetime;
 	}
 
 	/*
@@ -7473,6 +7486,9 @@ zone_nsec3chain(dns_zone_t *zone) {
 			nsec3chain->save_delete_nsec = nsec3chain->delete_nsec;
 	}
 
+	if (nsec3chain != NULL)
+		goto skip_removals;
+
 	/*
 	 * Process removals.
 	 */
@@ -7680,6 +7696,7 @@ zone_nsec3chain(dns_zone_t *zone) {
 		first = ISC_TRUE;
 	}
 
+ skip_removals:
 	/*
 	 * We may need to update the NSEC/NSEC3 records for the zone apex.
 	 */
@@ -7741,9 +7758,6 @@ zone_nsec3chain(dns_zone_t *zone) {
 			}
 		}
 	}
-
-	if (nsec3chain != NULL)
-		dns_dbiterator_pause(nsec3chain->dbiterator);
 
 	/*
 	 * Add / update signatures for the NSEC3 records.
@@ -8459,6 +8473,14 @@ zone_sign(dns_zone_t *zone) {
 
  failure:
 	/*
+	 * Pause all dbiterators.
+	 */
+	for (signing = ISC_LIST_HEAD(zone->signing);
+	     signing != NULL;
+	     signing = ISC_LIST_NEXT(signing, link))
+		dns_dbiterator_pause(signing->dbiterator);
+
+	/*
 	 * Rollback the cleanup list.
 	 */
 	signing = ISC_LIST_HEAD(cleanup);
@@ -8469,11 +8491,6 @@ zone_sign(dns_zone_t *zone) {
 		dns_dbiterator_pause(signing->dbiterator);
 		signing = ISC_LIST_HEAD(cleanup);
 	}
-
-	for (signing = ISC_LIST_HEAD(zone->signing);
-	     signing != NULL;
-	     signing = ISC_LIST_NEXT(signing, link))
-		dns_dbiterator_pause(signing->dbiterator);
 
 	dns_diff_clear(&_sig_diff);
 
@@ -10212,6 +10229,20 @@ dns_zone_setmaxretrytime(dns_zone_t *zone, isc_uint32_t val) {
 	REQUIRE(val > 0);
 
 	zone->maxretry = val;
+}
+
+isc_uint32_t
+dns_zone_getmaxrecords(dns_zone_t *zone) {
+	REQUIRE(DNS_ZONE_VALID(zone));
+
+	return (zone->maxrecords);
+}
+
+void
+dns_zone_setmaxrecords(dns_zone_t *zone, isc_uint32_t val) {
+	REQUIRE(DNS_ZONE_VALID(zone));
+
+	zone->maxrecords = val;
 }
 
 static isc_boolean_t
@@ -14674,7 +14705,7 @@ zone_xfrdone(dns_zone_t *zone, isc_result_t result) {
 	DNS_ZONE_CLRFLAG(zone, DNS_ZONEFLG_SOABEFOREAXFR);
 
 	TIME_NOW(&now);
-	switch (result) {
+	switch (xfrresult) {
 	case ISC_R_SUCCESS:
 		DNS_ZONE_SETFLAG(zone, DNS_ZONEFLG_NEEDNOTIFY);
 		/*FALLTHROUGH*/
@@ -14800,6 +14831,11 @@ zone_xfrdone(dns_zone_t *zone, isc_result_t result) {
 		/* Force retry with AXFR. */
 		DNS_ZONE_SETFLAG(zone, DNS_ZONEFLAG_NOIXFR);
 		goto same_master;
+
+	case DNS_R_TOOMANYRECORDS:
+		DNS_ZONE_JITTER_ADD(&now, zone->refresh, &zone->refreshtime);
+		inc_stats(zone, dns_zonestatscounter_xfrfail);
+		break;
 
 	default:
 	next_master:

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1999-2016  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 1999-2017  Internet Systems Consortium, Inc. ("ISC")
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -929,6 +929,7 @@ client_sendpkg(ns_client_t *client, isc_buffer_t *buffer) {
 	 * MTU link force fragmentation at 1280 if it is a IPv6
 	 * response.
 	 */
+	client->sendevent->attributes &= ~ISC_SOCKEVENTATTR_USEMINMTU;
 	if (!TCP_CLIENT(client) && r.length > 1432)
 		client->sendevent->attributes |= ISC_SOCKEVENTATTR_USEMINMTU;
 
@@ -1017,7 +1018,8 @@ client_send(ns_client_t *client) {
 
 	CTRACE("send");
 
-	if ((client->attributes & NS_CLIENTATTR_RA) != 0)
+	if (client->message->opcode == dns_opcode_query &&
+	    (client->attributes & NS_CLIENTATTR_RA) != 0)
 		client->message->flags |= DNS_MESSAGEFLAG_RA;
 
 	if ((client->attributes & NS_CLIENTATTR_WANTDNSSEC) != 0)
@@ -1186,12 +1188,12 @@ client_send(ns_client_t *client) {
 		isc_buffer_usedregion(&buffer, &r);
 		isc_buffer_putuint16(&tcpbuffer, (isc_uint16_t) r.length);
 		isc_buffer_add(&tcpbuffer, r.length);
-
 #ifdef HAVE_DNSTAP
 		if (client->view != NULL) {
 			dns_dt_send(client->view, dtmsgtype,
-				    &client->peeraddr, ISC_TRUE, &zr,
-				    &client->requesttime, NULL, &buffer);
+				    &client->peeraddr, &client->interface->addr,
+				    ISC_TRUE, &zr, &client->requesttime, NULL,
+				    &buffer);
 		}
 #endif /* HAVE_DNSTAP */
 
@@ -1215,11 +1217,12 @@ client_send(ns_client_t *client) {
 	} else {
 		respsize = isc_buffer_usedlength(&buffer);
 		result = client_sendpkg(client, &buffer);
-
 #ifdef HAVE_DNSTAP
 		if (client->view != NULL) {
 			dns_dt_send(client->view, dtmsgtype,
-				    &client->peeraddr, ISC_FALSE, &zr,
+				    &client->peeraddr,
+				    &client->interface->addr,
+				    ISC_FALSE, &zr,
 				    &client->requesttime, NULL, &buffer);
 		}
 #endif /* HAVE_DNSTAP */
@@ -2782,7 +2785,7 @@ client_request(isc_task_t *task, isc_event_t *event) {
 			dtmsgtype = DNS_DTTYPE_AQ;
 
 		dns_dt_send(view, dtmsgtype, &client->peeraddr,
-			    TCP_CLIENT(client), NULL,
+			    &client->interface->addr, TCP_CLIENT(client), NULL,
 			    &client->requesttime, NULL, buffer);
 #endif /* HAVE_DNSTAP */
 

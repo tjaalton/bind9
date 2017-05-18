@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015, 2016  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2015-2017  Internet Systems Consortium, Inc. ("ISC")
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -101,6 +101,7 @@ static isc_boolean_t display_answer  = ISC_TRUE;
 static isc_boolean_t display_authority = ISC_TRUE;
 static isc_boolean_t display_additional = ISC_TRUE;
 static isc_boolean_t display_unknown_format = ISC_FALSE;
+static isc_boolean_t continue_on_error = ISC_FALSE;
 static isc_uint32_t display_splitwidth = 0xffffffff;
 static isc_sockaddr_t srcaddr;
 static char *server;
@@ -205,7 +206,7 @@ static void
 recvresponse(isc_task_t *task, isc_event_t *event) {
 	dns_requestevent_t *reqev = (dns_requestevent_t *)event;
 	isc_result_t result;
-	dns_message_t *query, *response;
+	dns_message_t *query = NULL, *response = NULL;
 	unsigned int parseflags = 0;
 	isc_buffer_t *buf = NULL;
 	unsigned int len = OUTPUTBUF;
@@ -216,16 +217,17 @@ recvresponse(isc_task_t *task, isc_event_t *event) {
 	UNUSED(task);
 
 	REQUIRE(reqev != NULL);
+	query = reqev->ev_arg;
 
 	if (reqev->result != ISC_R_SUCCESS) {
 		fprintf(stderr, "response failed with %s\n",
 			isc_result_totext(reqev->result));
-		exit(-1);
+		if (continue_on_error)
+			goto cleanup;
+		else
+			exit(-1);
 	}
 
-	query = reqev->ev_arg;
-
-	response = NULL;
 	result = dns_message_create(mctx, DNS_MESSAGE_INTENTPARSE, &response);
 	CHECK("dns_message_create", result);
 
@@ -468,8 +470,10 @@ cleanup:
 	fflush(stdout);
 	if (style != NULL)
 		dns_master_styledestroy(&style, mctx);
-	dns_message_destroy(&query);
-	dns_message_destroy(&response);
+	if (query != NULL)
+		dns_message_destroy(&query);
+	if (response != NULL)
+		dns_message_destroy(&response);
 	dns_request_destroy(&reqev->request);
 	isc_event_free(&event);
 
@@ -738,6 +742,7 @@ help(void) {
 "                 -6                  (use IPv6 query transport only)\n"
 "                 -b address[#port]   (bind to source address/port)\n"
 "                 -p port             (specify port number)\n"
+"                 -m                  (enable memory usage debugging)\n"
 "                 +[no]dscp[=###]     (Set the DSCP value to ### [0..63])\n"
 "                 +[no]vc             (TCP mode)\n"
 "                 +[no]tcp            (TCP mode, alternate syntax)\n"
@@ -1162,6 +1167,11 @@ plus_option(char *option, struct query *query, isc_boolean_t global)
 				GLOBAL();
 				display_comments = state;
 				break;
+			case 'n':
+				FULLCHECK("continue");
+				GLOBAL();
+				continue_on_error = state;
+				break;
 			case 'o':
 				FULLCHECK("cookie");
 				if (state && query->edns == -1)
@@ -1511,7 +1521,7 @@ plus_option(char *option, struct query *query, isc_boolean_t global)
 /*%
  * #ISC_TRUE returned if value was used
  */
-static const char *single_dash_opts = "46hiv";
+static const char *single_dash_opts = "46himv";
 /*static const char *dash_opts = "46bcfhiptvx";*/
 static isc_boolean_t
 dash_option(const char *option, char *next, struct query *query,
@@ -1567,6 +1577,11 @@ dash_option(const char *option, char *next, struct query *query,
 			break;
 		case 'i':
 			query->ip6_int = ISC_TRUE;
+			break;
+		case 'm':
+			/*
+			 * handled by preparse_args()
+			 */
 			break;
 		case 'v':
 			fputs("mDiG " VERSION "\n", stderr);
@@ -1683,6 +1698,39 @@ clone_default_query() {
 		query->timeout = tcp_mode ? TCPTIMEOUT : UDPTIMEOUT;
 
 	return query;
+}
+
+/*%
+ * Because we may be trying to do memory allocation recording, we're going
+ * to need to parse the arguments for the -m *before* we start the main
+ * argument parsing routine.
+ *
+ * I'd prefer not to have to do this, but I am not quite sure how else to
+ * fix the problem.  Argument parsing in mdig involves memory allocation
+ * by its nature, so it can't be done in the main argument parser.
+ */
+static void
+preparse_args(int argc, char **argv) {
+	int rc;
+	char **rv;
+	char *option;
+
+	rc = argc;
+	rv = argv;
+	for (rc--, rv++; rc > 0; rc--, rv++) {
+		if (rv[0][0] != '-')
+			continue;
+		option = &rv[0][1];
+		while (strpbrk(option, single_dash_opts) == &option[0]) {
+			switch (option[0]) {
+			case 'm':
+				isc_mem_debugging = ISC_MEM_DEBUGTRACE |
+					ISC_MEM_DEBUGRECORD;
+				break;
+			}
+			option = &option[1];
+		}
+	}
 }
 
 static void
@@ -1861,8 +1909,9 @@ main(int argc, char *argv[]) {
 	if (!have_ipv4 && !have_ipv6)
 		fatal("could not find either IPv4 or IPv6");
 
+	preparse_args(argc, argv);
+
 	mctx = NULL;
-isc_mem_debugging = ISC_MEM_DEBUGRECORD;
 	RUNCHECK(isc_mem_create(0, 0, &mctx));
 
 	lctx = NULL;

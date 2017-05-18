@@ -1,7 +1,7 @@
 <!DOCTYPE book [
 <!ENTITY mdash "&#8212;">]>
 <!--
- - Copyright (C) 2015, 2016  Internet Systems Consortium, Inc. ("ISC")
+ - Copyright (C) 2015-2017  Internet Systems Consortium, Inc. ("ISC")
  -
  - This Source Code Form is subject to the terms of the Mozilla Public
  - License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,7 +9,7 @@
 -->
 
 <!-- Converted by db4-upgrade version 1.0 -->
-<refentry xmlns="http://docbook.org/ns/docbook" version="5.0" xml:id="man.mdig">
+<refentry xmlns:db="http://docbook.org/ns/docbook" version="5.0" xml:id="man.mdig">
   <info>
     <date>2015-01-05</date>
   </info>
@@ -31,6 +31,7 @@
     <copyright>
       <year>2015</year>
       <year>2016</year>
+      <year>2017</year>
       <holder>Internet Systems Consortium, Inc. ("ISC")</holder>
     </copyright>
   </docinfo>
@@ -44,6 +45,7 @@
       <arg choice="opt" rep="norepeat"><option>-v</option></arg>
       <arg choice="opt" rep="norepeat"><option>-4</option></arg>
       <arg choice="opt" rep="norepeat"><option>-6</option></arg>
+      <arg choice="opt" rep="norepeat"><option>-m</option></arg>
       <arg choice="opt" rep="norepeat"><option>-b <replaceable class="parameter">address</replaceable></option></arg>
       <arg choice="opt" rep="norepeat"><option>-p <replaceable class="parameter">port#</replaceable></option></arg>
       <arg choice="opt" rep="norepeat"><option>-c <replaceable class="parameter">class</replaceable></option></arg>
@@ -163,6 +165,10 @@
     </para>
 
     <para>
+      The <option>-m</option> option enables memory usage debugging.
+    </para>
+
+    <para>
       The <option>-p</option> option is used when a non-standard port
       number is to be queried.
       <parameter>port#</parameter> is the port number
@@ -242,6 +248,15 @@
             <para>
               Toggle the display of comment lines in the output.
               The default is to print comments.
+            </para>
+          </listitem>
+        </varlistentry>
+
+        <varlistentry>
+          <term><option>+[no]continue</option></term>
+          <listitem>
+            <para>
+              Continue on errors (e.g. timeouts).
             </para>
           </listitem>
         </varlistentry>

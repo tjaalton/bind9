@@ -15,9 +15,9 @@ VERSION=@BIND9_VERSION@
 @BIND9_MAKE_INCLUDES@
 
 CINCLUDES =	${BIND9_INCLUDES} ${DNS_INCLUDES} ${ISCCFG_INCLUDES} \
-		${ISC_INCLUDES}
+		${ISC_INCLUDES} @DST_OPENSSL_INC@
 
-CDEFINES = 	-DNAMED_CONFFILE=\"${sysconfdir}/named.conf\"
+CDEFINES = 	@CRYPTO@ -DNAMED_CONFFILE=\"${sysconfdir}/named.conf\"
 CWARNINGS =
 
 DNSLIBS =	../../lib/dns/libdns.@A@ @DNS_CRYPTO_LIBS@
@@ -86,6 +86,13 @@ install:: named-checkconf@EXEEXT@ named-checkzone@EXEEXT@ installdirs
 	(cd ${DESTDIR}${sbindir}; rm -f named-compilezone@EXEEXT@; ${LINK_PROGRAM} named-checkzone@EXEEXT@ named-compilezone@EXEEXT@)
 	for m in ${MANPAGES}; do ${INSTALL_DATA} ${srcdir}/$$m ${DESTDIR}${mandir}/man8; done
 	(cd ${DESTDIR}${mandir}/man8; rm -f named-compilezone.8; ${LINK_PROGRAM} named-checkzone.8 named-compilezone.8)
+
+uninstall::
+	rm -f ${DESTDIR}${mandir}/man8/named-compilezone.8
+	for m in ${MANPAGES}; do rm -f ${DESTDIR}${mandir}/man8/$$m ; done
+	rm -f ${DESTDIR}${sbindir}/named-compilezone@EXEEXT@
+	${LIBTOOL_MODE_UNINSTALL} rm -f ${DESTDIR}${sbindir}/named-checkconf@EXEEXT@
+	${LIBTOOL_MODE_UNINSTALL} rm -f ${DESTDIR}${sbindir}/named-checkzone@EXEEXT@
 
 clean distclean::
 	rm -f ${TARGETS} r1.htm

@@ -7,7 +7,7 @@
 -->
 
 <!-- Converted by db4-upgrade version 1.0 -->
-<refentry xmlns="http://docbook.org/ns/docbook" version="5.0" xml:id="man.dnstap-read">
+<refentry xmlns:db="http://docbook.org/ns/docbook" version="5.0" xml:id="man.dnstap-read">
   <info>
     <date>2015-09-13</date>
   </info>
@@ -86,7 +86,7 @@
         <listitem>
           <para>
             Print <command>dnstap</command> data in a detailed YAML
-            format. Implies <option>-p</option>.
+            format.
           </para>
         </listitem>
       </varlistentry>

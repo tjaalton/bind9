@@ -221,6 +221,7 @@ options {\n\
 	max-transfer-time-out 120;\n\
 	max-transfer-idle-in 60;\n\
 	max-transfer-idle-out 60;\n\
+	max-records 0;\n\
 	max-retry-time 1209600; /* 2 weeks */\n\
 	min-retry-time 500;\n\
 	max-refresh-time 2419200; /* 4 weeks */\n\
@@ -305,7 +306,7 @@ ns_config_parsedefaults(cfg_parser_t *parser, cfg_obj_t **conf) {
 
 	isc_buffer_init(&b, defaultconf, sizeof(defaultconf) - 1);
 	isc_buffer_add(&b, sizeof(defaultconf) - 1);
-	return (cfg_parse_buffer2(parser, &b, __FILE__,
+	return (cfg_parse_buffer3(parser, &b, __FILE__, 0,
 				  &cfg_type_namedconf, conf));
 }
 

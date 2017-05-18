@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1998-2016  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 1998-2017  Internet Systems Consortium, Inc. ("ISC")
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -95,6 +95,7 @@ typedef isc_uint16_t				dns_keytag_t;
 typedef struct dns_loadctx			dns_loadctx_t;
 typedef struct dns_loadmgr			dns_loadmgr_t;
 typedef struct dns_masterrawheader		dns_masterrawheader_t;
+typedef isc_uint64_t				dns_masterstyle_flags_t;
 typedef struct dns_message			dns_message_t;
 typedef isc_uint16_t				dns_messageid_t;
 typedef isc_region_t				dns_label_t;

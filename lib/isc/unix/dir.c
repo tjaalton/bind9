@@ -1,12 +1,10 @@
 /*
- * Copyright (C) 1999-2001, 2004, 2005, 2007-2009, 2011, 2012, 2016  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 1999-2001, 2004, 2005, 2007-2009, 2011, 2012, 2016, 2017  Internet Systems Consortium, Inc. ("ISC")
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-
-/* $Id$ */
 
 /*! \file
  * \author  Principal Authors: DCL */
@@ -22,6 +20,7 @@
 
 #include <isc/dir.h>
 #include <isc/magic.h>
+#include <isc/netdb.h>
 #include <isc/string.h>
 #include <isc/util.h>
 
@@ -159,10 +158,23 @@ isc_dir_chdir(const char *dirname) {
 
 isc_result_t
 isc_dir_chroot(const char *dirname) {
+#ifdef HAVE_CHROOT
+	void *tmp;
+#endif
 
 	REQUIRE(dirname != NULL);
 
 #ifdef HAVE_CHROOT
+	/*
+	 * Try to use getservbyname and getprotobyname before chroot.
+	 * If WKS records are used in a zone under chroot, Name Service Switch
+	 * may fail to load library in chroot.
+	 * Do not report errors if it fails, we do not need any result now.
+	 */
+	tmp = getprotobyname("udp");
+	if (tmp != NULL)
+		(void) getservbyname("domain", "udp");
+
 	if (chroot(dirname) < 0 || chdir("/") < 0)
 		return (isc__errno2result(errno));
 

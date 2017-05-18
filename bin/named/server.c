@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1999-2016  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 1999-2017  Internet Systems Consortium, Inc. ("ISC")
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -841,6 +841,29 @@ load_view_keys(const cfg_obj_t *keys, const cfg_obj_t *vconfig,
 }
 
 /*%
+ * Check whether a key has been successfully loaded.
+ */
+static isc_boolean_t
+keyloaded(dns_view_t *view, dns_name_t *name) {
+	isc_result_t result;
+	dns_keytable_t *secroots = NULL;
+	dns_keynode_t *keynode = NULL;
+
+	result = dns_view_getsecroots(view, &secroots);
+	if (result != ISC_R_SUCCESS)
+		return (ISC_FALSE);
+
+	result = dns_keytable_find(secroots, name, &keynode);
+
+	if (keynode != NULL)
+		dns_keytable_detachkeynode(secroots, &keynode);
+	if (secroots != NULL)
+		dns_keytable_detach(&secroots);
+
+	return (ISC_TF(result == ISC_R_SUCCESS));
+}
+
+/*%
  * Configure DNSSEC keys for a view.
  *
  * The per-view configuration values and the server-global defaults are read
@@ -913,21 +936,40 @@ configure_view_dnsseckeys(dns_view_t *view, const cfg_obj_t *vconfig,
 		const cfg_obj_t *builtin_keys = NULL;
 		const cfg_obj_t *builtin_managed_keys = NULL;
 
-		isc_log_write(ns_g_lctx, DNS_LOGCATEGORY_SECURITY,
-			      NS_LOGMODULE_SERVER, ISC_LOG_INFO,
-			      "using built-in DLV key for view %s",
-			      view->name);
-
 		/*
-		 * If bind.keys exists, it overrides the managed-keys
-		 * clause hard-coded in ns_g_config.
+		 * If bind.keys exists and is populated, it overrides
+		 * the managed-keys clause hard-coded in ns_g_config.
 		 */
 		if (bindkeys != NULL) {
+			isc_log_write(ns_g_lctx, DNS_LOGCATEGORY_SECURITY,
+				      NS_LOGMODULE_SERVER, ISC_LOG_INFO,
+				      "obtaining DLV key for view %s "
+				      "from '%s'",
+				      view->name, ns_g_server->bindkeysfile);
+
 			(void)cfg_map_get(bindkeys, "trusted-keys",
 					  &builtin_keys);
 			(void)cfg_map_get(bindkeys, "managed-keys",
 					  &builtin_managed_keys);
-		} else {
+			if ((builtin_keys == NULL) &&
+			    (builtin_managed_keys == NULL))
+				isc_log_write(ns_g_lctx,
+					      DNS_LOGCATEGORY_SECURITY,
+					      NS_LOGMODULE_SERVER,
+					      ISC_LOG_WARNING,
+					      "dnssec-lookaside auto: "
+					      "WARNING: key for dlv.isc.org "
+					      "not found");
+		}
+
+		if ((builtin_keys == NULL) &&
+		    (builtin_managed_keys == NULL))
+		{
+			isc_log_write(ns_g_lctx, DNS_LOGCATEGORY_SECURITY,
+				      NS_LOGMODULE_SERVER, ISC_LOG_INFO,
+				      "using built-in DLV key for view %s",
+				      view->name);
+
 			(void)cfg_map_get(ns_g_config, "trusted-keys",
 					  &builtin_keys);
 			(void)cfg_map_get(ns_g_config, "managed-keys",
@@ -940,27 +982,54 @@ configure_view_dnsseckeys(dns_view_t *view, const cfg_obj_t *vconfig,
 		if (builtin_managed_keys != NULL)
 			CHECK(load_view_keys(builtin_managed_keys, vconfig,
 					     view, ISC_TRUE, view->dlv, mctx));
+		if (!keyloaded(view, view->dlv)) {
+			isc_log_write(ns_g_lctx, DNS_LOGCATEGORY_SECURITY,
+				      NS_LOGMODULE_SERVER, ISC_LOG_ERROR,
+				      "DLV key not loaded");
+			result = ISC_R_FAILURE;
+			goto cleanup;
+		}
 	}
 
 	if (auto_root && view->rdclass == dns_rdataclass_in) {
 		const cfg_obj_t *builtin_keys = NULL;
 		const cfg_obj_t *builtin_managed_keys = NULL;
 
-		isc_log_write(ns_g_lctx, DNS_LOGCATEGORY_SECURITY,
-			      NS_LOGMODULE_SERVER, ISC_LOG_INFO,
-			      "using built-in root key for view %s",
-			      view->name);
-
 		/*
-		 * If bind.keys exists, it overrides the managed-keys
-		 * clause hard-coded in ns_g_config.
+		 * If bind.keys exists and is populated, it overrides
+		 * the managed-keys clause hard-coded in ns_g_config.
 		 */
 		if (bindkeys != NULL) {
+			isc_log_write(ns_g_lctx, DNS_LOGCATEGORY_SECURITY,
+				      NS_LOGMODULE_SERVER, ISC_LOG_INFO,
+				      "obtaining root key for view %s "
+				      "from '%s'",
+				      view->name, ns_g_server->bindkeysfile);
+
 			(void)cfg_map_get(bindkeys, "trusted-keys",
 					  &builtin_keys);
 			(void)cfg_map_get(bindkeys, "managed-keys",
 					  &builtin_managed_keys);
-		} else {
+
+			if ((builtin_keys == NULL) &&
+			    (builtin_managed_keys == NULL))
+				isc_log_write(ns_g_lctx,
+					      DNS_LOGCATEGORY_SECURITY,
+					      NS_LOGMODULE_SERVER,
+					      ISC_LOG_WARNING,
+					      "dnssec-validation auto: "
+					      "WARNING: root zone key "
+					      "not found");
+		}
+
+		if ((builtin_keys == NULL) &&
+		    (builtin_managed_keys == NULL))
+		{
+			isc_log_write(ns_g_lctx, DNS_LOGCATEGORY_SECURITY,
+				      NS_LOGMODULE_SERVER, ISC_LOG_INFO,
+				      "using built-in root key for view %s",
+				      view->name);
+
 			(void)cfg_map_get(ns_g_config, "trusted-keys",
 					  &builtin_keys);
 			(void)cfg_map_get(ns_g_config, "managed-keys",
@@ -974,6 +1043,14 @@ configure_view_dnsseckeys(dns_view_t *view, const cfg_obj_t *vconfig,
 			CHECK(load_view_keys(builtin_managed_keys, vconfig,
 					     view, ISC_TRUE, dns_rootname,
 					     mctx));
+
+		if (!keyloaded(view, dns_rootname)) {
+			isc_log_write(ns_g_lctx, DNS_LOGCATEGORY_SECURITY,
+				      NS_LOGMODULE_SERVER, ISC_LOG_ERROR,
+				      "root key not loaded");
+			result = ISC_R_FAILURE;
+			goto cleanup;
+		}
 	}
 
 	CHECK(load_view_keys(view_keys, vconfig, view, ISC_FALSE,
@@ -2123,7 +2200,7 @@ catz_addmodzone_taskaction(isc_task_t *task, isc_event_t *event0) {
 	confbuf = NULL;
 	dns_catz_generate_zonecfg(ev->origin, ev->entry, &confbuf);
 	cfg_parser_reset(cfg->add_parser);
-	result = cfg_parse_buffer2(cfg->add_parser, confbuf, "catz",
+	result = cfg_parse_buffer3(cfg->add_parser, confbuf, "catz", 0,
 				   &cfg_type_addzoneconf, &zoneconf);
 	isc_buffer_free(&confbuf);
 	if (result != ISC_R_SUCCESS) {
@@ -2147,8 +2224,9 @@ catz_addmodzone_taskaction(isc_task_t *task, isc_event_t *event0) {
 	RUNTIME_CHECK(result == ISC_R_SUCCESS);
 	dns_view_thaw(ev->view);
 	result = configure_zone(cfg->config, zoneobj, cfg->vconfig,
-				ev->cbd->server->mctx, ev->view, NULL,
-				cfg->actx, ISC_TRUE, ISC_FALSE, ev->mod);
+				ev->cbd->server->mctx, ev->view,
+				&ev->cbd->server->viewlist, cfg->actx,
+				ISC_TRUE, ISC_FALSE, ev->mod);
 	dns_view_freeze(ev->view);
 	isc_task_endexclusive(task);
 
@@ -2432,7 +2510,7 @@ configure_catz_zone(dns_view_t *view, const cfg_obj_t *config,
 	opts = dns_catz_zone_getdefoptions(zone);
 
 	obj = cfg_tuple_get(catz_obj, "default-masters");
-	if (obj != NULL)
+	if (obj != NULL && cfg_obj_istuple(obj))
 		result = ns_config_getipandkeylist(config, obj,
 						   view->mctx, &opts->masters);
 
@@ -3332,29 +3410,6 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist,
 		CHECK(configure_zone(config, zconfig, vconfig, mctx, view,
 				     viewlist, actx, ISC_FALSE, old_rpz_ok,
 				     ISC_FALSE));
-	}
-
-	/*
-	 * Check that a master or slave zone was found for each
-	 * zone named in the response policy statement.
-	 */
-	if (view->rpzs != NULL) {
-		dns_rpz_num_t n;
-
-		for (n = 0; n < view->rpzs->p.num_zones; ++n)
-		{
-			if ((view->rpzs->defined & DNS_RPZ_ZBIT(n)) == 0) {
-				char namebuf[DNS_NAME_FORMATSIZE];
-
-				dns_name_format(&view->rpzs->zones[n]->origin,
-						namebuf, sizeof(namebuf));
-				cfg_obj_log(obj, ns_g_lctx, DNS_RPZ_ERROR_LEVEL,
-					    "'%s' is not a master or slave zone",
-					    namebuf);
-				result = ISC_R_NOTFOUND;
-				goto cleanup;
-			}
-		}
 	}
 
 	/*
@@ -4534,7 +4589,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist,
 					    "WARNING: the DLV server at "
 					    "'dlv.isc.org' is expected to "
 					    "cease operation by the end "
-					    "of 2017");
+					    "of January 2017");
 			}
 		}
 	} else
@@ -5017,7 +5072,7 @@ configure_forward(const cfg_obj_t *config, dns_view_t *view, dns_name_t *origin,
 
 	if (ISC_LIST_EMPTY(fwdlist)) {
 		if (forwardtype != NULL)
-			cfg_obj_log(forwarders, ns_g_lctx, ISC_LOG_WARNING,
+			cfg_obj_log(forwardtype, ns_g_lctx, ISC_LOG_WARNING,
 				    "no forwarders seen; disabling "
 				    "forwarding");
 		fwdpolicy = dns_fwdpolicy_none;
@@ -6679,8 +6734,8 @@ configure_newzones(dns_view_t *view, cfg_obj_t *config, cfg_obj_t *vconfig,
 	     element = cfg_list_next(element))
 	{
 		const cfg_obj_t *zconfig = cfg_listelt_value(element);
-		CHECK(configure_zone(config, zconfig, vconfig,
-				     mctx, view, NULL, actx,
+		CHECK(configure_zone(config, zconfig, vconfig, mctx,
+				     view, &ns_g_server->viewlist, actx,
 				     ISC_TRUE, ISC_FALSE, ISC_FALSE));
 	}
 
@@ -6738,7 +6793,7 @@ data_to_cfg(dns_view_t *view, MDB_val *key, MDB_val *data,
 	putstr(text, ";\n");
 
 	cfg_parser_reset(ns_g_addparser);
-	result = cfg_parse_buffer2(ns_g_addparser, *text, zone_name,
+	result = cfg_parse_buffer3(ns_g_addparser, *text, zone_name, 0,
 				   &cfg_type_addzoneconf, &zoneconf);
 	if (result != ISC_R_SUCCESS) {
 		isc_log_write(ns_g_lctx, NS_LOGCATEGORY_GENERAL,
@@ -6808,8 +6863,8 @@ configure_newzones(dns_view_t *view, cfg_obj_t *config, cfg_obj_t *vconfig,
 			CHECK(ISC_R_FAILURE);
 
 		zoneobj = cfg_listelt_value(cfg_list_first(zlist));
-		CHECK(configure_zone(config, zoneobj, vconfig,
-				     mctx, view, NULL, actx,
+		CHECK(configure_zone(config, zoneobj, vconfig, mctx,
+				     view, &ns_g_server->viewlist, actx,
 				     ISC_TRUE, ISC_FALSE, ISC_FALSE));
 
 		cfg_obj_destroy(ns_g_addparser, &zoneconf);
@@ -7130,6 +7185,11 @@ load_configuration(const char *filename, ns_server_t *server,
 		result = cfg_parse_file(bindkeys_parser, server->bindkeysfile,
 					&cfg_type_bindkeys, &bindkeys);
 		CHECK(result);
+	} else {
+		isc_log_write(ns_g_lctx, NS_LOGCATEGORY_GENERAL,
+			      NS_LOGMODULE_SERVER, ISC_LOG_INFO,
+			      "unable to open '%s' using built-in keys",
+			      server->bindkeysfile);
 	}
 
 	/* Ensure exclusive access to configuration data. */
@@ -7733,13 +7793,18 @@ load_configuration(const char *filename, ns_server_t *server,
 				      "no source of entropy found");
 		} else {
 			const char *randomdev = cfg_obj_asstring(obj);
+			int level = ISC_LOG_ERROR;
 			result = isc_entropy_createfilesource(ns_g_entropy,
 							      randomdev);
+#ifdef PATH_RANDOMDEV
+			if (ns_g_fallbackentropy != NULL)
+				level = ISC_LOG_INFO;
+#endif
 			if (result != ISC_R_SUCCESS)
 				isc_log_write(ns_g_lctx,
 					      NS_LOGCATEGORY_GENERAL,
 					      NS_LOGMODULE_SERVER,
-					      ISC_LOG_INFO,
+					      level,
 					      "could not open entropy source "
 					      "%s: %s",
 					      randomdev,
@@ -11270,6 +11335,7 @@ newzone_parse(ns_server_t *server, char *command, dns_view_t **viewp,
 	cfg_obj_t *zoneconf = NULL;
 	const cfg_obj_t *zlist = NULL;
 	const cfg_obj_t *zoneobj = NULL;
+	const cfg_obj_t *zoptions = NULL;
 	const cfg_obj_t *obj = NULL;
 	const char *viewname = NULL;
 	dns_rdataclass_t rdclass;
@@ -11277,6 +11343,8 @@ newzone_parse(ns_server_t *server, char *command, dns_view_t **viewp,
 	const char *bn;
 
 	REQUIRE(viewp != NULL && *viewp == NULL);
+	REQUIRE(zoneobjp != NULL && *zoneobjp == NULL);
+	REQUIRE(zoneconfp != NULL && *zoneconfp == NULL);
 
 	/* Try to parse the argument string */
 	isc_buffer_init(&argbuf, command, (unsigned int) strlen(command));
@@ -11296,14 +11364,42 @@ newzone_parse(ns_server_t *server, char *command, dns_view_t **viewp,
 	isc_buffer_forward(&argbuf, 3);
 
 	cfg_parser_reset(ns_g_addparser);
-	CHECK(cfg_parse_buffer2(ns_g_addparser, &argbuf, bn,
-			       &cfg_type_addzoneconf, &zoneconf));
+	CHECK(cfg_parse_buffer3(ns_g_addparser, &argbuf, bn, 0,
+				&cfg_type_addzoneconf, &zoneconf));
 	CHECK(cfg_map_get(zoneconf, "zone", &zlist));
-	if (! cfg_obj_islist(zlist))
+	if (!cfg_obj_islist(zlist))
 		CHECK(ISC_R_FAILURE);
 
 	/* For now we only support adding one zone at a time */
 	zoneobj = cfg_listelt_value(cfg_list_first(zlist));
+
+	/* Check the zone type for ones that are not supported by addzone. */
+	zoptions = cfg_tuple_get(zoneobj, "options");
+
+	obj = NULL;
+	(void)cfg_map_get(zoptions, "type", &obj);
+	if (obj == NULL) {
+		(void) cfg_map_get(zoptions, "in-view", &obj);
+		if (obj != NULL) {
+			(void) putstr(text,
+				      "'in-view' zones not supported by ");
+			(void) putstr(text, bn);
+		} else
+			(void) putstr(text, "zone type not specified");
+		CHECK(ISC_R_FAILURE);
+	}
+
+	if (strcasecmp(cfg_obj_asstring(obj), "hint") == 0 ||
+	    strcasecmp(cfg_obj_asstring(obj), "forward") == 0 ||
+	    strcasecmp(cfg_obj_asstring(obj), "redirect") == 0 ||
+	    strcasecmp(cfg_obj_asstring(obj), "delegation-only") == 0)
+	{
+		(void) putstr(text, "'");
+		(void) putstr(text, cfg_obj_asstring(obj));
+		(void) putstr(text, "' zones not supported by ");
+		(void) putstr(text, bn);
+		CHECK(ISC_R_FAILURE);
+	}
 
 	/* Make sense of optional class argument */
 	obj = cfg_tuple_get(zoneobj, "class");
@@ -11362,7 +11458,7 @@ delete_zoneconf(dns_view_t *view, cfg_parser_t *pctx,
 
 	cfg_map_get(config, "zone", &zl);
 
-	if (! cfg_obj_islist(zl))
+	if (!cfg_obj_islist(zl))
 		CHECK(ISC_R_FAILURE);
 
 	DE_CONST(&zl->value.list, list);
@@ -11464,8 +11560,8 @@ do_addzone(ns_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 	/* Mark view unfrozen and configure zone */
 	dns_view_thaw(view);
 	result = configure_zone(cfg->config, zoneobj, cfg->vconfig,
-				server->mctx, view, NULL, cfg->actx,
-				ISC_TRUE, ISC_FALSE, ISC_FALSE);
+				server->mctx, view, &server->viewlist,
+				cfg->actx, ISC_TRUE, ISC_FALSE, ISC_FALSE);
 	dns_view_freeze(view);
 
 	isc_task_endexclusive(server->task);
@@ -11612,8 +11708,8 @@ do_modzone(ns_server_t *server, ns_cfgctx_t *cfg, dns_view_t *view,
 	/* Reconfigure the zone */
 	dns_view_thaw(view);
 	result = configure_zone(cfg->config, zoneobj, cfg->vconfig,
-				server->mctx, view, NULL, cfg->actx,
-				ISC_TRUE, ISC_FALSE, ISC_TRUE);
+				server->mctx, view, &server->viewlist,
+				cfg->actx, ISC_TRUE, ISC_FALSE, ISC_TRUE);
 	dns_view_freeze(view);
 
 	exclusive = ISC_FALSE;
@@ -11772,7 +11868,8 @@ ns_server_changezone(ns_server_t *server, char *command, isc_buffer_t **text) {
 		addzone = ISC_FALSE;
 	}
 
-	CHECK(newzone_parse(server, command, &view, &zoneconf, &zoneobj, text));
+	CHECK(newzone_parse(server, command, &view, &zoneconf,
+			    &zoneobj, text));
 
 	/* Are we accepting new zones in this view? */
 #ifdef HAVE_LMDB

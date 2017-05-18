@@ -17,9 +17,9 @@ VERSION=@BIND9_VERSION@
 @BIND9_MAKE_INCLUDES@
 
 CINCLUDES =	-I. ${BIND9_INCLUDES} ${DNS_INCLUDES} ${ISC_INCLUDES} \
-		${ISCCFG_INCLUDES}
+		@ISC_OPENSSL_INC@ ${ISCCFG_INCLUDES}
 
-CDEFINES =
+CDEFINES =	@CRYPTO@
 CWARNINGS =
 
 ISCLIBS =	../../lib/isc/libisc.@A@
@@ -71,6 +71,9 @@ installdirs:
 
 install:: timestamp installdirs
 	${LIBTOOL_MODE_INSTALL} ${INSTALL_LIBRARY} libbind9.@A@ ${DESTDIR}${libdir}
+
+uninstall::
+	${LIBTOOL_MODE_UNINSTALL} rm -f ${DESTDIR}${libdir}/libbind9.@A@
 
 clean distclean::
 	rm -f libbind9.@A@ timestamp

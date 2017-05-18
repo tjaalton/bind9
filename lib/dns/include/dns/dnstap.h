@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015, 2016  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 2015-2017  Internet Systems Consortium, Inc. ("ISC")
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -99,6 +99,9 @@ struct dns_dtdata {
 
 	isc_region_t qaddr;
 	isc_region_t raddr;
+
+	isc_uint32_t qport;
+	isc_uint32_t rport;
 
 	isc_region_t msgdata;
 	dns_message_t *msg;
@@ -235,18 +238,20 @@ dns_dt_shutdown(void);
 
 void
 dns_dt_send(dns_view_t *view, dns_dtmsgtype_t msgtype,
-	    isc_sockaddr_t *sa, isc_boolean_t tcp, isc_region_t *zone,
-	    isc_time_t *qtime, isc_time_t *rtime, isc_buffer_t *buf);
+	    isc_sockaddr_t *qaddr, isc_sockaddr_t *dstaddr,
+	    isc_boolean_t tcp, isc_region_t *zone, isc_time_t *qtime,
+	    isc_time_t *rtime, isc_buffer_t *buf);
 /*%<
  * Sends a dnstap message to the log, if 'msgtype' is one of the message
  * types represented in 'view->dttypes'.
  *
- * Parameters are: 'sa' (address of the peer in the DNS transaction being
- * logged); 'tcp' (boolean indicating whether the transaction was over
- * TCP); 'zone' (the authoritative zone or bailiwick, in uncompressed
- * wire format), 'qtime' and 'rtime' (query and response times; if
- * NULL, they are set to the current time); and 'buf' (the DNS message
- * being logged, in wire format).
+ * Parameters are: 'qaddr' (query address, i.e, the address of the
+ * query initiator); 'raddr' (response address, i.e., the address of
+ * the query responder); 'tcp' (boolean indicating whether the transaction
+ * was over TCP); 'zone' (the authoritative zone or bailiwick, in
+ * uncompressed wire format), 'qtime' and 'rtime' (query and response
+ * times; if NULL, they are set to the current time); and 'buf' (the
+ * DNS message being logged, in wire format).
  *
  * Requires:
  *

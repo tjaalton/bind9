@@ -1,12 +1,10 @@
 #!/bin/sh
 #
-# Copyright (C) 2010-2012, 2014, 2016  Internet Systems Consortium, Inc. ("ISC")
+# Copyright (C) 2010-2012, 2014, 2016, 2017  Internet Systems Consortium, Inc. ("ISC")
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-
-# $Id: tests.sh,v 1.21 2012/02/09 23:47:18 tbox Exp $
 
 SYSTEMTESTTOP=..
 . $SYSTEMTESTTOP/conf.sh
@@ -134,51 +132,52 @@ status=`expr $status + $ret`
 
 echo "I:checking child zone DNSKEY set"
 ret=0
-grep "key id = $ckactive" $cfile.signed > /dev/null || {
+grep "key id = $ckactive\$" $cfile.signed > /dev/null || {
 	ret=1
 	echo "I: missing expected child KSK id = $ckactive"
 }
-grep "key id = $ckpublished" $cfile.signed > /dev/null || {
+grep "key id = $ckpublished\$" $cfile.signed > /dev/null || {
 	ret=1
 	echo "I: missing expected child prepublished KSK id = $ckpublished"
 }
-grep "key id = $ckrevoked" $cfile.signed > /dev/null || {
+grep "key id = $ckrevoked\$" $cfile.signed > /dev/null || {
 	ret=1
 	echo "I: missing expected child revoked KSK id = $ckrevoked"
 }
-grep "key id = $czactive" $cfile.signed > /dev/null || {
+grep "key id = $czactive\$" $cfile.signed > /dev/null || {
 	ret=1
 	echo "I: missing expected child ZSK id = $czactive"
 }
-grep "key id = $czpublished" $cfile.signed > /dev/null || {
+grep "key id = $czpublished\$" $cfile.signed > /dev/null || {
 	ret=1
 	echo "I: missing expected child prepublished ZSK id = $czpublished"
 }
-grep "key id = $czinactive" $cfile.signed > /dev/null || {
+grep "key id = $czinactive\$" $cfile.signed > /dev/null || {
 	ret=1
 	echo "I: missing expected child inactive ZSK id = $czinactive"
 }
 # should not be there, hence the &&
-grep "key id = $ckprerevoke" $cfile.signed > /dev/null && {
+grep "key id = $ckprerevoke\$" $cfile.signed > /dev/null && {
 	ret=1
 	echo "I: found unexpect child pre-revoke ZSK id = $ckprerevoke"
 }
-grep "key id = $czgenerated" $cfile.signed > /dev/null && {
+grep "key id = $czgenerated\$" $cfile.signed > /dev/null && {
 	ret=1
 	echo "I: found unexpected child generated ZSK id = $czgenerated"
 }
-grep "key id = $czpredecessor" $cfile.signed > /dev/null && {
+grep "key id = $czpredecessor\$" $cfile.signed > /dev/null && {
 	echo "I: found unexpected ZSK predecessor id = $czpredecessor (ignored)"
 }
-grep "key id = $czsuccessor" $cfile.signed > /dev/null && {
+grep "key id = $czsuccessor\$" $cfile.signed > /dev/null && {
 	echo "I: found unexpected ZSK successor id = $czsuccessor (ignored)"
 }
-#grep "key id = $czpredecessor" $cfile.signed > /dev/null && ret=1
-#grep "key id = $czsuccessor" $cfile.signed > /dev/null && ret=1
+#grep "key id = $czpredecessor\$" $cfile.signed > /dev/null && ret=1
+#grep "key id = $czsuccessor\$" $cfile.signed > /dev/null && ret=1
 if [ $ret != 0 ]; then echo "I:failed"; fi
 status=`expr $status + $ret`
 
 echo "I:checking key TTLs are correct"
+ret=0
 grep "${czone}. 30 IN" ${czsk1}.key > /dev/null 2>&1 || ret=1
 grep "${czone}. 30 IN" ${cksk1}.key > /dev/null 2>&1 || ret=1
 grep "${czone}. IN" ${czsk2}.key > /dev/null 2>&1 || ret=1
@@ -190,12 +189,14 @@ if [ $ret != 0 ]; then echo "I:failed"; fi
 status=`expr $status + $ret`
 
 echo "I:checking key TTLs were imported correctly"
+ret=0
 awk 'BEGIN {r = 0} $2 == "DNSKEY" && $1 != 30 {r = 1} END {exit r}' \
         ${cfile}.signed || ret=1
 if [ $ret != 0 ]; then echo "I:failed"; fi
 status=`expr $status + $ret`
 
 echo "I:re-signing and checking imported TTLs again"
+ret=0
 $SETTIME -L 15 ${czsk2} > /dev/null
 czoneout=`$SIGNER -Sg -e now+1d -X now+2d -r $RANDFILE -o $czone $cfile 2>&1`
 awk 'BEGIN {r = 0} $2 == "DNSKEY" && $1 != 15 {r = 1} END {exit r}' \

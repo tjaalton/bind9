@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1998-2002, 2004, 2005, 2007, 2008, 2015, 2016  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 1998-2002, 2004, 2005, 2007, 2008, 2015-2017  Internet Systems Consortium, Inc. ("ISC")
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -144,8 +144,6 @@ isc_lex_create(isc_mem_t *mctx, size_t max_token, isc_lex_t **lexp);
  *
  * Requires:
  *\li	'*lexp' is a valid lexer.
- *
- *\li	max_token > 0.
  *
  * Ensures:
  *\li	On success, *lexp is attached to the newly created lexer.

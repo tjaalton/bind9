@@ -12,10 +12,11 @@ VERSION=@BIND9_VERSION@
 
 @BIND9_MAKE_INCLUDES@
 
-CINCLUDES =	${DNS_INCLUDES} ${ISC_INCLUDES} ${ISCCFG_INCLUDES} \
-		${LWRES_INCLUDES} ${OMAPI_INCLUDES} ${BIND9_INCLUDES}
+CINCLUDES =	${DNS_INCLUDES} ${ISC_INCLUDES} @DST_OPENSSL_INC@ \
+		${ISCCFG_INCLUDES} ${LWRES_INCLUDES} \
+		${OMAPI_INCLUDES} ${BIND9_INCLUDES}
 
-CDEFINES =	-DVERSION=\"${VERSION}\"
+CDEFINES =	@CRYPTO@ -DVERSION=\"${VERSION}\"
 CWARNINGS =
 
 DNSLIBS =	../../lib/dns/libdns.@A@ @DNS_CRYPTO_LIBS@
@@ -147,6 +148,35 @@ install:: ${TARGETS} installdirs @DNSTAP@ @NZD_TOOLS@
 	${INSTALL_DATA} ${srcdir}/nsec3hash.8 ${DESTDIR}${mandir}/man8
 	${INSTALL_DATA} ${srcdir}/genrandom.8 ${DESTDIR}${mandir}/man8
 	${INSTALL_DATA} ${srcdir}/mdig.1 ${DESTDIR}${mandir}/man1
+
+uninstall::
+	rm -f ${DESTDIR}${mandir}/man1/mdig.1
+	rm -f ${DESTDIR}${mandir}/man8/genrandom.8
+	rm -f ${DESTDIR}${mandir}/man8/nsec3hash.8
+	rm -f ${DESTDIR}${mandir}/man1/named-rrchecker.1
+	rm -f ${DESTDIR}${mandir}/man8/named-journalprint.8
+	rm -f ${DESTDIR}${mandir}/man8/isc-hmac-fixup.8
+	rm -f ${DESTDIR}${mandir}/man1/arpaname.1
+	${LIBTOOL_MODE_UNINSTALL} rm -f \
+		${DESTDIR}${bindir}/mdig@EXEEXT@
+	${LIBTOOL_MODE_UNINSTALL} rm -f \
+		${DESTDIR}${sbindir}/isc-hmac-fixup@EXEEXT@
+	${LIBTOOL_MODE_UNINSTALL} rm -f \
+		${DESTDIR}${sbindir}/genrandom@EXEEXT@
+	${LIBTOOL_MODE_UNINSTALL} rm -f \
+		${DESTDIR}${sbindir}/nsec3hash@EXEEXT@
+	${LIBTOOL_MODE_UNINSTALL} rm -f \
+		${DESTDIR}${bindir}/named-rrchecker@EXEEXT@
+	${LIBTOOL_MODE_UNINSTALL} rm -f \
+		${DESTDIR}${sbindir}/named-journalprint@EXEEXT@
+	${LIBTOOL_MODE_UNINSTALL} rm -f \
+		${DESTDIR}${bindir}/arpaname@EXEEXT@
+	rm -f ${DESTDIR}${mandir}/man1/dnstap-read.1
+	${LIBTOOL_MODE_UNINSTALL} rm -f \
+		${DESTDIR}${bindir}/dnstap-read@EXEEXT@
+	rm -f ${DESTDIR}${mandir}/man8/named-nzd2nzf.8
+	${LIBTOOL_MODE_UNINSTALL} rm -f \
+		${DESTDIR}${sbindir}/named-nzd2nzf@EXEEXT@
 
 clean distclean::
 	rm -f ${TARGETS}

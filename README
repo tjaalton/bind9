@@ -51,6 +51,13 @@ BIND 9
 	For up-to-date release notes and errata, see
 	http://www.isc.org/software/bind9/releasenotes
 
+BIND 9.11.1
+	
+	BIND 9.11.1 is a maintenance release and addresses the security
+	flaws disclosed in CVE-2016-6170, CVE-2016-8864, CVE-2016-9131,
+	CVE-2016-9147, CVE-2016-9778, CVE-2017-3135, CVE-2017-3136,
+	CVE-2017-3137 and CVE-2017-3138.
+
 BIND 9.11.0
 
 	BIND 9.11.0 includes a number of changes from BIND 9.10 and earlier
@@ -68,9 +75,9 @@ BIND 9.11.0
 	  from an external database, developed by Red Hat for the FreeIPA
 	  project.
 	- "fetchlimit" quotas are now compiled in by default.  These
-          are for the use of recursive resolvers that are are under
-          high query load for domains whose authoritative servers are
-          nonresponsive or are experiencing a denial of service attack:
+	  are for the use of recursive resolvers that are are under
+	  high query load for domains whose authoritative servers are
+	  nonresponsive or are experiencing a denial of service attack:
 	  + "fetches-per-server" limits the number of simultaneous queries
 	    that can be sent to any single authoritative server.  The
 	    configured value is a starting point; it is automatically
@@ -268,6 +275,7 @@ Building
 		Change the default syslog facility of named/lwresd.
 		  -DISC_FACILITY=LOG_LOCAL0
 		Enable DNSSEC signature chasing support in dig.
+		  (This feature is deprecated. Use `delv` instead.)
 		  -DDIG_SIGCHASE=1 (sets -DDIG_SIGCHASE_TD=1 and
 				    -DDIG_SIGCHASE_BU=1)
 		Disable dropping queries from particular well known ports.
@@ -322,7 +330,7 @@ Building
 	systems.
 
 	For the server to support DNSSEC, you need to build it
-	with crypto support.  You must have OpenSSL 0.9.5a
+	with crypto support.  You must have OpenSSL 1.0.1t
 	or newer installed and specify "--with-openssl" on the
 	configure command line.  If OpenSSL is installed under
 	a nonstandard prefix, you can tell configure where to

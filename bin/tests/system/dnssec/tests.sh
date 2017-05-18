@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2000-2002, 2004-2016  Internet Systems Consortium, Inc. ("ISC")
+# Copyright (C) 2000-2002, 2004-2017  Internet Systems Consortium, Inc. ("ISC")
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -1807,6 +1807,10 @@ $RNDC -c ../common/rndc.conf -s 10.53.0.4 -p 9953 nta -d > rndc.out.ns4.test$n.3
 grep "badds.example: expiry" rndc.out.ns4.test$n.3 > /dev/null && ret=1
 $DIG $DIGOPTS a.badds.example. a @10.53.0.4 > dig.out.ns4.test$n.2 || ret=1
 grep "status: SERVFAIL" dig.out.ns4.test$n.2 > /dev/null || ret=1
+if [ $ret != 0 ]; then echo "I:failed"; fi
+status=`expr $status + $ret`
+ret=0
+
 echo "I: remove non-existent NTA three times"
 $RNDC -c ../common/rndc.conf -s 10.53.0.4 -p 9953 nta -r foo > rndc.out.ns4.test$n.4 2>&1
 $RNDC -c ../common/rndc.conf -s 10.53.0.4 -p 9953 nta -remove foo > rndc.out.ns4.test$n.5 2>&1
@@ -1821,9 +1825,17 @@ echo "I: testing NTA with bogus lifetimes ($n)"
 echo "I:check with no nta lifetime specified"
 $RNDC -c ../common/rndc.conf -s 10.53.0.4 -p 9953 nta -l "" foo > rndc.out.ns4.test$n.1 2>&1
 grep "'nta' failed: bad ttl" rndc.out.ns4.test$n.1 > /dev/null || ret=1
+if [ $ret != 0 ]; then echo "I:failed"; fi
+status=`expr $status + $ret`
+ret=0
+
 echo "I:check with bad nta lifetime"
 $RNDC -c ../common/rndc.conf -s 10.53.0.4 -p 9953 nta -l garbage foo > rndc.out.ns4.test$n.2 2>&1
 grep "'nta' failed: bad ttl" rndc.out.ns4.test$n.2 > /dev/null || ret=1
+if [ $ret != 0 ]; then echo "I:failed"; fi
+status=`expr $status + $ret`
+ret=0
+
 echo "I:check with too long nta lifetime"
 $RNDC -c ../common/rndc.conf -s 10.53.0.4 -p 9953 nta -l 7d1h foo > rndc.out.ns4.test$n.3 2>&1
 grep "'nta' failed: out of range" rndc.out.ns4.test$n.3 > /dev/null || ret=1
@@ -1852,7 +1864,7 @@ ret=0
 
 echo "I:killing ns4 with SIGTERM"
 cd ns4
-kill -TERM `cat named.pid`
+$KILL -TERM `cat named.pid`
 rm -f named.pid
 cd ..
 
@@ -1915,7 +1927,7 @@ grep "flags:[^;]* ad[^;]*;" dig.out.ns4.test$n.2 > /dev/null || ret=1
 
 echo "I:killing ns4 with SIGTERM"
 cd ns4
-kill -TERM `cat named.pid`
+$KILL -TERM `cat named.pid`
 rm -f named.pid
 cd ..
 
@@ -1974,7 +1986,7 @@ grep "flags:[^;]* ad[^;]*;" dig.out.ns4.test$n.2 > /dev/null || ret=1
 
 echo "I:killing ns4 with SIGTERM"
 cd ns4
-kill -TERM `cat named.pid`
+$KILL -TERM `cat named.pid`
 rm -f named.pid
 cd ..
 
@@ -2023,7 +2035,7 @@ echo "I: testing loading out of bounds lifetime from NTA file ($n)"
 
 echo "I:killing ns4 with SIGTERM"
 cd ns4
-kill -TERM `cat named.pid`
+$KILL -TERM `cat named.pid`
 rm -f named.pid
 cd ..
 
@@ -2526,7 +2538,7 @@ awk '{
 	for (i=1;i<7;i++) printf("%s ", $i);
 	for (i=7;i<=NF;i++) printf("%s", $i);
 	printf("\n");
-}' < ns1/dsset-algroll. > canonical2.$n || ret=1
+}' < ns1/dsset-algroll$TP > canonical2.$n || ret=1
 diff -b canonical1.$n canonical2.$n > /dev/null 2>&1 || ret=1
 n=`expr $n + 1`
 if [ $ret != 0 ]; then echo "I:failed"; fi
@@ -2990,7 +3002,7 @@ else
 		 +trusted-key=ns3/trusted-future.key > dig.out.ns3.test$n &
 	pid=$!
 	sleep 1
-	kill -9 $pid 2> /dev/null
+	$KILL -9 $pid 2> /dev/null
 	wait $pid
 	grep ";; No DNSKEY is valid to check the RRSIG of the RRset: FAILED" dig.out.ns3.test$n > /dev/null || ret=1
 	if [ $ret != 0 ]; then echo "I:failed"; fi
@@ -3239,7 +3251,7 @@ $KEYGEN -q -r $RANDFILE -3 remove > /dev/null
 echo > remove.db.signed
 $SIGNER -S -o remove -D -f remove.db.signed remove.db.in > signer.out.1.$n 2>&1
 )
-grep -w MX signer/remove.db.signed > /dev/null || {
+grep "RRSIG MX" signer/remove.db.signed > /dev/null || {
 	ret=1 ; cp signer/remove.db.signed signer/remove.db.signed.pre$n;
 }
 # re-generate signed zone without MX and AAAA records at apex.
@@ -3247,7 +3259,7 @@ grep -w MX signer/remove.db.signed > /dev/null || {
 cd signer
 $SIGNER -S -o remove -D -f remove.db.signed remove2.db.in > signer.out.2.$n 2>&1
 )
-grep -w MX signer/remove.db.signed > /dev/null &&  {
+grep "RRSIG MX" signer/remove.db.signed > /dev/null &&  {
 	ret=1 ; cp signer/remove.db.signed signer/remove.db.signed.post$n;
 }
 n=`expr $n + 1`
@@ -3262,7 +3274,7 @@ cd signer
 echo > remove.db.signed
 $SIGNER -3 - -S -o remove -D -f remove.db.signed remove.db.in > signer.out.1.$n 2>&1
 )
-grep -w MX signer/remove.db.signed > /dev/null || {
+grep "RRSIG MX" signer/remove.db.signed > /dev/null || {
 	ret=1 ; cp signer/remove.db.signed signer/remove.db.signed.pre$n;
 }
 # re-generate signed zone without MX and AAAA records at apex.
@@ -3270,7 +3282,7 @@ grep -w MX signer/remove.db.signed > /dev/null || {
 cd signer
 $SIGNER -3 - -S -o remove -D -f remove.db.signed remove2.db.in > signer.out.2.$n 2>&1
 )
-grep -w MX signer/remove.db.signed > /dev/null &&  {
+grep "RRSIG MX" signer/remove.db.signed > /dev/null &&  {
 	ret=1 ; cp signer/remove.db.signed signer/remove.db.signed.post$n;
 }
 n=`expr $n + 1`

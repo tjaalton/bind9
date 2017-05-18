@@ -203,7 +203,7 @@ if [ -x ${DIG} ] ; then
   
   n=`expr $n + 1`
   echo "I:checking dig @IPv4addr -6 +mapped A a.example ($n)"
-  if $TESTSOCK6 fd92:7065:b8e:ffff::2 2>/dev/null
+  if $TESTSOCK6 fd92:7065:b8e:ffff::2 2>/dev/null && [ `uname -s` != "OpenBSD" ]
   then
     ret=0
     ret=0
@@ -212,7 +212,7 @@ if [ -x ${DIG} ] ; then
     if [ $ret != 0 ]; then echo "I:failed"; fi
     status=`expr $status + $ret`
   else
-    echo "I:IPv6 unavailable; skipping"
+    echo "I:IPv6 or IPv4-to-IPv6 mapping unavailable; skipping"
   fi
 
   n=`expr $n + 1`
@@ -365,6 +365,23 @@ if [ -x ${DIG} ] ; then
   #we might have to add better logging to named for this
   if [ $ret != 0 ]; then echo "I:failed"; fi
   status=`expr $status + $ret`
+
+  n=`expr $n + 1`
+  if $FEATURETEST --with-idn
+  then
+    echo "I:checking dig +idnout ($n)"
+    ret=0
+    $DIG $DIGOPTS @10.53.0.3 +noidnout xn--caf-dma.example. > dig.out.1.test$n 2>&1 || ret=1
+    $DIG $DIGOPTS @10.53.0.3 +idnout xn--caf-dma.example. > dig.out.2.test$n 2>&1 || ret=1
+    grep "^xn--caf-dma.example" dig.out.1.test$n > /dev/null || ret=1
+    grep "^xn--caf-dma.example" dig.out.2.test$n > /dev/null && ret=1
+    grep 10.1.2.3 dig.out.1.test$n > /dev/null || ret=1
+    grep 10.1.2.3 dig.out.2.test$n > /dev/null || ret=1
+    if [ $ret != 0 ]; then echo "I:failed"; fi
+    status=`expr $status + $ret`
+  else
+    echo "I:skipping 'dig +idnout' as IDN support is not enabled ($n)"
+  fi
 
 else
   echo "$DIG is needed, so skipping these dig tests"
@@ -528,9 +545,9 @@ if [ -x ${DELV} ] ; then
   grep "a.example." < delv.out.test$n > /dev/null || ret=1
   if [ $ret != 0 ]; then echo "I:failed"; fi 
   status=`expr $status + $ret`
-
-  echo "I:exit status: $status"
-  [ $status -eq 0 ] || exit 1
 else
   echo "$DELV is needed, so skipping these delv tests"
 fi
+
+echo "I:exit status: $status"
+[ $status -eq 0 ] || exit 1

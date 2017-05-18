@@ -2858,11 +2858,24 @@ opensocket(isc__socketmgr_t *manager, isc__socket_t *sock,
 #if defined(IP_MTU_DISCOVER) && defined(IP_PMTUDISC_DONT)
 		/*
 		 * Turn off Path MTU discovery on IPv4/UDP sockets.
+		 * Prefer IP_PMTUDISC_OMIT over IP_PMTUDISC_DONT
+		 * if it available.
 		 */
 		if (sock->pf == AF_INET) {
-			int action = IP_PMTUDISC_DONT;
-			(void)setsockopt(sock->fd, IPPROTO_IP, IP_MTU_DISCOVER,
-					 &action, sizeof(action));
+			int action;
+#if defined(IP_PMTUDISC_OMIT)
+			action = IP_PMTUDISC_OMIT;
+			if (setsockopt(sock->fd, IPPROTO_IP,
+				       IP_MTU_DISCOVER, &action,
+				       sizeof(action)) < 0) {
+#endif
+				action = IP_PMTUDISC_DONT;
+				(void)setsockopt(sock->fd, IPPROTO_IP,
+						 IP_MTU_DISCOVER,
+						 &action, sizeof(action));
+#if defined(IP_PMTUDISC_OMIT)
+			}
+#endif
 		}
 #endif
 #if defined(IP_DONTFRAG)
@@ -4108,7 +4121,8 @@ process_fds(isc__socketmgr_t *manager, struct epoll_event *events, int nevents)
 			 * events.  Note also that the read or write attempt
 			 * won't block because we use non-blocking sockets.
 			 */
-			events[i].events |= (EPOLLIN | EPOLLOUT);
+			int fd = events[i].data.fd;
+			events[i].events |= manager->epoll_events[fd];
 		}
 		process_fd(manager, events[i].data.fd,
 			   (events[i].events & EPOLLIN) != 0,

@@ -1,12 +1,10 @@
 /*
- * Copyright (C) 1998-2002, 2004-2007, 2014, 2016  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 1998-2002, 2004-2007, 2014, 2016, 2017  Internet Systems Consortium, Inc. ("ISC")
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-
-/* $Id: event.h,v 1.34 2007/06/19 23:47:18 tbox Exp $ */
 
 #ifndef ISC_EVENT_H
 #define ISC_EVENT_H 1
@@ -32,7 +30,8 @@ typedef void (*isc_eventdestructor_t)(isc_event_t *);
 	void *				ev_sender; \
 	isc_eventdestructor_t		ev_destroy; \
 	void *				ev_destroy_arg; \
-	ISC_LINK(ltype)			ev_link
+	ISC_LINK(ltype)			ev_link; \
+	ISC_LINK(ltype)			ev_ratelink
 
 /*%
  * Attributes matching a mask of 0x000000ff are reserved for the task library's
@@ -62,6 +61,7 @@ do { \
 	(event)->ev_destroy = (df); \
 	(event)->ev_destroy_arg = (da); \
 	ISC_LINK_INIT((event), ev_link); \
+	ISC_LINK_INIT((event), ev_ratelink); \
 } while (0)
 
 /*%

@@ -386,6 +386,8 @@ echo "I:test smaller transfer TCP message size ($n)"
 $DIG $DIGOPTS example. @10.53.0.8 axfr -p 5300 \
 	-y key1.:1234abcd8765 > dig.out.msgsize || status=1
 
+$DOS2UNIX dig.out.msgsize >/dev/null
+
 bytes=`wc -c < dig.out.msgsize`
 if [ $bytes -ne 459357 ]; then
 	echo "I:failed axfr size check"
@@ -409,6 +411,32 @@ $DIG -p 5300 txt mapped @10.53.0.3 > dig.out.2.$n
 grep "status: NOERROR," dig.out.2.$n > /dev/null || tmp=1
 $DIG -p 5300 axfr mapped @10.53.0.3 > dig.out.3.$n
 $PERL ../digcomp.pl knowngood.mapped dig.out.3.$n || tmp=1
+if test $tmp != 0 ; then echo "I:failed"; fi
+status=`expr $status + $tmp`
+
+n=`expr $n + 1`
+echo "I:test that a zone with too many records is rejected (AXFR) ($n)"
+tmp=0
+grep "'axfr-too-big/IN'.*: too many records" ns6/named.run >/dev/null || tmp=1
+if test $tmp != 0 ; then echo "I:failed"; fi
+status=`expr $status + $tmp`
+
+n=`expr $n + 1`
+echo "I:test that a zone with too many records is rejected (IXFR) ($n)"
+tmp=0
+grep "'ixfr-too-big./IN.*: too many records" ns6/named.run >/dev/null && tmp=1
+$NSUPDATE << EOF
+zone ixfr-too-big
+server 10.53.0.1 5300
+update add the-31st-record.ixfr-too-big 0 TXT this is it
+send
+EOF
+for i in 1 2 3 4 5 6 7 8
+do
+    grep "'ixfr-too-big/IN'.*: too many records" ns6/named.run >/dev/null && break
+    sleep 1
+done
+grep "'ixfr-too-big/IN'.*: too many records" ns6/named.run >/dev/null || tmp=1
 if test $tmp != 0 ; then echo "I:failed"; fi
 status=`expr $status + $tmp`
 

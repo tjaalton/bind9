@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1998-2002, 2004-2008, 2010, 2012, 2014, 2016  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 1998-2002, 2004-2008, 2010, 2012, 2014, 2016, 2017  Internet Systems Consortium, Inc. ("ISC")
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -876,6 +876,12 @@ ISC_LANG_ENDDECLS
 
 #define ISC__BUFFER_PUTMEM(_b, _base, _length) \
 	do { \
+		if (ISC_UNLIKELY((_b)->autore)) { \
+			isc_buffer_t *tmpbuf = _b; \
+			REQUIRE(isc_buffer_reserve(&tmpbuf, _length) \
+				== ISC_R_SUCCESS); \
+		} \
+		REQUIRE(isc_buffer_availablelength(_b) >= (unsigned int) _length); \
 		memmove(isc_buffer_used(_b), (_base), (_length)); \
 		(_b)->used += (_length); \
 	} while (0)
@@ -885,6 +891,12 @@ ISC_LANG_ENDDECLS
 		unsigned int _length; \
 		unsigned char *_cp; \
 		_length = strlen(_source); \
+		if (ISC_UNLIKELY((_b)->autore)) { \
+			isc_buffer_t *tmpbuf = _b; \
+			REQUIRE(isc_buffer_reserve(&tmpbuf, _length) \
+				== ISC_R_SUCCESS); \
+		} \
+		REQUIRE(isc_buffer_availablelength(_b) >= (unsigned int) _length); \
 		_cp = isc_buffer_used(_b); \
 		memmove(_cp, (_source), _length); \
 		(_b)->used += (_length); \
@@ -894,6 +906,12 @@ ISC_LANG_ENDDECLS
 	do { \
 		unsigned char *_cp; \
 		isc_uint8_t _val2 = (_val); \
+		if (ISC_UNLIKELY((_b)->autore)) { \
+			isc_buffer_t *tmpbuf = _b; \
+			REQUIRE(isc_buffer_reserve(&tmpbuf, 1) \
+				== ISC_R_SUCCESS); \
+		} \
+		REQUIRE(isc_buffer_availablelength(_b) >= 1U); \
 		_cp = isc_buffer_used(_b); \
 		(_b)->used++; \
 		_cp[0] = _val2 & 0x00ff; \
@@ -903,6 +921,12 @@ ISC_LANG_ENDDECLS
 	do { \
 		unsigned char *_cp; \
 		isc_uint16_t _val2 = (_val); \
+		if (ISC_UNLIKELY((_b)->autore)) { \
+			isc_buffer_t *tmpbuf = _b; \
+			REQUIRE(isc_buffer_reserve(&tmpbuf, 2) \
+				== ISC_R_SUCCESS); \
+		} \
+		REQUIRE(isc_buffer_availablelength(_b) >= 2U); \
 		_cp = isc_buffer_used(_b); \
 		(_b)->used += 2; \
 		_cp[0] = (unsigned char)((_val2 & 0xff00U) >> 8); \
@@ -913,6 +937,12 @@ ISC_LANG_ENDDECLS
 	do { \
 		unsigned char *_cp; \
 		isc_uint32_t _val2 = (_val); \
+		if (ISC_UNLIKELY((_b)->autore)) { \
+			isc_buffer_t *tmpbuf = _b; \
+			REQUIRE(isc_buffer_reserve(&tmpbuf, 3) \
+				== ISC_R_SUCCESS); \
+		} \
+		REQUIRE(isc_buffer_availablelength(_b) >= 3U); \
 		_cp = isc_buffer_used(_b); \
 		(_b)->used += 3; \
 		_cp[0] = (unsigned char)((_val2 & 0xff0000U) >> 16); \
@@ -924,6 +954,12 @@ ISC_LANG_ENDDECLS
 	do { \
 		unsigned char *_cp; \
 		isc_uint32_t _val2 = (_val); \
+		if (ISC_UNLIKELY((_b)->autore)) { \
+			isc_buffer_t *tmpbuf = _b; \
+			REQUIRE(isc_buffer_reserve(&tmpbuf, 4) \
+				== ISC_R_SUCCESS); \
+		} \
+		REQUIRE(isc_buffer_availablelength(_b) >= 4U); \
 		_cp = isc_buffer_used(_b); \
 		(_b)->used += 4; \
 		_cp[0] = (unsigned char)((_val2 & 0xff000000) >> 24); \
