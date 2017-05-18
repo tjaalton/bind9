@@ -4,7 +4,7 @@ Author: LaMont Jones <lamont@debian.org>
 --- a/version
 +++ b/version
 @@ -8,4 +8,4 @@
- PATCHVER=0
+ PATCHVER=1
  RELEASETYPE=
  RELEASEVER=
 -EXTENSIONS=
