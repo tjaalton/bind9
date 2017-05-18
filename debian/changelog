@@ -1,3 +1,9 @@
+bind9 (1:9.11.1.dfsg-1~1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+
+ -- Timo Aaltonen <tjaalton@debian.org>  Thu, 18 May 2017 13:31:52 +0300
+
 bind9 (1:9.11.0.dfsg-1~1) experimental; urgency=medium
 
   [Internet Software Consortium, Inc]
