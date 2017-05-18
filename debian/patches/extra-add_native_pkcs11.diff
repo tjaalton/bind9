@@ -4,8 +4,8 @@
  
  @BIND9_MAKE_INCLUDES@
  
--CINCLUDES =	${DNS_INCLUDES} ${ISC_INCLUDES}
-+CINCLUDES =	${DNS_PKCS11_INCLUDES} ${ISC_PKCS11_INCLUDES}
+-CINCLUDES =	${DNS_INCLUDES} ${ISC_INCLUDES} @DST_OPENSSL_INC@
++CINCLUDES =	${DNS_PKCS11_INCLUDES} ${ISC_PKCS11_INCLUDES} @DST_OPENSSL_INC@
  
 -CDEFINES =	-DVERSION=\"${VERSION}\" \
 -		@CRYPTO@ -DPK11_LIB_LOCATION=\"@PKCS11_PROVIDER@\"
@@ -104,8 +104,8 @@
  	for t in ${TARGETS}; do ${LIBTOOL_MODE_INSTALL} ${INSTALL_PROGRAM} $$t ${DESTDIR}${sbindir}; done
 -	for m in ${MANPAGES}; do ${INSTALL_DATA} ${srcdir}/$$m ${DESTDIR}${mandir}/man8; done
  
- clean distclean::
- 	rm -f ${TARGETS}
+ uninstall::
+ 	for m in ${MANPAGES}; do rm -f ${DESTDIR}${mandir}/man8/$$m ; done
 --- a/bin/named-pkcs11/Makefile.in
 +++ b/bin/named-pkcs11/Makefile.in
 @@ -36,26 +36,26 @@ DLZDRIVER_INCLUDES =	@DLZ_DRIVER_INCLUDE
@@ -206,8 +206,8 @@
 +install:: named-pkcs11@EXEEXT@ installdirs
 +	${LIBTOOL_MODE_INSTALL} ${INSTALL_PROGRAM} named-pkcs11@EXEEXT@ ${DESTDIR}${sbindir}
  
- @DLZ_DRIVER_RULES@
- 
+ uninstall::
+ 	rm -f ${DESTDIR}${mandir}/man5/named.conf.5
 --- a/lib/dns-pkcs11/Makefile.in
 +++ b/lib/dns-pkcs11/Makefile.in
 @@ -23,18 +23,18 @@ VERSION=@BIND9_VERSION@
@@ -235,7 +235,7 @@
  
  # Alphabetically
  
-@@ -136,28 +136,28 @@ version.@O@: version.c
+@@ -136,31 +136,31 @@ version.@O@: version.c
  		-DLIBAGE=${LIBAGE} \
  		-c ${srcdir}/version.c
  
@@ -266,13 +266,16 @@
 -	${LIBTOOL_MODE_INSTALL} ${INSTALL_LIBRARY} libdns.@A@ ${DESTDIR}${libdir}
 +	${LIBTOOL_MODE_INSTALL} ${INSTALL_LIBRARY} libdns-pkcs11.@A@ ${DESTDIR}${libdir}
  
+ uninstall::
+ 	${LIBTOOL_MODE_UNINSTALL} rm -f ${DESTDIR}${libdir}/libdns.@A@
+ 
  clean distclean::
 -	rm -f libdns.@A@ timestamp
 +	rm -f libdns-pkcs11.@A@ timestamp
  	rm -f gen code.h include/dns/enumtype.h include/dns/enumclass.h
  	rm -f include/dns/rdatastruct.h
  	rm -f dnstap.pb-c.c dnstap.pb-c.h include/dns/dnstap.pb-c.h
-@@ -165,7 +165,7 @@ clean distclean::
+@@ -168,7 +168,7 @@ clean distclean::
  newrr::
  	rm -f code.h include/dns/enumtype.h include/dns/enumclass.h
  	rm -f include/dns/rdatastruct.h
@@ -281,8 +284,8 @@
  
  include: include/dns/enumtype.h include/dns/enumclass.h \
  	include/dns/rdatastruct.h
-@@ -189,7 +189,7 @@ code.h:	gen
- 	./gen -s ${srcdir} > code.h
+@@ -193,7 +193,7 @@ code.h:	gen
+ 	./gen -s ${srcdir} > code.h || { rm -f $@ ; exit 1; }
  
  gen: gen.c
 -	${BUILD_CC} ${BUILD_CFLAGS} -I${top_srcdir}/lib/isc/include \
@@ -303,7 +306,7 @@
  CWARNINGS =
  
  # Alphabetically
-@@ -104,38 +104,38 @@ version.@O@: version.c
+@@ -104,41 +104,41 @@ version.@O@: version.c
  		-DLIBAGE=${LIBAGE} \
  		-c ${srcdir}/version.c
  
@@ -347,6 +350,9 @@
  install:: timestamp installdirs
 -	${LIBTOOL_MODE_INSTALL} ${INSTALL_LIBRARY} libisc.@A@ ${DESTDIR}${libdir}
 +	${LIBTOOL_MODE_INSTALL} ${INSTALL_LIBRARY} libisc-pkcs11.@A@ ${DESTDIR}${libdir}
+ 
+ uninstall::
+ 	${LIBTOOL_MODE_UNINSTALL} rm -f ${DESTDIR}${libdir}/libisc.@A@
  
  clean distclean::
 -	rm -f libisc.@A@ libisc-nosymtbl.@A@ libisc.la \
