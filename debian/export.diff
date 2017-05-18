@@ -1,7 +1,6 @@
-diff -ur lib/dns/Makefile lib/dns/Makefile
---- lib/dns/Makefile	2016-03-16 19:44:06.100863999 +0000
-+++ lib/dns/Makefile	2016-03-16 20:03:45.980863999 +0000
-@@ -113,9 +113,9 @@
+--- a/build-udeb/lib/dns/Makefile
++++ b/build-udeb/lib/dns/Makefile
+@@ -106,9 +106,9 @@ CDEFINES =	-DUSE_MD5   ${USE_ISC_SPNEGO}
  
  CWARNINGS =
  
@@ -13,10 +12,9 @@ diff -ur lib/dns/Makefile lib/dns/Makefile
  
  LIBS =		-ldl  -L../../lib/isc -lcrypto
  
-diff -ur lib/irs/Makefile lib/irs/Makefile
---- lib/irs/Makefile	2016-03-16 19:44:06.104863999 +0000
-+++ lib/irs/Makefile	2016-03-16 20:04:10.700863999 +0000
-@@ -101,7 +101,7 @@
+--- a/build-udeb/lib/irs/Makefile
++++ b/build-udeb/lib/irs/Makefile
+@@ -96,7 +96,7 @@ SRCS =		context.c \
  		gai_strerror.c getaddrinfo.c getnameinfo.c \
  		resconf.c
  
@@ -24,12 +22,11 @@ diff -ur lib/irs/Makefile lib/irs/Makefile
 +LIBS =		-ldl  -L../../lib/isc -L../../lib/dns -L../../lib/isccfg -lcrypto -lisc-export -ldns-export -lisccfg-export
  
  SUBDIRS =	include
- TARGETS =	timestamp
-diff -ur lib/isccc/Makefile lib/isccc/Makefile
---- lib/isccc/Makefile	2016-03-16 19:44:06.108863999 +0000
-+++ lib/isccc/Makefile	2016-03-16 20:04:22.212863999 +0000
-@@ -89,10 +89,10 @@
- CDEFINES =
+ TESTDIRS =	
+--- a/build-udeb/lib/isccc/Makefile
++++ b/build-udeb/lib/isccc/Makefile
+@@ -83,10 +83,10 @@ CINCLUDES =	-I. ${DNS_INCLUDES} ${ISC_IN
+ CDEFINES =	
  CWARNINGS =
  
 -ISCLIBS =	../../lib/isc/libisc.la
@@ -41,18 +38,15 @@ diff -ur lib/isccc/Makefile lib/isccc/Makefile
  ISCCCDEPLIBS =	libisccc-export.la
  
  LIBS =		-ldl  -L../../lib/isc
-diff -ur lib/isccfg/Makefile lib/isccfg/Makefile
---- lib/isccfg/Makefile	2016-03-16 19:44:06.112863999 +0000
-+++ lib/isccfg/Makefile	2016-03-16 20:04:45.976863999 +0000
-@@ -89,12 +89,12 @@
+--- a/build-udeb/lib/isccfg/Makefile
++++ b/build-udeb/lib/isccfg/Makefile
+@@ -80,11 +80,11 @@ CINCLUDES =	-I. ${DNS_INCLUDES} ${ISC_IN
  CDEFINES =
  CWARNINGS =
  
 -ISCLIBS =	../../lib/isc/libisc.la
--ISCCCLIBS =	../../lib/isccc/libisccc.la
 -DNSLIBS =	../../lib/dns/libdns.la
 +ISCLIBS =	../../lib/isc/libisc-export.la
-+ISCCCLIBS =	../../lib/isccc/libisccc-export.la
 +DNSLIBS =	../../lib/dns/libdns-export.la
  ISCCFGLIBS =	../../lib/cfg/libisccfg-export.la
  
@@ -61,19 +55,18 @@ diff -ur lib/isccfg/Makefile lib/isccfg/Makefile
  ISCCFGDEPLIBS =	libisccfg-export.la
  
  LIBS =		-ldl  -L../dns -L../isc -L../isccc
-@@ -489,6 +489,7 @@
+@@ -475,6 +475,7 @@ libisccfg-export.la: ${OBJS}
  		-version-info ${LIBINTERFACE}:${LIBREVISION}:${LIBAGE} \
- 		${OBJS} ${DNSLIBS} ${ISCCCLIBS} ${ISCLIBS}  \
+ 		${OBJS} ${DNSLIBS} ${ISCLIBS}  \
  		${LIBS}
 +	ln -sf .libs/libisccfg-export.so .
  
  timestamp: libisccfg-export.la
  	touch timestamp
-diff -ur lib/samples/Makefile lib/samples/Makefile
---- lib/samples/Makefile	2016-03-16 19:44:04.832863999 +0000
-+++ lib/samples/Makefile	2016-03-16 20:05:17.608863999 +0000
-@@ -78,15 +78,15 @@
- CDEFINES =	-DVERSION=\"${VERSION}\" -DSYSCONFDIR=\"${sysconfdir}\"
+--- a/build-udeb/lib/samples/Makefile
++++ b/build-udeb/lib/samples/Makefile
+@@ -72,15 +72,15 @@ CDEFINES =	 -DVERSION=\"${VERSION}\" \
+ 		-DSYSCONFDIR=\"${sysconfdir}\"
  CWARNINGS =
  
 -ISCLIBS =	../isc/libisc.la
@@ -96,10 +89,9 @@ diff -ur lib/samples/Makefile lib/samples/Makefile
  
  DEPLIBS =	${DNSDEPLIBS} ${ISCCFGDEPLIBS} ${ISCDEPLIBS}
  
-diff -ur lib/tests/Makefile lib/tests/Makefile
---- lib/tests/Makefile	2016-03-16 19:44:04.756863999 +0000
-+++ lib/tests/Makefile	2016-03-16 20:05:41.540863999 +0000
-@@ -75,11 +75,11 @@
+--- a/build-udeb/lib/tests/Makefile
++++ b/build-udeb/lib/tests/Makefile
+@@ -67,11 +67,11 @@ CINCLUDES =	${DNS_INCLUDES} ${ISC_INCLUD
  CDEFINES =
  CWARNINGS =
  

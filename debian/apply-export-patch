@@ -10,7 +10,7 @@ for lib in dns irs isc isccc isccfg lwres; do
     sed -i "s/lib${lib}\./lib${lib}-export./g" lib/${lib}/Makefile
 done
 
-patch -p0 < ../debian/export.diff
+patch -p2 < ../debian/export.diff
 
 for lib in dns irs isc isccc isccfg lwres; do
     sed -i 's/\(lib'${lib}'\).la/\1-export.la/g'  $(find . -name Makefile)
