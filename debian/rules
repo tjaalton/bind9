@@ -255,5 +255,12 @@ binary-arch: build install
 	dh_md5sums -a
 	dh_builddeb -a
 
+gentarball: SOURCE = bind9
+gentarball: UV=$(shell dpkg-parsechangelog|awk '/^Version:/ {print $$2}'|sed 's/^[0-9]*://;s/-.*$$//')
+gentarball:
+	tar --transform 'flags=rSh;s,^,$(SOURCE)-$(UV)/,' \
+		--exclude 'debian' --exclude-vcs \
+		-cJf ../$(SOURCE)_$(UV).orig.tar.xz .
+
 binary: binary-indep binary-arch
 .PHONY: build clean binary-indep binary-arch binary install configure
