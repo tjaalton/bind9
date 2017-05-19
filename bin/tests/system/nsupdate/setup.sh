@@ -18,6 +18,7 @@ test -r $RANDFILE || $GENRANDOM 400 $RANDFILE
 rm -f ns1/*.jnl ns1/example.db ns2/*.jnl ns2/example.bk
 rm -f ns2/update.bk ns2/update.alt.bk
 rm -f ns3/example.db.jnl
+rm -f ns3/too-big.test.db.jnl
 
 cp -f ns1/example1.db ns1/example.db
 sed 's/example.nil/other.nil/g' ns1/example1.db > ns1/other.db
@@ -25,6 +26,7 @@ sed 's/example.nil/unixtime.nil/g' ns1/example1.db > ns1/unixtime.db
 sed 's/example.nil/yyyymmddvv.nil/g' ns1/example1.db > ns1/yyyymmddvv.db
 sed 's/example.nil/keytests.nil/g' ns1/example1.db > ns1/keytests.db
 cp -f ns3/example.db.in ns3/example.db
+cp -f ns3/too-big.test.db.in ns3/too-big.test.db
 
 # update_test.pl has its own zone file because it
 # requires a specific NS record set.
@@ -56,3 +58,6 @@ $DDNSCONFGEN -q -r $RANDFILE -a hmac-sha512 -k sha512-key -z keytests.nil > ns1/
 
 cp -f ns1/many.test.db.in ns1/many.test.db
 rm -f ns1/many.test.db.jnl
+
+cp ns1/sample.db.in ns1/sample.db
+cp ns2/sample.db.in ns2/sample.db

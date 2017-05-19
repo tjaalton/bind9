@@ -1978,8 +1978,21 @@ update_done(isc_task_t *task, isc_event_t *event) {
 	LOCK(&uctx->lock);
 	uctx->currentserver = ISC_LIST_NEXT(uctx->currentserver, link);
 	dns_request_destroy(&uctx->updatereq);
-	if (result != ISC_R_SUCCESS && !uctx->canceled &&
-	    uctx->currentserver != NULL) {
+	/*
+	 * Moving on to the next server shouldn't change the result
+	 * for NXDOMAIN, YXDOMAIN, NXRRSET and YXRRSET as they
+	 * indicate a prerequisite failure.  REFUSED should also
+	 * be consistent across all servers but often isn't as that
+	 * is policy rather that zone content driven (slaves that
+	 * aren't willing to forward should return NOTIMPL).  NOTZONE
+	 * indicates that we stuffed up the request construction so
+	 * don't retry.
+	 */
+	if (result != ISC_R_SUCCESS && result != DNS_R_NXDOMAIN &&
+	    result != DNS_R_YXDOMAIN && result != DNS_R_YXRRSET &&
+	    result != DNS_R_NXRRSET && result != DNS_R_NOTZONE &&
+	    !uctx->canceled && uctx->currentserver != NULL)
+	{
 		dns_message_renderreset(uctx->updatemsg);
 		dns_message_settsigkey(uctx->updatemsg, NULL);
 
@@ -2759,6 +2772,48 @@ dns_client_update(dns_client_t *client, dns_rdataclass_t rdclass,
 	return (result);
 }
 
+static void
+startupdate(isc_task_t *task, isc_event_t *event) {
+	updatectx_t *uctx;
+	isc_result_t result;
+	unsigned int resoptions;
+
+	REQUIRE(event != NULL);
+
+	UNUSED(task);
+
+	uctx = event->ev_arg;
+
+	if (uctx->zonename != NULL && uctx->currentserver != NULL) {
+		result = send_update(uctx);
+		if (result != ISC_R_SUCCESS)
+			goto fail;
+	} else if (uctx->currentserver != NULL) {
+		result = request_soa(uctx);
+		if (result != ISC_R_SUCCESS)
+			goto fail;
+	} else {
+		resoptions = 0;
+		if (uctx->want_tcp)
+			resoptions |= DNS_CLIENTRESOPT_TCP;
+		dns_name_clone(uctx->firstname, &uctx->soaqname);
+		result = dns_client_startresolve(uctx->client, &uctx->soaqname,
+						 uctx->rdclass,
+						 dns_rdatatype_soa, resoptions,
+						 uctx->client->task,
+						 resolvesoa_done, uctx,
+						 &uctx->restrans);
+		if (result != ISC_R_SUCCESS)
+			goto fail;
+	}
+
+	isc_event_free(&event);
+
+fail:
+	if (result != ISC_R_SUCCESS)
+		update_sendevent(uctx, result);
+}
+
 isc_result_t
 dns_client_startupdate(dns_client_t *client, dns_rdataclass_t rdclass,
 		       dns_name_t *zonename, dns_namelist_t *prerequisites,
@@ -2776,7 +2831,6 @@ dns_client_startupdate(dns_client_t *client, dns_rdataclass_t rdclass,
 	isc_sockaddr_t *server, *sa = NULL;
 	dns_tsectype_t tsectype = dns_tsectype_none;
 	isc_boolean_t want_tcp;
-	unsigned int resoptions;
 
 	UNUSED(options);
 
@@ -2797,20 +2851,26 @@ dns_client_startupdate(dns_client_t *client, dns_rdataclass_t rdclass,
 	UNLOCK(&client->lock);
 	if (result != ISC_R_SUCCESS)
 		return (result);
+
 	want_tcp = ISC_TF((options & DNS_CLIENTUPDOPT_TCP) != 0);
 
-	/* Create a context and prepare some resources */
+	/*
+	 * Create a context and prepare some resources.
+	 */
+
 	uctx = isc_mem_get(client->mctx, sizeof(*uctx));
 	if (uctx == NULL) {
 		dns_view_detach(&view);
 		return (ISC_R_NOMEMORY);
 	}
+
 	result = isc_mutex_init(&uctx->lock);
 	if (result != ISC_R_SUCCESS) {
 		dns_view_detach(&view);
 		isc_mem_put(client->mctx, uctx, sizeof(*uctx));
 		return (ISC_R_NOMEMORY);
 	}
+
 	tclone = NULL;
 	isc_task_attach(task, &tclone);
 	uctx->client = client;
@@ -2912,31 +2972,12 @@ dns_client_startupdate(dns_client_t *client, dns_rdataclass_t rdclass,
 	ISC_LIST_APPEND(client->updatectxs, uctx, link);
 	UNLOCK(&client->lock);
 
-	if (uctx->zonename != NULL && uctx->currentserver != NULL) {
-		result = send_update(uctx);
-		if (result != ISC_R_SUCCESS)
-			goto fail;
-	} else if (uctx->currentserver != NULL) {
-		result = request_soa(uctx);
-		if (result != ISC_R_SUCCESS)
-			goto fail;
-	} else {
-		resoptions = 0;
-		if (want_tcp)
-			resoptions |= DNS_CLIENTRESOPT_TCP;
-		dns_name_clone(uctx->firstname, &uctx->soaqname);
-		result = dns_client_startresolve(uctx->client, &uctx->soaqname,
-						 uctx->rdclass,
-						 dns_rdatatype_soa, resoptions,
-						 client->task, resolvesoa_done,
-						 uctx, &uctx->restrans);
-		if (result != ISC_R_SUCCESS)
-			goto fail;
-	}
-
 	*transp = (dns_clientupdatetrans_t *)uctx;
-
-	return (ISC_R_SUCCESS);
+	result = isc_app_ctxonrun(client->actx, client->mctx, client->task,
+				  startupdate, uctx);
+	if (result == ISC_R_SUCCESS)
+		return (result);
+	*transp = NULL;
 
  fail:
 	if (ISC_LINK_LINKED(uctx, link)) {

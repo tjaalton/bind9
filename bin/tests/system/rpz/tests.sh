@@ -1,4 +1,4 @@
-# Copyright (C) 2011-2016  Internet Systems Consortium, Inc. ("ISC")
+# Copyright (C) 2011-2017  Internet Systems Consortium, Inc. ("ISC")
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -106,7 +106,7 @@ restart () {
 	    PID=`cat ns$1/named.pid 2>/dev/null`
 	    if test -n "$PID"; then
 		echo "I:killing ns$1 server $PID"
-		kill -9 $PID
+		$KILL -9 $PID
 	    fi
 	fi
     fi
@@ -375,7 +375,7 @@ nxdomain a0-1s-cname.tld2s  +dnssec @$ns6  # 19
 drop a3-8.tld2 any @$ns6                   # 20 drop
 
 end_group
-ckstatsrange $ns3 test1 ns3 22 25
+ckstatsrange $ns3 test1 ns3 22 28
 ckstats $ns5 test1 ns5 0
 ckstats $ns6 test1 ns6 0
 
@@ -438,7 +438,7 @@ nochange a5-1-2.tld2
 end_group
 ckstats $ns3 'radix tree deletions' ns3 0
 
-if ./rpz nsdname; then
+if $FEATURETEST --rpz-nsdname; then
     # these tests assume "min-ns-dots 0"
     start_group "NSDNAME rewrites" test3
     nochange a3-1.tld2			# 1
@@ -459,7 +459,7 @@ else
     echo "I:NSDNAME not checked; named configured with --disable-rpz-nsdname"
 fi
 
-if ./rpz nsip; then
+if $FEATURETEST --rpz-nsip; then
     # these tests assume "min-ns-dots 0"
     start_group "NSIP rewrites" test4
     nxdomain a3-1.tld2			# 1 NXDOMAIN for all of tld2

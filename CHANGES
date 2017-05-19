@@ -1,3 +1,290 @@
+	--- 9.11.1 released ---
+
+	--- 9.11.1rc3 released ---
+
+4582.	[security]	'rndc ""' could trigger a assertion failure in named.
+			(CVE-2017-3138) [RT #44924]
+
+4581.	[port]		Linux: Add getpid and getrandom to the list of system
+			calls named uses for seccomp. [RT #44883]
+
+4580.	[bug]		4578 introduced a regression when handling CNAME to
+			referral below the current domain. [RT #44850]
+
+	--- 9.11.1rc2 released ---
+
+4578.	[security]	Some chaining (CNAME or DNAME) responses to upstream
+			queries could trigger assertion failures.
+			(CVE-2017-3137) [RT #44734]
+
+4575.	[security]	DNS64 with "break-dnssec yes;" can result in an
+			assertion failure. (CVE-2017-3136) [RT #44653]
+
+	--- 9.11.1rc1 released ---
+
+4571.	[bug]		Out-of-tree builds of backtrace_test failed.
+
+4570.	[cleanup]	named did not correctly fall back to the built-in
+			initializing keys if the bind.keys file was present
+			but empty. [RT #44531]
+
+4569.	[func]		Store both local and remote addresses in dnstap
+			logging, and modify dnstap-read output format to
+			print them. [RT #43595]
+
+4568.	[contrib]	Added a --with-bind option to the dnsperf configure
+			script to specify BIND prefix path.
+
+4567.	[port]		Call getprotobyname and getservbyname prior to calling
+			chroot so that shared libraries get loaded. [RT #44537]
+
+4565.	[cleanup]	The inline macro versions of isc_buffer_put*()
+			did not implement automatic buffer reallocation.
+			[RT #44216]
+
+4564.	[maint]		Update the built in managed keys to include the
+			upcoming root KSK. [RT #44579]
+
+4563.	[bug]		Modified zones would occasionally fail to reload.
+			[RT #39424]
+
+4561.	[port]		Silence a warning in strict C99 compilers. [RT #44414]
+
+4560.	[bug]		mdig: add -m option to enable memory debugging rather
+			than having it on all the time. [RT #44509]
+
+4559.	[bug]		openssl_link.c didn't compile if ISC_MEM_TRACKLINES
+			was turned off.  [RT #44509]
+
+4558.	[bug]		Synthesised CNAME before matching DNAME was still
+			being cached when it should not have been.  [RT #44318]
+
+4557.	[security]	Combining dns64 and rpz can result in dereferencing
+			a NULL pointer (read).  (CVE-2017-3135) [RT#44434]
+
+4554.	[bug]		Remove double unlock in dns_dispatchmgr_setudp.
+			[RT #44336]
+
+4553.	[bug]		Named could deadlock there were multiple changes to
+			NSEC/NSEC3 parameters for a zone being processed at
+			the same time. [RT #42770]
+
+4552.	[bug]		Named could trigger a assertion when sending notify
+			messages. [RT #44019]
+
+4551.	[test]		Add system tests for integrity checks of MX and
+			SRV records. [RT #43953]
+
+4550.	[cleanup]	Increased the number of available master file
+			output style flags from 32 to 64. [RT #44043]
+
+4547.	[port]		Add support for --enable-native-pkcs11 on the AEP
+			Keyper HSM. [RT #42463]
+
+	--- 9.11.1b1 released ---
+
+4545.	[func]		Expand YAML output from dnstap-read to include
+			a detailed breakdown of the DNS message contents.
+			[RT #43642]
+
+4544.	[bug]		Add message/payload size to dnstap-read YAML output.
+			[RT #43622]
+
+4543.	[bug]		dns_client_startupdate now delays sending the update
+			request until isc_app_ctxrun has been called.
+			[RT #43976]
+
+4541.	[bug]		rndc addzone should properly reject non master/slave
+			zones. [RT #43665]
+
+4540.	[bug]		Correctly handle ecs entries in dns_acl_isinsecure.
+			[RT #43601]
+
+4539.	[bug]		Referencing a nonexistent zone with RPZ could lead
+			to a assertion failure when configuring. [RT #43787]
+
+4538.	[bug]		Call dns_client_startresolve from client->task.
+			[RT #43896]
+
+4537.	[bug]		Handle timeouts better in dig/host/nslookup. [RT #43576]
+
+4536.	[bug]		ISC_SOCKEVENTATTR_USEMINMTU was not being cleared
+			when reusing the event structure. [RT #43885]
+
+4535.	[bug]		Address race condition in setting / testing of
+			DNS_REQUEST_F_SENDING. [RT #43889]
+
+4534.	[bug]		Only set RD, RA and CD in QUERY responses. [RT #43879]
+
+4533.	[bug]		dns_client_update should terminate on prerequisite
+			failures (NXDOMAIN, YXDOMAIN, NXRRSET, YXRRSET)
+			and also on BADZONE.  [RT #43865]
+
+4532.	[contrib]	Make gen-data-queryperf.py python 3 compatible.
+			[RT #43836]
+
+4531.	[security]	'is_zone' was not being properly updated by redirect2
+			and subsequently preserved leading to an assertion
+			failure. (CVE-2016-9778) [RT #43837]
+
+4530.	[bug]		Change 4489 broke the handling of CNAME -> DNAME
+			in responses resulting in SERVFAIL being returned.
+			[RT #43779]
+
+4529.	[cleanup]	Silence noisy log warning when DSCP probe fails
+			due to firewall rules. [RT #43847]
+
+4528.	[bug]		Only set the flag bits for the i/o we are waiting
+			for on EPOLLERR or EPOLLHUP. [RT #43617]
+
+4527.	[doc]		Support DocBook XSL Stylesheets v1.79.1. [RT #43831]
+
+4526.	[doc]		Corrected errors and improved formatting of
+			grammar definitions in the ARM. [RT #43739]
+
+4525.	[doc]		Fixed outdated documentation on managed-keys.
+			[RT #43810]
+
+4524.	[bug]		The net zero test was broken causing IPv4 servers
+			with addresses ending in .0 to be rejected. [RT #43776]
+
+4523.	[doc]		Expand config doc for <querysource4> and
+			<querysource6>. [RT #43768]
+
+4522.	[bug]		Handle big gaps in log file version numbers better.
+			[RT #38688]
+
+4521.	[cleanup]	Log it as an error if an entropy source is not
+			found and there is no fallback available. [RT #43659]
+
+4520.	[cleanup]	Alphabetize more of the grammar when printing it
+			out. Fix unbalanced indenting. [RT #43755]
+
+4519.	[port]		win32: handle ERROR_MORE_DATA. [RT #43534]
+
+4517.	[security]	Named could mishandle authority sections that were
+			missing RRSIGs triggering an assertion failure.
+			(CVE-2016-9444) [RT # 43632]
+
+4516.	[bug]		isc_socketmgr_renderjson was missing from the
+			windows build. [RT #43602]
+
+4515.	[port]		FreeBSD: Find readline headers when they are in
+			edit/readline/ instead of readline/. [RT #43658]
+
+4514.	[port]		NetBSD: strip -WL, from ld command line. [RT #43204]
+
+4513.	[cleanup]	Minimum Python versions are now 2.7 and 3.2.
+			[RT #43566]
+
+4512.	[bug]		win32: @GEOIP_INC@ missing from delv.vcxproj.in.
+			[RT #43556]
+
+4511.	[bug]		win32: mdig.exe-BNFT was missing Configure. [RT #43554]
+
+4510.	[security]	Named mishandled some responses where covering RRSIG
+			records are returned without the requested data
+			resulting in a assertion failure. (CVE-2016-9147)
+			[RT #43548]
+
+4509.	[test]		Make the rrl system test more reliable on slower
+			machines by using mdig instead of dig. [RT #43280]
+
+4508.	[security]	Named incorrectly tried to cache TKEY records which
+			could trigger a assertion failure when there was
+			a class mismatch. (CVE-2016-9131) [RT #43522]
+
+4507.	[bug]		Named could incorrectly log 'allows updates by IP
+			address, which is insecure' [RT #43432]
+
+4505.	[port]		Use IP_PMTUDISC_OMIT if available. [RT #35494]
+
+4504.	[security]	Allow the maximum number of records in a zone to
+			be specified.  This provides a control for issues
+			raised in CVE-2016-6170. [RT #42143]
+
+4503.	[cleanup]	"make uninstall" now removes files installed by
+			BIND. (This currently excludes Python files
+			due to lack of support in setup.py.) [RT #42912]
+
+4502.	[func]		Report multiple and experimental options when printing
+			grammar. [RT #43134]
+
+4500.	[bug]		Support modifier I64 in isc__print_printf. [RT #43526]
+
+4499.	[port]		MacOSX: silence deprecated function warning
+			by using arc4random_stir() when available
+			instead of arc4random_addrandom(). [RT #43503]
+
+4498.	[test]		Simplify prerequisite checks in system tests.
+			[RT #43516]
+
+4497.	[port]		Add support for OpenSSL 1.1.0. [RT #41284]
+
+4496.	[func]		dig: add +idnout to control whether labels are
+			display in punycode or not.  Requires idn support
+			to be enabled at compile time. [RT #43398]
+
+4495.	[bug]		A isc_mutex_init call was not being checked.
+			[RT #43391]
+
+4494.	[bug]		Look for <editline/readline.h>. [RT #43429]
+
+4493.	[bug]		bin/tests/system/dyndb/driver/Makefile.in should use
+			SO_TARGETS. [RT# 43336]
+
+4492.	[bug]		irs_resconf_load failed to initialize sortlistnxt
+			causing bad writes if resolv.conf contained a
+			sortlist directive. [RT #43459]
+
+4491.	[bug]		Improve message emitted when testing whether sendmsg
+			works with TOS/TCLASS fails. [RT #43483]
+
+4490.	[maint]		Added AAAA (2001:500:12::d0d) for G.ROOT-SERVERS.NET.
+
+4489.	[security]	It was possible to trigger assertions when processing
+			a response containing a DNAME answer. (CVE-2016-8864)
+			[RT #43465]
+
+4488.	[port]		Darwin: use -framework for Kerberos. [RT #43418]
+
+4487.	[test]		Make system tests work on Windows. [RT #42931]
+
+4486.	[bug]		Look in $prefix/lib/pythonX.Y/site-packages for
+			the python modules we install. [RT #43330]
+
+4485.	[bug]		Failure to find readline when requested should be
+			fatal to configure. [RT #43328]
+
+4484.	[func]		Check prefixes in acls to make sure the address and
+			prefix lengths are consistent.  Warn only in
+			BIND 9.11 and earlier. [RT #43367]
+
+4483.	[bug]		Address use before require check and remove extraneous
+			dns_message_gettsigkey call in dns_tsig_sign.
+			[RT #43374]
+
+4482.	[cleanup]	Change #4455 was incomplete. [RT #43252]
+
+4478.	[func]		Add +continue option to mdig, allow continue on socket
+			errors. [RT #43281]
+
+4477.	[test]		Fix mkeys test timing issues. [RT #41028]
+
+4476.	[test]		Fix reclimit test on slower machines. [RT #43283]
+
+4475.	[doc]		Update named-checkconf documentation. [RT #43153]
+
+4474.	[bug]		win32: call WSAStartup in fromtext_in_wks so that
+			getprotobyname and getservbyname work.  [RT #43197]
+
+4473.	[bug]		Only call fsync / _commit on regular files. [RT #43196]
+
+4472.	[bug]		Named could fail to find the correct NSEC3 records when
+			a zone was updated between looking for the answer and
+			looking for the NSEC3 records proving nonexistence
+			of the answer. [RT #43247]
+
 	--- 9.11.0 released ---
 
 	--- 9.11.0rc3 released ---
@@ -14,8 +301,8 @@
 
 4468.	[bug]		Address ECS option handling issues. [RT #43191]
 
-4467.	[security]	It was possible to trigger a assertion when rendering
-			a message. (CVE-2016-2776) [RT #43139]
+4467.	[security]	It was possible to trigger an assertion when
+			rendering a message. (CVE-2016-2776) [RT #43139]
 
 4466.	[bug]		Interface scanning didn't work on a Windows system
 			without a non local IPv6 addresses. [RT #43130]

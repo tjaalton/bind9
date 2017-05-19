@@ -16,9 +16,10 @@ VERSION=@BIND9_VERSION@
 
 @BIND9_MAKE_INCLUDES@
 
-CINCLUDES =	-I. ${DNS_INCLUDES} ${ISC_INCLUDES} ${ISCCC_INCLUDES} @ISC_OPENSSL_INC@
+CINCLUDES =	-I. ${DNS_INCLUDES} ${ISC_INCLUDES} \
+		${ISCCC_INCLUDES} @ISC_OPENSSL_INC@
 
-CDEFINES =
+CDEFINES =	@CRYPTO@
 CWARNINGS =
 
 ISCLIBS =	../../lib/isc/libisc.@A@
@@ -72,6 +73,9 @@ installdirs:
 
 install:: timestamp installdirs
 	${LIBTOOL_MODE_INSTALL} ${INSTALL_LIBRARY} libisccc.@A@ ${DESTDIR}${libdir}
+
+uninstall::
+	${LIBTOOL_MODE_UNINSTALL} rm -f ${DESTDIR}${libdir}/libisccc.@A@
 
 clean distclean::
 	rm -f libisccc.@A@ timestamp

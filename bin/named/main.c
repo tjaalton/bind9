@@ -643,6 +643,9 @@ parse_command_line(int argc, char *argv[]) {
 			else if (!strncmp(isc_commandline_argument, "tat=", 4))
 				ns_g_tat_interval =
 					   atoi(isc_commandline_argument + 4);
+			else if (!strcmp(isc_commandline_argument,
+					 "keepstderr"))
+				ns_g_keepstderr = ISC_TRUE;
 			else
 				fprintf(stderr, "unknown -T flag '%s\n",
 					isc_commandline_argument);
@@ -688,8 +691,15 @@ parse_command_line(int argc, char *argv[]) {
 #ifdef OPENSSL
 			printf("compiled with OpenSSL version: %s\n",
 			       OPENSSL_VERSION_TEXT);
+#if !defined(LIBRESSL_VERSION_NUMBER) && \
+    OPENSSL_VERSION_NUMBER >= 0x10100000L /* 1.1.0 or higher */
+			printf("linked to OpenSSL version: %s\n",
+			       OpenSSL_version(OPENSSL_VERSION));
+
+#else
 			printf("linked to OpenSSL version: %s\n",
 			       SSLeay_version(SSLEAY_VERSION));
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
 #endif
 #ifdef HAVE_LIBXML2
 			printf("compiled with libxml2 version: %s\n",

@@ -17,9 +17,10 @@ VERSION=@BIND9_VERSION@
 @BIND9_MAKE_INCLUDES@
 
 CINCLUDES =	-I. -I./include -I${srcdir}/include \
-		${DNS_INCLUDES} ${ISC_INCLUDES} ${ISCCFG_INCLUDES}
+		${DNS_INCLUDES} ${ISC_INCLUDES} \
+		@ISC_OPENSSL_INC@ ${ISCCFG_INCLUDES}
 
-CDEFINES =
+CDEFINES =	@CRYPTO@
 CWARNINGS =
 
 # Alphabetically
@@ -37,6 +38,7 @@ SRCS =		context.c \
 LIBS =		@LIBS@
 
 SUBDIRS =	include
+TESTDIRS =	@UNITTESTS@
 TARGETS =	timestamp
 
 @BIND9_MAKE_RULES@
@@ -67,6 +69,9 @@ installdirs:
 
 install:: timestamp installdirs
 	${LIBTOOL_MODE_INSTALL} ${INSTALL_LIBRARY} libirs.@A@ ${DESTDIR}${libdir}
+
+uninstall::
+	${LIBTOOL_MODE_UNINSTALL} rm -f ${DESTDIR}${libdir}/libirs.@A@
 
 clean distclean::
 	rm -f libirs.@A@ libirs.la timestamp

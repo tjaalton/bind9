@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2011-2016  Internet Systems Consortium, Inc. ("ISC")
+# Copyright (C) 2011-2017  Internet Systems Consortium, Inc. ("ISC")
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -417,7 +417,7 @@ do
 	echo "I:testing rndc buffer size limits (size=${i}) ($n)"
 	ret=0
 	$RNDC -s 10.53.0.4 -p 9956 -c ns4/key6.conf testgen ${i} 2>&1 > rndc.output.test$n || ret=1
-	actual_size=`./gencheck rndc.output.test$n`
+	actual_size=`$GENCHECK rndc.output.test$n`
 	if [ "$?" = "0" ]; then
 	    expected_size=`expr $i + 1`
 	    if [ $actual_size != $expected_size ]; then ret=1; fi
@@ -556,6 +556,14 @@ EOF
     if [ $ret != 0 ]; then echo "I:failed"; fi
     status=`expr $status + $ret`
 fi
+
+n=`expr $n + 1`
+echo "I:check 'rndc \"\"' is handled ($n)"
+ret=0
+$RNDCCMD "" > rndc.out.test$n 2>&1 && ret=1
+grep "rndc: '' failed: failure" rndc.out.test$n > /dev/null
+if [ $ret != 0 ]; then echo "I:failed"; fi
+status=`expr $status + $ret`
 
 echo "I:exit status: $status"
 [ $status -eq 0 ] || exit 1

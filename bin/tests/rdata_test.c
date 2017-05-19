@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1998-2007, 2011, 2012, 2014-2016  Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (C) 1998-2007, 2011, 2012, 2014-2017  Internet Systems Consortium, Inc. ("ISC")
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -25,8 +25,6 @@
 #include <dns/rdatatype.h>
 #include <dns/result.h>
 
-isc_mem_t *mctx;
-isc_lex_t *lex;
 
 isc_lexspecials_t specials;
 
@@ -889,6 +887,8 @@ viastruct(dns_rdata_t *rdata, isc_mem_t *mctx,
 
 int
 main(int argc, char *argv[]) {
+	isc_mem_t *mctx = NULL;
+	isc_lex_t *lex = NULL;
 	isc_token_t token;
 	isc_result_t result;
 	int quiet = 0;
