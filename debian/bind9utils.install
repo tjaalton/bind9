@@ -8,6 +8,7 @@ usr/sbin/dnssec-keyfromlabel
 usr/sbin/dnssec-keyfromlabel-pkcs11
 usr/sbin/dnssec-keygen
 usr/sbin/dnssec-keygen-pkcs11
+usr/sbin/dnssec-keymgr
 usr/sbin/dnssec-revoke
 usr/sbin/dnssec-revoke-pkcs11
 usr/sbin/dnssec-settime
@@ -29,6 +30,7 @@ usr/share/man/man8/dnssec-checkds.8
 usr/share/man/man8/dnssec-dsfromkey.8
 usr/share/man/man8/dnssec-keyfromlabel.8
 usr/share/man/man8/dnssec-keygen.8
+usr/share/man/man8/dnssec-keymgr.8
 usr/share/man/man8/dnssec-revoke.8
 usr/share/man/man8/dnssec-settime.8
 usr/share/man/man8/dnssec-signzone.8
