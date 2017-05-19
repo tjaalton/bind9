@@ -258,6 +258,9 @@ binary-arch: build install
 gentarball: SOURCE = bind9
 gentarball: UV=$(shell dpkg-parsechangelog|awk '/^Version:/ {print $$2}'|sed 's/^[0-9]*://;s/-.*$$//')
 gentarball:
+	# get rid of non-dfsg material
+	find  \( -name 'rfc*.txt' -o -name 'draft*.txt' \) -print0 | xargs -0 rm -f
+
 	tar --transform 'flags=rSh;s,^,$(SOURCE)-$(UV)/,' \
 		--exclude 'debian' --exclude-vcs \
 		-cJf ../$(SOURCE)_$(UV).orig.tar.xz .
