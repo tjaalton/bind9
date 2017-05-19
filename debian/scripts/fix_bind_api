@@ -1,0 +1,50 @@
+#!/bin/sh
+for FILE in lib/*/api; do
+    PKG=$(echo $FILE | sed 's/lib\/\(.*\)\/api/\1/')
+    API=$(( $(awk '/^LIBINTERFACE/ { print $3}' $FILE) - $(awk '/^LIBAGE/ { print $3}' $FILE) ))
+    case ${PKG} in
+	bind9)	PKG=bind9-;;
+	bind)	continue;;
+	*)	;;
+    esac
+    if [ ! -f debian/lib${PKG}${API}.install ]; then
+	OLDAPI=$(echo debian/lib${PKG}[0-9]*.install |
+		 sed "s/.*${PKG}\([0-9]*\).install/\1/")
+	echo "lib${PKG}${OLDAPI} --> ${API}"
+	sed -i "s:${PKG}${OLDAPI}:${PKG}${API}:g" debian/rules debian/control
+	if [ -f  debian/lib${PKG}${OLDAPI}.install ]; then
+	    sed -i "s:so.[0-9]*:so.${API}:" debian/lib${PKG}${OLDAPI}.install
+	else
+	    sed -i "s:so.[0-9]*:so.${API}:" debian/lib${PKG}${OLDAPI}.files
+	fi
+	for i in debian/lib${PKG}${OLDAPI}.*; do
+	    git mv $i debian/lib${PKG}${API}.${i#*.}
+	done
+    fi
+    case ${PKG} in
+	bind9-|lwres) continue;;
+    esac
+    if [ ! -f debian/lib${PKG}-export${API}.install ]; then
+	OLDAPI=$(echo debian/lib${PKG}-export[0-9]*.install |
+		 sed "s/.*${PKG}-export\([0-9]*\).install/\1/")
+	echo "lib${PKG}-export${OLDAPI} --> ${API}"
+	sed -i "s:${PKG}-export${OLDAPI}:${PKG}-export${API}:g" debian/rules debian/control
+	if [ -f  debian/lib${PKG}-export${OLDAPI}.install ]; then
+	    sed -i "s:so.[0-9]*:so.${API}:" debian/lib${PKG}-export${OLDAPI}.install
+	else
+	    sed -i "s:so.[0-9]*:so.${API}:" debian/lib${PKG}-export${OLDAPI}.files
+	fi
+	for i in debian/lib${PKG}-export${OLDAPI}.*; do
+	    git mv $i debian/lib${PKG}-export${API}.${i#*.}
+	done
+    fi
+    if [ ! -f debian/lib${PKG}-export${API}-udeb.install ]; then
+        OLDAPI=$(echo debian/lib${PKG}-export[0-9]*-udeb.install |
+                 sed "s/.*${PKG}-export\([0-9]*\)-udeb.install/\1/")
+        echo "lib${PKG}-export${OLDAPI}-udeb --> ${API}"
+        for i in debian/lib${PKG}-export${OLDAPI}-udeb.*; do
+            git mv $i debian/lib${PKG}-export${API}-udeb.${i#*.}
+        done
+    fi
+
+done
