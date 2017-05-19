@@ -1,7 +1,8 @@
 etc/bind/bind.keys
+usr/bin/arpaname
 usr/bin/bind9-config
 usr/bin/delv
-usr/sbin/arpaname
+usr/bin/named-rrchecker
 usr/sbin/ddns-confgen
 usr/sbin/dnssec-importkey
 usr/sbin/genrandom
@@ -9,7 +10,6 @@ usr/sbin/isc-hmac-fixup
 usr/sbin/named
 usr/sbin/named-journalprint
 usr/sbin/named-pkcs11
-usr/sbin/named-rrchecker
 usr/sbin/nsec3hash
 usr/sbin/tsig-keygen
 usr/share/man/man1/arpaname.1
