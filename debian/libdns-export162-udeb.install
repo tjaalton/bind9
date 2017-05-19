@@ -1,0 +1,2 @@
+#! /usr/bin/dh-exec
+../tmp-udeb/lib/*/libdns-export.so.* lib/${DEB_HOST_MULTIARCH}

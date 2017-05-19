@@ -1,0 +1,291 @@
+commit df44a1cd0ed8e1e8cfaec8bea09eaf9e07812b89
+Author: Stephen Gran <sgran@debian.org>
+Date:   Wed Jun 30 07:40:05 2010 -0600
+
+    updated geoip patch for ipv6, based on work by John 'Warthog9' Hawley <warthog9@eaglescrag.net>
+
+    Addresses-Debian-Bug: 584603
+    Signed-off-by: LaMont Jones <lamont@debian.org>
+
+commit a8a9f25549ec8521b10f1dc11794a307d87c1d95
+Author: Martin Zobel-Helas <zobel@debian.org>
+Date:   Mon Jun 22 11:05:33 2009 -0600
+
+    GEO-IP Patch from git://git.kernel.org/pub/scm/network/bind/bind-geodns.git
+
+    Addresses-Debian-Bug: 395191
+    Signed-off-by: LaMont Jones <lamont@debian.org>
+ 
+Index: bind9/config.h.in
+===================================================================
+--- bind9.orig/config.h.in	2016-02-17 05:27:40.026952068 -0700
++++ bind9/config.h.in	2016-02-17 05:27:40.022952196 -0700
+@@ -192,6 +192,9 @@
+    MSVC and with C++ compilers. */
+ #undef FLEXIBLE_ARRAY_MEMBER
+ 
++/* Defined if GeoIP supports IPv6 lookups */
++#undef GEOIP_V6
++
+ /* Define to 1 if you have the `chroot' function. */
+ #undef HAVE_CHROOT
+ 
+@@ -525,6 +528,9 @@
+ /* Define to 1 if you have the ANSI C header files. */
+ #undef STDC_HEADERS
+ 
++/* Define if you want GeoIP support. */
++#undef SUPPORT_GEOIP
++
+ /* Define to 1 if you can safely include both <sys/time.h> and <time.h>. */
+ #undef TIME_WITH_SYS_TIME
+ 
+Index: bind9/configure.in
+===================================================================
+--- bind9.orig/configure.in	2016-02-17 05:27:40.026952068 -0700
++++ bind9/configure.in	2016-02-17 05:27:40.022952196 -0700
+@@ -1779,6 +1779,74 @@
+ esac
+ 
+ #
++# Check for GeoIP - if yes enable it
++#
++
++AC_MSG_CHECKING(for GeoIP library)
++AC_ARG_WITH(geoip,
++[  --with-geoip=PATH   Specify path for system-supplied GeoIP],
++    use_geoip="$withval", use_geoip="no")
++
++#geoipdirs="/usr/local /usr/pkg /usr/kerberos /usr"
++#
++#if test "$use_geoip" = "yes"
++#then
++#	for d in $geoipdirs
++#	do
++#		if test -f $d/include/include/GeoIP.h -o -f $d/include/GeoIP.h
++#		then
++#			use_geoip=$d
++#			break
++#		fi
++#	done
++#fi
++
++AC_DEFINE([GEOIP_V6], [1], [Defined if GeoIP supports IPv6 lookups])
++case "$use_geoip" in
++	no)
++		AC_MSG_RESULT(disabled)
++		USE_GEOIP=''
++		;;
++#	yes)
++#		AC_MSG_ERROR([--with-geoip must specify a path])
++#		;;
++	*)
++		AC_CHECK_HEADER(GeoIP.h,,
++					[AC_MSG_ERROR([GeoIP library header files not found])]
++				)
++		AC_CHECK_LIB(GeoIP, GeoIP_open,
++			[
++				AC_DEFINE(SUPPORT_GEOIP, 1, Define if you want GeoIP support.)
++			],
++			[
++				AC_MSG_ERROR([GeoIP library header files were found but the library was not found])
++			])
++		GEOIP_LIBS="-lGeoIP"
++                AC_MSG_CHECKING(for for GeoIP IPv6 support)
++                AC_TRY_COMPILE([
++#include <GeoIP.h>
++#include <netinet/in.h>
++],
++[
++
++extern const struct in6_addr in6addr_loopback;
++static GeoIP *geoip = NULL;
++
++const char* value = value = GeoIP_country_name_by_ipnum_v6(geoip, (geoipv6_t)in6addr_loopback);
++
++]
++,
++	[AC_MSG_RESULT(yes)
++		GEOIP_V6="#define GEOIP_V6 1"],
++	[AC_MSG_RESULT(no)
++		GEOIP_V6="#undef GEOIP_V6"])
++AC_DEFINE(GEOIP_V6)
++		;;
++esac
++
++AC_SUBST(GEOIP_LIBS)
++
++#
+ # This would include the system openssl path (and linker options to use
+ # it as needed) if it is found.
+ #
+Index: bind9/lib/dns/Makefile.in
+===================================================================
+--- bind9.orig/lib/dns/Makefile.in	2016-02-17 05:27:40.026952068 -0700
++++ bind9/lib/dns/Makefile.in	2016-02-17 05:27:40.022952196 -0700
+@@ -43,7 +43,7 @@
+ 
+ ISCDEPLIBS =	../../lib/isc/libisc.@A@
+ 
+-LIBS =		@LIBS@ -L../../lib/isc -lcrypto
++LIBS =		@LIBS@ -L../../lib/isc -lcrypto @GEOIP_LIBS@
+ 
+ # Alphabetically
+ 
+Index: bind9/lib/dns/acl.c
+===================================================================
+--- bind9.orig/lib/dns/acl.c	2016-02-17 05:27:40.026952068 -0700
++++ bind9/lib/dns/acl.c	2016-02-17 05:27:40.022952196 -0700
+@@ -21,10 +21,15 @@
+ 
+ #include <config.h>
+ 
++#ifdef SUPPORT_GEOIP
++#include <GeoIP.h>
++#endif
++
+ #include <isc/mem.h>
+ #include <isc/once.h>
+ #include <isc/string.h>
+ #include <isc/util.h>
++#include <dns/log.h>
+ 
+ #include <dns/acl.h>
+ #include <dns/iptable.h>
+@@ -324,6 +329,13 @@
+ 		dest->elements[nelem + i].node_num =
+ 			source->elements[i].node_num + dest->node_count;
+ 
++#ifdef SUPPORT_GEOIP
++		/* Country */
++		if (source->elements[i].type == dns_aclelementtype_ipcountry &&
++		   source->elements[i].country != NULL) {
++			strncpy(dest->elements[nelem + i].country, source->elements[i].country, 3);
++		}
++#endif
+ 		/* Duplicate nested acl. */
+ 		if (source->elements[i].type == dns_aclelementtype_nestedacl &&
+ 		   source->elements[i].nestedacl != NULL)
+@@ -391,7 +403,68 @@
+ 	int indirectmatch;
+ 	isc_result_t result;
+ 
++	#ifdef SUPPORT_GEOIP
++	static GeoIP *geoip = NULL;
++	static isc_boolean_t geoip_init_tried = ISC_FALSE;
++	#ifdef GEOIP_V6
++	static GeoIP *geoip6 = NULL;
++	static isc_boolean_t geoip6_init_tried = ISC_FALSE;
++	#endif
++	#endif
++
+ 	switch (e->type) {
++#ifdef SUPPORT_GEOIP
++	case dns_aclelementtype_ipcountry:
++		/* Country match */
++		if (NULL == geoip && !geoip_init_tried) {
++			geoip_init_tried = ISC_TRUE;
++			if (GeoIP_db_avail(GEOIP_COUNTRY_EDITION)) {
++				geoip = GeoIP_open_type(GEOIP_COUNTRY_EDITION, GEOIP_MEMORY_CACHE);
++				if (NULL == geoip)
++					isc_log_write(dns_lctx, DNS_LOGCATEGORY_GENERAL,
++						      DNS_LOGMODULE_ACL, ISC_LOG_NOTICE,
++						      "Failed to open geoip database for ipv4");
++			} else {
++				isc_log_write(dns_lctx, DNS_LOGCATEGORY_GENERAL,
++					      DNS_LOGMODULE_ACL, ISC_LOG_NOTICE,
++					      "geoip database for ipv4 is not available");
++			}
++		}
++#ifdef GEOIP_V6
++		if (NULL == geoip6 && !geoip6_init_tried) {
++			geoip6_init_tried = ISC_TRUE;
++			if (GeoIP_db_avail(GEOIP_COUNTRY_EDITION_V6)) {
++				geoip6 = GeoIP_open_type(GEOIP_COUNTRY_EDITION_V6, GEOIP_MEMORY_CACHE);
++				if (NULL == geoip6)
++					isc_log_write(dns_lctx, DNS_LOGCATEGORY_GENERAL,
++						      DNS_LOGMODULE_ACL, ISC_LOG_NOTICE,
++						      "Failed to open geoip database for ipv6");
++			} else {
++				isc_log_write(dns_lctx, DNS_LOGCATEGORY_GENERAL,
++					      DNS_LOGMODULE_ACL, ISC_LOG_NOTICE,
++					      "geoip database for ipv6 is not available");
++			}
++		}
++#endif
++
++                const char *value = NULL;
++
++		if (reqaddr->family == AF_INET && geoip) {
++			value = GeoIP_country_code_by_addr(geoip,inet_ntoa(reqaddr->type.in));
++#ifdef GEOIP_V6
++		} else if (reqaddr->family == AF_INET6 && geoip6) {
++			value = GeoIP_country_code_by_ipnum_v6(geoip6, (geoipv6_t)reqaddr->type.in6);
++#endif
++		}
++
++		if ((NULL != value) && (2 == strlen(value))) {
++			if ((e->country[0] == value[0]) && (e->country[1] == value[1])) {
++				return (ISC_TRUE);
++			}
++		}
++		return (ISC_FALSE);
++#endif
++
+ 	case dns_aclelementtype_keyname:
+ 		if (reqsigner != NULL &&
+ 		    dns_name_equal(reqsigner, &e->keyname)) {
+Index: bind9/lib/dns/include/dns/acl.h
+===================================================================
+--- bind9.orig/lib/dns/include/dns/acl.h	2016-02-17 05:27:40.026952068 -0700
++++ bind9/lib/dns/include/dns/acl.h	2016-02-17 05:27:40.022952196 -0700
+@@ -65,6 +65,10 @@
+ 	dns_aclelementtype_any
+ } dns_aclelementtype_t;
+ 
++#ifdef SUPPORT_GEOIP
++typedef char dns_aclipcountry[3];
++#endif
++
+ typedef struct dns_aclipprefix dns_aclipprefix_t;
+ 
+ struct dns_aclipprefix {
+@@ -81,6 +85,9 @@
+ #endif /* HAVE_GEOIP */
+ 	dns_acl_t		*nestedacl;
+ 	int			node_num;
++#ifdef SUPPORT_GEOIP
++	dns_aclipcountry        country;
++#endif
+ };
+ 
+ struct dns_acl {
+Index: bind9/lib/isccfg/aclconf.c
+===================================================================
+--- bind9.orig/lib/isccfg/aclconf.c	2016-02-17 05:27:40.026952068 -0700
++++ bind9/lib/isccfg/aclconf.c	2016-02-17 05:27:40.022952196 -0700
+@@ -273,6 +273,9 @@
+ 		} else if (cfg_obj_isstring(ce)) {
+ 			const char *name = cfg_obj_asstring(ce);
+ 			if (strcasecmp(name, "localhost") == 0 ||
++#ifdef SUPPORT_GEOIP
++			    strncasecmp(name, "country_", 8) == 0 ||
++#endif
+ 			    strcasecmp(name, "localnets") == 0) {
+ 				n++;
+ 			} else if (strcasecmp(name, "any") != 0 &&
+@@ -819,6 +822,14 @@
+ 					de->negative = !neg;
+ 				} else
+ 					continue;
++#ifdef SUPPORT_GEOIP
++			} else if ((0 == (strncmp("country_", name, 8))) && (10 == strlen(name))) {
++				/* It is a country code */
++				de->type = dns_aclelementtype_ipcountry;
++				de->country[0] = name[8];
++				de->country[1] = name[9];
++				de->country[2] = '\0';
++#endif
+ 			} else if (strcasecmp(name, "localhost") == 0) {
+ 				INSIST(dacl->length < dacl->alloc);
+ 				de->type = dns_aclelementtype_localhost;
