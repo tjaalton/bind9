@@ -242,11 +242,11 @@ binary-arch: build install
 	dh_compress -a
 	dh_fixperms -a
 	dh_makeshlibs -a
-	dh_makeshlibs -plibirs-export141 --add-udeb=libirs-export141-udeb
-	dh_makeshlibs -plibisc-export160 --add-udeb=libisc-export160-udeb
-	dh_makeshlibs -plibdns-export162 --add-udeb=libdns-export162-udeb
-	dh_makeshlibs -plibisccc-export140 --add-udeb=libisccc-export140-udeb
-	dh_makeshlibs -plibisccfg-export140 --add-udeb=libisccfg-export140-udeb
+	dh_makeshlibs -plibirs-export160 --add-udeb=libirs-export160-udeb
+	dh_makeshlibs -plibisc-export166 --add-udeb=libisc-export166-udeb
+	dh_makeshlibs -plibdns-export168 --add-udeb=libdns-export168-udeb
+	dh_makeshlibs -plibisccc-export160 --add-udeb=libisccc-export160-udeb
+	dh_makeshlibs -plibisccfg-export160 --add-udeb=libisccfg-export160-udeb
 	dh_installdeb -a
 	dh_shlibdeps -a
 	for i in $$(sed -n '/^Package:/s/^.* //p' debian/control); do cat debian/vars.in >> debian/$$i.substvars; done
