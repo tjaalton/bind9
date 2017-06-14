@@ -5,6 +5,7 @@ Maintainer: LaMont Jones <lamont@debian.org>
 Uploaders: Michael Gilbert <mgilbert@debian.org>, Robie Basak <robie.basak@canonical.com>
 Build-Depends: debhelper (>= 9), 
   dh-exec,
+  dh-python,
   libkrb5-dev,
   libssl-dev,
   libtool, bison,
@@ -360,3 +361,11 @@ Multi-Arch: same
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Package-Type: udeb
 Description: Exported IRS library for debian-installer
+
+Package: python3-isc
+Section: python
+Architecture: all
+Depends: ${misc:Depends}, ${python3:Depends}
+Description: Python module allowing rndc commands to be sent from Python programs
+ This package provides a Python module which allows commands to be sent to rndc
+ directly from Python programs.
