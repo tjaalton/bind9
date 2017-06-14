@@ -415,3 +415,12 @@ Description: Exported ISC CFG library for debian-installer
  Internet, and is supported by the Internet Software Consortium, www.isc.org.
  .
  This package delivers the exported libisccfg shared library.
+
+Package: python3-isc
+Section: python
+Architecture: all
+Depends: ${misc:Depends},
+         ${python3:Depends}
+Description: Python module allowing rndc commands to be sent from Python programs
+ This package provides a Python module which allows commands to be sent to rndc
+ directly from Python programs.
