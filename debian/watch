@@ -8,4 +8,4 @@ uversionmangle=s/((rc|b)\d+)$/~$1/,\
 dirversionmangle=s/((rc|b)\d+)$/~$1/,\
 dversionmangle=s/\.dfsg\./-/;s/[\.\+]dfsg$//,\
 pgpsigurlmangle=s/$/.asc/ \
-  https://ftp.isc.org/isc/bind9/@ANY_VERSION@/ bind-@ANY_VERSION@\.tar\.gz
+  https://ftp.isc.org/isc/bind9/(9\.10\.\d\S+)/ bind-@ANY_VERSION@\.tar\.gz
