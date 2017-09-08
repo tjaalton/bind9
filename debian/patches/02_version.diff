@@ -6,8 +6,8 @@ Index: bind9/version
 --- bind9.orig/version	2016-03-17 14:45:24.570563494 -0600
 +++ bind9/version	2016-03-17 14:45:41.446017321 -0600
 @@ -8,4 +8,4 @@
- PATCHVER=3
- RELEASETYPE=-P
- RELEASEVER=4
+ PATCHVER=6
+ RELEASETYPE=
+ RELEASEVER=
 -EXTENSIONS=
 +EXTENSIONS="$(dpkg-parsechangelog | sed -n '/^Version/s/[^-]*//p')-$(dpkg-vendor --query Vendor)"

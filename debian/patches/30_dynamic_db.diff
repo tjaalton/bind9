@@ -7,8 +7,8 @@ Date:   Fri Nov 8 07:16:57 2013 -0700
     Signed-off-by: LaMont Jones <lamont@debian.org>
     Addresses-Debian-Bug: #722669
 
---- a/bin/named/main.c
-+++ b/bin/named/main.c
+--- bind9.orig/bin/named/main.c
++++ bind9/bin/named/main.c
 @@ -43,6 +43,7 @@
  #include <isccc/result.h>
  
@@ -17,17 +17,17 @@ Date:   Fri Nov 8 07:16:57 2013 -0700
  #include <dns/name.h>
  #include <dns/result.h>
  #include <dns/view.h>
---- a/bin/named/server.c
-+++ b/bin/named/server.c
+--- bind9.orig/bin/named/server.c
++++ bind9/bin/named/server.c
 @@ -68,6 +68,7 @@
  #include <dns/db.h>
  #include <dns/dispatch.h>
  #include <dns/dlz.h>
 +#include <dns/dynamic_db.h>
  #include <dns/dns64.h>
+ #include <dns/events.h>
  #include <dns/forward.h>
- #include <dns/journal.h>
-@@ -1310,6 +1311,70 @@ configure_peer(const cfg_obj_t *cpeer, i
+@@ -1394,6 +1395,70 @@ configure_peer(const cfg_obj_t *cpeer, i
  	return (result);
  }
  
@@ -98,15 +98,15 @@ Date:   Fri Nov 8 07:16:57 2013 -0700
  static isc_result_t
  disable_algorithms(const cfg_obj_t *disabled, dns_resolver_t *resolver) {
  	isc_result_t result;
-@@ -2346,6 +2411,7 @@ configure_view(dns_view_t *view, dns_vie
- 	const cfg_obj_t *dlz;
+@@ -2455,6 +2520,7 @@ configure_view(dns_view_t *view, dns_vie
+ 	const cfg_obj_t *dlvobj = NULL;
  	unsigned int dlzargc;
  	char **dlzargv;
 +	const cfg_obj_t *dynamic_db_list;
  	const cfg_obj_t *disabled;
  	const cfg_obj_t *obj;
  #ifdef ENABLE_FETCHLIMIT
-@@ -3712,6 +3778,37 @@ configure_view(dns_view_t *view, dns_vie
+@@ -3826,6 +3892,37 @@ configure_view(dns_view_t *view, dns_vie
  		dns_view_setrootdelonly(view, ISC_FALSE);
  
  	/*
@@ -144,7 +144,7 @@ Date:   Fri Nov 8 07:16:57 2013 -0700
  	 * Setup automatic empty zones.  If recursion is off then
  	 * they are disabled by default.
  	 */
-@@ -5457,6 +5554,7 @@ load_configuration(const char *filename,
+@@ -5765,6 +5862,7 @@ load_configuration(const char *filename,
  		cfg_aclconfctx_detach(&ns_g_aclconfctx);
  	CHECK(cfg_aclconfctx_create(ns_g_mctx, &ns_g_aclconfctx));
  
@@ -152,7 +152,7 @@ Date:   Fri Nov 8 07:16:57 2013 -0700
  	/*
  	 * Parse the global default pseudo-config file.
  	 */
-@@ -6685,6 +6783,8 @@ shutdown_server(isc_task_t *task, isc_ev
+@@ -7012,6 +7110,8 @@ shutdown_server(isc_task_t *task, isc_ev
  			dns_view_detach(&view);
  	}
  
@@ -161,8 +161,8 @@ Date:   Fri Nov 8 07:16:57 2013 -0700
  	while ((nsc = ISC_LIST_HEAD(server->cachelist)) != NULL) {
  		ISC_LIST_UNLINK(server->cachelist, nsc, link);
  		dns_cache_detach(&nsc->cache);
---- a/lib/dns/Makefile.in
-+++ b/lib/dns/Makefile.in
+--- bind9.orig/lib/dns/Makefile.in
++++ bind9/lib/dns/Makefile.in
 @@ -65,7 +65,7 @@ GEOIPLINKOBJS = geoip.@O@
  DNSOBJS =	acache.@O@ acl.@O@ adb.@O@ byaddr.@O@ \
  		cache.@O@ callbacks.@O@ clientinfo.@O@ compress.@O@ \
@@ -176,12 +176,12 @@ Date:   Fri Nov 8 07:16:57 2013 -0700
  DNSSRCS =	acache.c acl.c adb.c byaddr.c \
  		cache.c callbacks.c clientinfo.c compress.c \
  		db.c dbiterator.c dbtable.c diff.c dispatch.c \
--		dlz.c dns64.c dnssec.c ds.c forward.c geoip.c \
-+		dlz.c dns64.c dnssec.c ds.c dynamic_db.c forward.c geoip.c \
+-		dlz.c dns64.c dnssec.c ds.c forward.c \
++		dlz.c dns64.c dnssec.c ds.c dynamic_db.c forward.c \
  		iptable.c journal.c keydata.c keytable.c lib.c log.c \
  		lookup.c master.c masterdump.c message.c \
  		name.c ncache.c nsec.c nsec3.c order.c peer.c portlist.c \
-@@ -142,6 +142,12 @@ libdns.@SA@: ${OBJS}
+@@ -141,6 +141,12 @@ libdns.@SA@: ${OBJS}
  	${AR} ${ARFLAGS} $@ ${OBJS}
  	${RANLIB} $@
  
@@ -195,7 +195,7 @@ Date:   Fri Nov 8 07:16:57 2013 -0700
  	${LIBTOOL_MODE_LINK} \
  		${CC} ${ALL_CFLAGS} ${LDFLAGS} -o libdns.la -rpath ${libdir} \
 --- /dev/null
-+++ b/lib/dns/dynamic_db.c
++++ bind9/lib/dns/dynamic_db.c
 @@ -0,0 +1,367 @@
 +/*
 + * Copyright (C) 2008-2011  Red Hat, Inc.
@@ -564,9 +564,9 @@ Date:   Fri Nov 8 07:16:57 2013 -0700
 +	return args->timermgr;
 +}
 +
---- a/lib/dns/include/dns/Makefile.in
-+++ b/lib/dns/include/dns/Makefile.in
-@@ -23,7 +23,7 @@ top_srcdir =	@top_srcdir@
+--- bind9.orig/lib/dns/include/dns/Makefile.in
++++ bind9/lib/dns/include/dns/Makefile.in
+@@ -23,7 +23,7 @@ VERSION=@BIND9_VERSION@
  
  HEADERS =	acache.h acl.h adb.h bit.h byaddr.h cache.h callbacks.h cert.h \
  		client.h clientinfo.h compress.h \
@@ -576,7 +576,7 @@ Date:   Fri Nov 8 07:16:57 2013 -0700
  		ecdb.h events.h fixedname.h forward.h geoip.h iptable.h \
  		journal.h keydata.h keyflags.h keytable.h keyvalues.h \
 --- /dev/null
-+++ b/lib/dns/include/dns/dynamic_db.h
++++ bind9/lib/dns/include/dns/dynamic_db.h
 @@ -0,0 +1,51 @@
 +/*
 + * Copyright (C) 2008-2011  Red Hat, Inc.
@@ -629,8 +629,8 @@ Date:   Fri Nov 8 07:16:57 2013 -0700
 +
 +#endif
 +
---- a/lib/dns/include/dns/log.h
-+++ b/lib/dns/include/dns/log.h
+--- bind9.orig/lib/dns/include/dns/log.h
++++ bind9/lib/dns/include/dns/log.h
 @@ -78,6 +78,7 @@ LIBDNS_EXTERNAL_DATA extern isc_logmodul
  #define DNS_LOGMODULE_DNSSEC		(&dns_modules[27])
  #define DNS_LOGMODULE_CRYPTO		(&dns_modules[28])
@@ -639,9 +639,9 @@ Date:   Fri Nov 8 07:16:57 2013 -0700
  
  ISC_LANG_BEGINDECLS
  
---- a/lib/dns/include/dns/types.h
-+++ b/lib/dns/include/dns/types.h
-@@ -64,6 +64,7 @@ typedef struct dns_dlzimplementation		dn
+--- bind9.orig/lib/dns/include/dns/types.h
++++ bind9/lib/dns/include/dns/types.h
+@@ -62,6 +62,7 @@ typedef struct dns_dlzimplementation		dn
  typedef struct dns_dlzdb			dns_dlzdb_t;
  typedef ISC_LIST(dns_dlzdb_t)			dns_dlzdblist_t;
  typedef struct dns_sdlzimplementation		dns_sdlzimplementation_t;
@@ -649,8 +649,8 @@ Date:   Fri Nov 8 07:16:57 2013 -0700
  typedef struct dns_decompress			dns_decompress_t;
  typedef struct dns_dispatch			dns_dispatch_t;
  typedef struct dns_dispatchevent		dns_dispatchevent_t;
---- a/lib/dns/log.c
-+++ b/lib/dns/log.c
+--- bind9.orig/lib/dns/log.c
++++ bind9/lib/dns/log.c
 @@ -84,6 +84,7 @@ LIBDNS_EXTERNAL_DATA isc_logmodule_t dns
  	{ "dns/dnssec",		0 },
  	{ "dns/crypto",		0 },
@@ -659,9 +659,9 @@ Date:   Fri Nov 8 07:16:57 2013 -0700
  	{ NULL, 		0 }
  };
  
---- a/lib/isccfg/namedconf.c
-+++ b/lib/isccfg/namedconf.c
-@@ -105,6 +105,7 @@ static cfg_type_t cfg_type_controls;
+--- bind9.orig/lib/isccfg/namedconf.c
++++ bind9/lib/isccfg/namedconf.c
+@@ -106,6 +106,7 @@ static cfg_type_t cfg_type_controls;
  static cfg_type_t cfg_type_controls_sockaddr;
  static cfg_type_t cfg_type_destinationlist;
  static cfg_type_t cfg_type_dialuptype;
@@ -669,15 +669,15 @@ Date:   Fri Nov 8 07:16:57 2013 -0700
  static cfg_type_t cfg_type_ixfrdifftype;
  static cfg_type_t cfg_type_key;
  static cfg_type_t cfg_type_logfile;
-@@ -962,6 +963,7 @@ namedconf_or_view_clauses[] = {
- 	{ "key", &cfg_type_key, CFG_CLAUSEFLAG_MULTI },
- 	{ "zone", &cfg_type_zone, CFG_CLAUSEFLAG_MULTI },
- 	{ "dlz", &cfg_type_dlz, CFG_CLAUSEFLAG_MULTI },
-+	{ "dynamic-db", &cfg_type_dynamic_db, CFG_CLAUSEFLAG_MULTI },
+@@ -984,6 +985,7 @@ namedconf_or_view_clauses[] = {
  	{ "server", &cfg_type_server, CFG_CLAUSEFLAG_MULTI },
  	{ "trusted-keys", &cfg_type_dnsseckeys, CFG_CLAUSEFLAG_MULTI },
- 	{ "managed-keys", &cfg_type_managedkeys, CFG_CLAUSEFLAG_MULTI },
-@@ -2190,6 +2192,40 @@ static cfg_type_t cfg_type_dialuptype =
+ 	{ "zone", &cfg_type_zone, CFG_CLAUSEFLAG_MULTI },
++	{ "dynamic-db", &cfg_type_dynamic_db, CFG_CLAUSEFLAG_MULTI },
+ 	{ NULL, NULL, 0 }
+ };
+ 
+@@ -2264,6 +2266,40 @@ static cfg_type_t cfg_type_dialuptype =
  	&cfg_rep_string, dialup_enums
  };
  
@@ -717,4 +717,4 @@ Date:   Fri Nov 8 07:16:57 2013 -0700
 +
  static const char *notify_enums[] = { "explicit", "master-only", NULL };
  static isc_result_t
- parse_notify_type(cfg_parser_t *pctx, const cfg_type_t *type, cfg_obj_t **ret) {
+ parse_notify_type(cfg_parser_t *pctx, const cfg_type_t *type,
