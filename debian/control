@@ -2,22 +2,26 @@ Source: bind9
 Section: net
 Priority: optional
 Maintainer: Debian DNS Packaging <pkg-dns-devel@lists.alioth.debian.org>
-Uploaders: LaMont Jones <lamont@debian.org>, Michael Gilbert <mgilbert@debian.org>, Robie Basak <robie.basak@canonical.com>, Ondřej Surý <ondrej@debian.org>
-Build-Depends: debhelper (>= 9), 
-  dh-exec,
-  libkrb5-dev,
-  libssl-dev,
-  libtool, bison,
-  libdb-dev (>>4.6),
-  libldap2-dev,
-  libxml2-dev,
-  libcap2-dev [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386],
-  libgeoip-dev (>= 1.4.6.dfsg-5),
-  dpkg-dev (>= 1.16.1~),
-  python3,
-  dh-systemd,
-  autotools-dev,
-  dh-autoreconf
+Uploaders: LaMont Jones <lamont@debian.org>,
+           Michael Gilbert <mgilbert@debian.org>,
+           Robie Basak <robie.basak@canonical.com>,
+           Ondřej Surý <ondrej@debian.org>
+Build-Depends: autotools-dev,
+               bison,
+               debhelper (>= 9),
+               dh-autoreconf,
+               dh-exec,
+               dh-systemd,
+               dpkg-dev (>= 1.16.1~),
+               libcap2-dev [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386],
+               libdb-dev (>>4.6),
+               libgeoip-dev (>= 1.4.6.dfsg-5),
+               libkrb5-dev,
+               libldap2-dev,
+               libssl-dev,
+               libtool,
+               libxml2-dev,
+               python3
 Build-Conflicts: libdb4.2-dev
 Standards-Version: 3.9.7
 XS-Vcs-Browser: https://anonscm.debian.org/git/pkg-bind/pkg-bind.git
@@ -25,24 +29,30 @@ XS-Vcs-Git: git://anonscm.debian.org/git/pkg-bind/pkg-bind.git
 
 Package: bind9
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends},
-  debconf | debconf-2.0,
-  netbase,
-  adduser,
-  libdns162 (=${binary:Version}),
-  libisccfg140 (=${binary:Version}),
-  libisc160 (=${binary:Version}),
-  libisccc140 (=${binary:Version}),
-  lsb-base (>= 3.2-14),
-  bind9utils (=${binary:Version}),
-  liblwres141 (=${binary:Version}),
-  libbind9-140 (=${binary:Version}),
-  net-tools
-Conflicts: bind, apparmor-profiles (<< 2.1+1075-0ubuntu4)
-Replaces: bind, dnsutils (<< 1:9.1.0-3),
-  apparmor-profiles (<< 2.1+1075-0ubuntu4),
-  bind9utils (<< 1:9.9.3.dfsg.P2-3)
-Suggests: dnsutils, bind9-doc, resolvconf, ufw
+Depends: adduser,
+         bind9utils (=${binary:Version}),
+         debconf | debconf-2.0,
+         libbind9-140 (=${binary:Version}),
+         libdns162 (=${binary:Version}),
+         libisc160 (=${binary:Version}),
+         libisccc140 (=${binary:Version}),
+         libisccfg140 (=${binary:Version}),
+         liblwres141 (=${binary:Version}),
+         lsb-base (>= 3.2-14),
+         net-tools,
+         netbase,
+         ${misc:Depends},
+         ${shlibs:Depends}
+Conflicts: apparmor-profiles (<< 2.1+1075-0ubuntu4),
+           bind
+Replaces: apparmor-profiles (<< 2.1+1075-0ubuntu4),
+          bind,
+          bind9utils (<< 1:9.9.3.dfsg.P2-3),
+          dnsutils (<< 1:9.1.0-3)
+Suggests: bind9-doc,
+          dnsutils,
+          resolvconf,
+          ufw
 Description: Internet Domain Name Server
  ${Description}
  .
@@ -51,7 +61,9 @@ Description: Internet Domain Name Server
 Package: bind9utils
 Architecture: any
 Replaces: bind9 (<= 1:9.9.5.dfsg-1)
-Depends: ${shlibs:Depends}, ${misc:Depends}, python3
+Depends: python3,
+         ${misc:Depends},
+         ${shlibs:Depends}
 Description: Utilities for BIND
  This package provides various utilities that are useful for maintaining a
  working BIND installation.
@@ -67,7 +79,8 @@ Description: Documentation for BIND
 Package: host
 Priority: standard
 Architecture: all
-Depends: ${misc:Depends}, bind9-host
+Depends: bind9-host,
+         ${misc:Depends}
 Description: Transitional package
  This dummy package is provided for a smooth transition from the previous
  host package.  It may safely be removed after installation.
@@ -75,14 +88,17 @@ Description: Transitional package
 Package: bind9-host
 Priority: standard
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends},
-  libdns162 (=${binary:Version}),
-  libisccfg140 (=${binary:Version}),
-  libisc160 (=${binary:Version}),
-  liblwres141 (=${binary:Version}),
-  libbind9-140 (=${binary:Version})
-Conflicts: host (<<1:9.7.0), dnsutils (<< 1:9.0.0)
-Replaces: dnsutils (<< 1:9.0.0), host (<< 1:9.7.0)
+Depends: libbind9-140 (=${binary:Version}),
+         libdns162 (=${binary:Version}),
+         libisc160 (=${binary:Version}),
+         libisccfg140 (=${binary:Version}),
+         liblwres141 (=${binary:Version}),
+         ${misc:Depends},
+         ${shlibs:Depends}
+Conflicts: dnsutils (<< 1:9.0.0),
+           host (<<1:9.7.0)
+Replaces: dnsutils (<< 1:9.0.0),
+          host (<< 1:9.7.0)
 Provides: host
 Description: Version of 'host' bundled with BIND 9.X
  This package provides the 'host' program in the form that is bundled with
@@ -93,18 +109,19 @@ Section: libdevel
 Architecture: any
 Multi-Arch: same
 Conflicts: bind-dev
-Replaces: bind-dev, bind9 (<< 1:9.10.3.dfsg.P2-4)
-Depends: ${misc:Depends},
-  libdns162 (=${binary:Version}),
-  libisccfg140 (=${binary:Version}),
-  libisc160 (=${binary:Version}),
-  liblwres141 (=${binary:Version}),
-  libbind9-140 (=${binary:Version}),
-  libirs141 (=${binary:Version})
+Replaces: bind-dev,
+          bind9 (<< 1:9.10.3.dfsg.P2-4)
+Depends: libbind9-140 (=${binary:Version}),
+         libdns162 (=${binary:Version}),
+         libirs141 (=${binary:Version}),
+         libisc160 (=${binary:Version}),
+         libisccfg140 (=${binary:Version}),
+         liblwres141 (=${binary:Version}),
+         ${misc:Depends}
 Description: Static Libraries and Headers used by BIND
  This package delivers archive-style libraries, header files, and API man
- pages for libbind, libdns, libisc, and liblwres.  These are only needed 
- if you want to compile other packages that need more nameserver API than the 
+ pages for libbind, libdns, libisc, and liblwres.  These are only needed
+ if you want to compile other packages that need more nameserver API than the
  resolver code provided in libc.
 
 Package: libbind9-140
@@ -112,9 +129,14 @@ Section: libs
 Priority: standard
 Architecture: any
 Multi-Arch: same
-Conflicts: libbind0, libbind9-41
+Conflicts: libbind0,
+           libbind9-41
 Replaces: libbind0
-Depends: ${shlibs:Depends}, ${misc:Depends}, libdns162, libisccfg140, libisc160
+Depends: libdns162,
+         libisc160,
+         libisccfg140,
+         ${misc:Depends},
+         ${shlibs:Depends}
 Description: BIND9 Shared Library used by BIND
  ${Description}
  .
@@ -126,9 +148,12 @@ Section: libs
 Priority: standard
 Architecture: any
 Multi-Arch: same
-Conflicts: libbind0, libbind9-41
+Conflicts: libbind0,
+           libbind9-41
 Replaces: libbind0
-Depends: ${shlibs:Depends}, ${misc:Depends}, libisc160
+Depends: libisc160,
+         ${misc:Depends},
+         ${shlibs:Depends}
 Description: DNS Shared Library used by BIND
  ${Description}
  .
@@ -140,9 +165,12 @@ Section: libs
 Priority: standard
 Architecture: any
 Multi-Arch: same
-Conflicts: libbind0, libbind9-41
+Conflicts: libbind0,
+           libbind9-41
 Replaces: libbind0
-Depends: ${shlibs:Depends}, ${misc:Depends}, libisc160
+Depends: libisc160,
+         ${misc:Depends},
+         ${shlibs:Depends}
 Description: DNS Shared Library used by BIND
  ${Description}
  .
@@ -154,9 +182,11 @@ Section: libs
 Priority: standard
 Architecture: any
 Multi-Arch: same
-Conflicts: libbind0, libbind9-41
+Conflicts: libbind0,
+           libbind9-41
 Replaces: libbind0
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${misc:Depends},
+         ${shlibs:Depends}
 Description: ISC Shared Library used by BIND
  ${Description}
  .
@@ -170,7 +200,8 @@ Architecture: any
 Multi-Arch: same
 Replaces: libbind0
 Conflicts: libbind0
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${misc:Depends},
+         ${shlibs:Depends}
 Description: Lightweight Resolver Library used by BIND
  ${Description}
  .
@@ -181,9 +212,12 @@ Package: libisccc140
 Section: libs
 Architecture: any
 Multi-Arch: same
-Conflicts: libbind0, libbind9-41
+Conflicts: libbind0,
+           libbind9-41
 Replaces: libbind0
-Depends: ${shlibs:Depends}, ${misc:Depends}, libisc160
+Depends: libisc160,
+         ${misc:Depends},
+         ${shlibs:Depends}
 Description: Command Channel Library used by BIND
  ${Description}
  .
@@ -195,9 +229,14 @@ Section: libs
 Priority: standard
 Architecture: any
 Multi-Arch: same
-Conflicts: libbind0, libbind9-41
+Conflicts: libbind0,
+           libbind9-41
 Replaces: libbind0
-Depends: ${shlibs:Depends}, ${misc:Depends}, libdns162, libisccc140, libisc160
+Depends: libdns162,
+         libisc160,
+         libisccc140,
+         ${misc:Depends},
+         ${shlibs:Depends}
 Description: Config File Handling Library used by BIND
  ${Description}
  .
@@ -208,20 +247,22 @@ Description: Config File Handling Library used by BIND
 Package: dnsutils
 Priority: standard
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends},
-  bind9-host | host,
-  libdns162 (=${binary:Version}),
-  libisccfg140 (=${binary:Version}),
-  libisc160 (=${binary:Version}),
-  liblwres141 (=${binary:Version}),
-  libbind9-140 (=${binary:Version})
+Depends: bind9-host | host,
+         libbind9-140 (=${binary:Version}),
+         libdns162 (=${binary:Version}),
+         libisc160 (=${binary:Version}),
+         libisccfg140 (=${binary:Version}),
+         liblwres141 (=${binary:Version}),
+         ${misc:Depends},
+         ${shlibs:Depends}
 Suggests: rblcheck
 Conflicts: netstd (<< 2.00)
-Replaces: bind, bind9 (<< 1:9.1.0-3)
+Replaces: bind,
+          bind9 (<< 1:9.1.0-3)
 Description: Clients provided with BIND
  ${Description}
  .
- This package delivers various client programs related to DNS that are 
+ This package delivers various client programs related to DNS that are
  derived from the BIND source tree.
  .
   - dig - query the DNS in various ways
@@ -230,15 +271,16 @@ Description: Clients provided with BIND
 
 Package: lwresd
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends},
-  adduser,
-  lsb-base (>= 3.0-6),
-  libdns162 (=${binary:Version}),
-  libisccfg140 (=${binary:Version}),
-  libisccc140 (=${binary:Version}),
-  libisc160 (=${binary:Version}),
-  liblwres141 (=${binary:Version}),
-  libbind9-140 (=${binary:Version})
+Depends: adduser,
+         libbind9-140 (=${binary:Version}),
+         libdns162 (=${binary:Version}),
+         libisc160 (=${binary:Version}),
+         libisccc140 (=${binary:Version}),
+         libisccfg140 (=${binary:Version}),
+         liblwres141 (=${binary:Version}),
+         lsb-base (>= 3.0-6),
+         ${misc:Depends},
+         ${shlibs:Depends}
 Recommends: libnss-lwres
 Suggests: bind9utils
 Description: Lightweight Resolver Daemon
@@ -251,12 +293,12 @@ Package: libbind-export-dev
 Section: libdevel
 Architecture: any
 Conflicts: libbind-dev
-Depends: ${misc:Depends},
-  libdns-export162 (=${binary:Version}),
-  libisccc-export140 (=${binary:Version}),
-  libisccfg-export140 (=${binary:Version}),
-  libisc-export160 (=${binary:Version}),
-  libirs-export141 (=${binary:Version})
+Depends: libdns-export162 (=${binary:Version}),
+         libirs-export141 (=${binary:Version}),
+         libisc-export160 (=${binary:Version}),
+         libisccc-export140 (=${binary:Version}),
+         libisccfg-export140 (=${binary:Version}),
+         ${misc:Depends}
 Description: Development files for the exported BIND libraries
  ${Description}
  .
@@ -266,7 +308,8 @@ Package: libdns-export162
 Section: libs
 Architecture: any
 Pre-Depends: ${misc:Pre-Depends}
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${misc:Depends},
+         ${shlibs:Depends}
 Description: Exported DNS Shared Library
  ${Description}
  .
@@ -276,7 +319,8 @@ Package: libdns-export162-udeb
 Section: debian-installer
 Architecture: any
 Multi-Arch: same
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${misc:Depends},
+         ${shlibs:Depends}
 Package-Type: udeb
 Description: Exported DNS library for debian-installer
 
@@ -284,8 +328,9 @@ Package: libisc-export160
 Section: libs
 Architecture: any
 Pre-Depends: ${misc:Pre-Depends}
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Exported ISC Shared Library 
+Depends: ${misc:Depends},
+         ${shlibs:Depends}
+Description: Exported ISC Shared Library
  ${Description}
  .
  This package delivers the exported libisc shared library.
@@ -294,7 +339,8 @@ Package: libisc-export160-udeb
 Section: debian-installer
 Architecture: any
 Multi-Arch: same
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${misc:Depends},
+         ${shlibs:Depends}
 Package-Type: udeb
 Description: Exported ISC library for debian-installer
 
@@ -302,7 +348,8 @@ Package: libisccfg-export140
 Section: libs
 Architecture: any
 Pre-Depends: ${misc:Pre-Depends}
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${misc:Depends},
+         ${shlibs:Depends}
 Description: Exported ISC CFG Shared Library
  ${Description}
  .
@@ -312,9 +359,12 @@ Package: libisccc-export140
 Section: libs
 Architecture: any
 Multi-Arch: same
-Conflicts: libbind0, libbind9-41
+Conflicts: libbind0,
+           libbind9-41
 Replaces: libbind0
-Depends: ${shlibs:Depends}, ${misc:Depends}, libisc-export160
+Depends: libisc-export160,
+         ${misc:Depends},
+         ${shlibs:Depends}
 Description: Command Channel Library used by BIND
  ${Description}
  .
@@ -325,9 +375,12 @@ Package: libisccc-export140-udeb
 Section: debian-installer
 Architecture: any
 Multi-Arch: same
-Conflicts: libbind0, libbind9-41
+Conflicts: libbind0,
+           libbind9-41
 Replaces: libbind0
-Depends: ${shlibs:Depends}, ${misc:Depends}, libisc-export160-udeb
+Depends: libisc-export160-udeb,
+         ${misc:Depends},
+         ${shlibs:Depends}
 Package-Type: udeb
 Description: Command Channel Library used by BIND
  ${Description}
@@ -339,7 +392,8 @@ Package: libisccfg-export140-udeb
 Section: debian-installer
 Architecture: any
 Multi-Arch: same
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${misc:Depends},
+         ${shlibs:Depends}
 Package-Type: udeb
 Description: Exported ISC CFG library for debian-installer
 
@@ -347,7 +401,8 @@ Package: libirs-export141
 Section: libs
 Architecture: any
 Pre-Depends: ${misc:Pre-Depends}
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${misc:Depends},
+         ${shlibs:Depends}
 Description: Exported IRS Shared Library
  ${Description}
  .
@@ -357,6 +412,7 @@ Package: libirs-export141-udeb
 Section: debian-installer
 Architecture: any
 Multi-Arch: same
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${misc:Depends},
+         ${shlibs:Depends}
 Package-Type: udeb
 Description: Exported IRS library for debian-installer
