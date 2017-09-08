@@ -1,18 +1,13 @@
-Author: Tomas Hozza <thozza@redhat.com>
-Date:   Wed Jan 14 11:47:51 2015 UTC
-
-    Added native PKCS#11 functionality
-
-    Signed-off-by: Tomas Hozza <thozza@redhat.com>
-
+diff --git a/bin/dnssec-pkcs11/Makefile.in b/bin/dnssec-pkcs11/Makefile.in
+index af51fd8d7..ce70b5ee2 100644
 --- a/bin/dnssec-pkcs11/Makefile.in
 +++ b/bin/dnssec-pkcs11/Makefile.in
-@@ -23,18 +23,18 @@ top_srcdir =	@top_srcdir@
+@@ -23,18 +23,18 @@ VERSION=@BIND9_VERSION@
  
  @BIND9_MAKE_INCLUDES@
  
--CINCLUDES =	${DNS_INCLUDES} ${ISC_INCLUDES}
-+CINCLUDES =	${DNS_PKCS11_INCLUDES} ${ISC_PKCS11_INCLUDES}
+-CINCLUDES =	${DNS_INCLUDES} ${ISC_INCLUDES} @DST_OPENSSL_INC@
++CINCLUDES =	${DNS_PKCS11_INCLUDES} ${ISC_PKCS11_INCLUDES} @DST_OPENSSL_INC@
  
 -CDEFINES =	-DVERSION=\"${VERSION}\" \
 -		@CRYPTO@ -DPK11_LIB_LOCATION=\"@PKCS11_PROVIDER@\"
@@ -111,19 +106,22 @@ Date:   Wed Jan 14 11:47:51 2015 UTC
  	for t in ${TARGETS}; do ${LIBTOOL_MODE_INSTALL} ${INSTALL_PROGRAM} $$t ${DESTDIR}${sbindir}; done
 -	for m in ${MANPAGES}; do ${INSTALL_DATA} ${srcdir}/$$m ${DESTDIR}${mandir}/man8; done
  
- clean distclean::
- 	rm -f ${TARGETS}
+ uninstall::
+ 	for m in ${MANPAGES}; do rm -f ${DESTDIR}${mandir}/man8/$$m ; done
+diff --git a/bin/named-pkcs11/Makefile.in b/bin/named-pkcs11/Makefile.in
+index 1377deb24..ab0f3da19 100644
 --- a/bin/named-pkcs11/Makefile.in
 +++ b/bin/named-pkcs11/Makefile.in
-@@ -47,26 +47,26 @@ DLZDRIVER_INCLUDES =	@DLZ_DRIVER_INCLUDE
+@@ -47,26 +47,26 @@ DLZDRIVER_INCLUDES =	@DLZ_DRIVER_INCLUDES@
  DLZDRIVER_LIBS =	@DLZ_DRIVER_LIBS@
  
  CINCLUDES =	-I${srcdir}/include -I${srcdir}/unix/include -I. \
 -		${LWRES_INCLUDES} ${DNS_INCLUDES} ${BIND9_INCLUDES} \
 -		${ISCCFG_INCLUDES} ${ISCCC_INCLUDES} ${ISC_INCLUDES} \
+-		${DLZDRIVER_INCLUDES} ${DBDRIVER_INCLUDES} @DST_OPENSSL_INC@
 +		${LWRES_INCLUDES} ${DNS_PKCS11_INCLUDES} ${BIND9_INCLUDES} \
 +		${ISCCFG_INCLUDES} ${ISCCC_INCLUDES} ${ISC_PKCS11_INCLUDES} \
- 		${DLZDRIVER_INCLUDES} ${DBDRIVER_INCLUDES} @DST_OPENSSL_INC@
++		@DST_OPENSSL_INC@
  
 -CDEFINES =      @CONTRIB_DLZ@ @CRYPTO@
 +CDEFINES =      @USE_PKCS11@ @PKCS11_ENGINE@ @CRYPTO_PK11@
@@ -135,8 +133,9 @@ Date:   Wed Jan 14 11:47:51 2015 UTC
  ISCCFGLIBS =	../../lib/isccfg/libisccfg.@A@
  ISCCCLIBS =	../../lib/isccc/libisccc.@A@
 -ISCLIBS =	../../lib/isc/libisc.@A@
+-ISCNOSYMLIBS =	../../lib/isc/libisc-nosymtbl.@A@
 +ISCLIBS =	../../lib/isc-pkcs11/libisc-pkcs11.@A@
- ISCNOSYMLIBS =	../../lib/isc/libisc-nosymtbl.@A@
++ISCNOSYMLIBS =	../../lib/isc-pkcs11/libisc-pkcs11-nosymtbl.@A@
  LWRESLIBS =	../../lib/lwres/liblwres.@A@
  BIND9LIBS =	../../lib/bind9/libbind9.@A@
  
@@ -149,7 +148,7 @@ Date:   Wed Jan 14 11:47:51 2015 UTC
  LWRESDEPLIBS =	../../lib/lwres/liblwres.@A@
  BIND9DEPLIBS =	../../lib/bind9/libbind9.@A@
  
-@@ -75,15 +75,15 @@ DEPLIBS =	${LWRESDEPLIBS} ${DNSDEPLIBS}
+@@ -75,15 +75,15 @@ DEPLIBS =	${LWRESDEPLIBS} ${DNSDEPLIBS} ${BIND9DEPLIBS} \
  
  LIBS =		${LWRESLIBS} ${DNSLIBS} ${BIND9LIBS} \
  		${ISCCFGLIBS} ${ISCCCLIBS} ${ISCLIBS} \
@@ -168,7 +167,7 @@ Date:   Wed Jan 14 11:47:51 2015 UTC
  
  GEOIPLINKOBJS = geoip.@O@
  
-@@ -94,8 +94,7 @@ OBJS =		builtin.@O@ client.@O@ config.@O
+@@ -94,8 +94,7 @@ OBJS =		builtin.@O@ client.@O@ config.@O@ control.@O@ \
  		tkeyconf.@O@ tsigconf.@O@ update.@O@ xfrout.@O@ \
  		zoneconf.@O@ \
  		lwaddr.@O@ lwresd.@O@ lwdclient.@O@ lwderror.@O@ lwdgabn.@O@ \
@@ -178,7 +177,7 @@ Date:   Wed Jan 14 11:47:51 2015 UTC
  
  UOBJS =		unix/os.@O@ unix/dlz_dlopen_driver.@O@
  
-@@ -110,8 +109,7 @@ SRCS =		builtin.c client.c config.c cont
+@@ -110,8 +109,7 @@ SRCS =		builtin.c client.c config.c control.c \
  		tkeyconf.c tsigconf.c update.c xfrout.c \
  		zoneconf.c \
  		lwaddr.c lwresd.c lwdclient.c lwderror.c lwdgabn.c \
@@ -197,7 +196,7 @@ Date:   Wed Jan 14 11:47:51 2015 UTC
  	export MAKE_SYMTABLE="yes"; \
  	export BASEOBJS="${OBJS} ${UOBJS}"; \
  	${FINALBUILDCMD}
-@@ -167,15 +165,9 @@ statschannel.@O@: bind9.xsl.h
+@@ -167,22 +165,12 @@ statschannel.@O@: bind9.xsl.h
  
  installdirs:
  	$(SHELL) ${top_srcdir}/mkinstalldirs ${DESTDIR}${sbindir}
@@ -213,11 +212,21 @@ Date:   Wed Jan 14 11:47:51 2015 UTC
 +install:: named-pkcs11@EXEEXT@ installdirs
 +	${LIBTOOL_MODE_INSTALL} ${INSTALL_PROGRAM} named-pkcs11@EXEEXT@ ${DESTDIR}${sbindir}
  
+ uninstall::
+-	rm -f ${DESTDIR}${mandir}/man5/named.conf.5
+-	rm -f ${DESTDIR}${mandir}/man8/lwresd.8
+-	rm -f ${DESTDIR}${mandir}/man8/named.8
+-	rm -f ${DESTDIR}${sbindir}/lwresd@EXEEXT@
+-	${LIBTOOL_MODE_UNINSTALL} rm -f ${DESTDIR}${sbindir}/named@EXEEXT@
++	${LIBTOOL_MODE_UNINSTALL} rm -f ${DESTDIR}${sbindir}/named-pkcs11@EXEEXT@
+ 
  @DLZ_DRIVER_RULES@
  
+diff --git a/lib/dns-pkcs11/Makefile.in b/lib/dns-pkcs11/Makefile.in
+index b3e9e151a..88bb0b1a5 100644
 --- a/lib/dns-pkcs11/Makefile.in
 +++ b/lib/dns-pkcs11/Makefile.in
-@@ -32,18 +32,18 @@ top_srcdir =	@top_srcdir@
+@@ -32,18 +32,18 @@ VERSION=@BIND9_VERSION@
  
  USE_ISC_SPNEGO = @USE_ISC_SPNEGO@
  
@@ -242,7 +251,7 @@ Date:   Wed Jan 14 11:47:51 2015 UTC
  
  # Alphabetically
  
-@@ -138,7 +138,7 @@ version.@O@: version.c
+@@ -137,7 +137,7 @@ version.@O@: version.c
  		-DLIBAGE=${LIBAGE} \
  		-c ${srcdir}/version.c
  
@@ -251,7 +260,7 @@ Date:   Wed Jan 14 11:47:51 2015 UTC
  	${AR} ${ARFLAGS} $@ ${OBJS}
  	${RANLIB} $@
  
-@@ -148,27 +148,27 @@ dynamic_db.@O@: dynamic_db.c
+@@ -147,12 +147,12 @@ dynamic_db.@O@: dynamic_db.c
  	-c ${srcdir}/dynamic_db.c
  
  
@@ -266,9 +275,22 @@ Date:   Wed Jan 14 11:47:51 2015 UTC
 +		${OBJS} ${ISCLIBS} @DNS_CRYPTO_PK11_LIBS@ ${LIBS}
 +	ln -sf .libs/libdns-pkcs11.so .
  
--timestamp: libdns.@A@
-+timestamp: libdns-pkcs11.@A@
+ include: gen
+ 	${MAKE} include/dns/enumtype.h
+@@ -178,28 +178,28 @@ code.h:	gen
+ 	./gen -s ${srcdir} > code.h || { rm -f $@ ; exit 1; }
+ 
+ gen: gen.c
+-	${BUILD_CC} ${BUILD_CFLAGS} -I${top_srcdir}/lib/isc/include \
++	${BUILD_CC} ${BUILD_CFLAGS} -I${top_srcdir}/lib/isc-pkcs11/include \
+ 	${BUILD_CPPFLAGS} ${BUILD_LDFLAGS} -o $@ ${srcdir}/gen.c ${BUILD_LIBS}
+ 
+-timestamp: include libdns.@A@
++timestamp: include libdns-pkcs11.@A@
  	touch timestamp
+ 
+-testdirs: libdns.@A@
++testdirs: libdns-pkcs11.@A@
  
  installdirs:
  	$(SHELL) ${top_srcdir}/mkinstalldirs ${DESTDIR}${libdir}
@@ -276,6 +298,10 @@ Date:   Wed Jan 14 11:47:51 2015 UTC
  install:: timestamp installdirs
 -	${LIBTOOL_MODE_INSTALL} ${INSTALL_LIBRARY} libdns.@A@ ${DESTDIR}${libdir}
 +	${LIBTOOL_MODE_INSTALL} ${INSTALL_LIBRARY} libdns-pkcs11.@A@ ${DESTDIR}${libdir}
+ 
+ uninstall::
+-	${LIBTOOL_MODE_UNINSTALL} rm -f ${DESTDIR}${libdir}/libdns.@A@
++	${LIBTOOL_MODE_UNINSTALL} rm -f ${DESTDIR}${libdir}/libdns-pkcs11.@A@
  
  clean distclean::
 -	rm -f libdns.@A@ timestamp
@@ -287,29 +313,46 @@ Date:   Wed Jan 14 11:47:51 2015 UTC
  
  newrr::
  	rm -f code.h include/dns/enumtype.h include/dns/enumclass.h
-@@ -196,7 +196,7 @@ code.h:	gen
- 	./gen -s ${srcdir} > code.h
+diff --git a/lib/dns/Makefile.in b/lib/dns/Makefile.in
+index b3e9e151a..a6bbc29b3 100644
+--- a/lib/dns/Makefile.in
++++ b/lib/dns/Makefile.in
+@@ -151,8 +151,8 @@ libdns.la: ${OBJS}
+ 	${LIBTOOL_MODE_LINK} \
+ 		${CC} ${ALL_CFLAGS} ${LDFLAGS} -o libdns.la -rpath ${libdir} \
+ 		-version-info ${LIBINTERFACE}:${LIBREVISION}:${LIBAGE} \
+-		${OBJS} ${ISCLIBS} @DNS_CRYPTO_LIBS@ ${LIBS}
+-	ln -sf .libs/libdns.so .
++		${OBJS} ${ISCLIBS} @DNS_CRYPTO_PK11_LIBS@ ${LIBS}
++	ln -sf .libs/libdns-pkcs11.so .
  
- gen: gen.c
--	${BUILD_CC} ${BUILD_CFLAGS} -I${top_srcdir}/lib/isc/include \
-+	${BUILD_CC} ${BUILD_CFLAGS} -I${top_srcdir}/lib/isc-pkcs11/include \
- 	${BUILD_CPPFLAGS} ${BUILD_LDFLAGS} -o $@ ${srcdir}/gen.c ${BUILD_LIBS}
+ include: gen
+ 	${MAKE} include/dns/enumtype.h
+@@ -199,7 +199,7 @@ clean distclean::
+ 	rm -f libdns.@A@ timestamp
+ 	rm -f gen code.h include/dns/enumtype.h include/dns/enumclass.h
+ 	rm -f include/dns/rdatastruct.h
+-	rm -f libdns.so
++	rm -f libdns-pkcs11.so
  
- rbtdb64.@O@: rbtdb64.c rbtdb.c
+ newrr::
+ 	rm -f code.h include/dns/enumtype.h include/dns/enumclass.h
+diff --git a/lib/isc-pkcs11/Makefile.in b/lib/isc-pkcs11/Makefile.in
+index 069d4b1eb..96f45be0a 100644
 --- a/lib/isc-pkcs11/Makefile.in
 +++ b/lib/isc-pkcs11/Makefile.in
 @@ -29,8 +29,8 @@ CINCLUDES =	-I${srcdir}/unix/include \
  		-I${srcdir}/@ISC_THREAD_DIR@/include \
  		-I${srcdir}/@ISC_ARCH_DIR@/include \
  		-I./include \
--		-I${srcdir}/include @ISC_OPENSSL_INC@ ${DNS_INCLUDES}
+-		-I${srcdir}/include ${DNS_INCLUDES} @ISC_OPENSSL_INC@
 -CDEFINES =	@CRYPTO@ -DPK11_LIB_LOCATION=\"${PROVIDER}\"
-+		-I${srcdir}/include ${DNS_PKCS11_INCLUDES}
++		-I${srcdir}/include ${DNS_PKCS11_INCLUDES} @ISC_OPENSSL_INC@
 +CDEFINES =	@CRYPTO_PK11@ -DPK11_LIB_LOCATION=\"${PROVIDER}\"
  CWARNINGS =
  
  # Alphabetically
-@@ -109,38 +109,38 @@ version.@O@: version.c
+@@ -110,43 +110,43 @@ version.@O@: version.c
  		-DLIBAGE=${LIBAGE} \
  		-c ${srcdir}/version.c
  
@@ -347,12 +390,19 @@ Date:   Wed Jan 14 11:47:51 2015 UTC
 +timestamp: libisc-pkcs11.@A@ libisc-pkcs11-nosymtbl.@A@
  	touch timestamp
  
+-testdirs: libisc.@A@ libisc-nosymtbl.@A@
++testdirs: libisc-pkcs11.@A@ libisc-pkcs11-nosymtbl.@A@
+ 
  installdirs:
  	$(SHELL) ${top_srcdir}/mkinstalldirs ${DESTDIR}${libdir}
  
  install:: timestamp installdirs
 -	${LIBTOOL_MODE_INSTALL} ${INSTALL_LIBRARY} libisc.@A@ ${DESTDIR}${libdir}
 +	${LIBTOOL_MODE_INSTALL} ${INSTALL_LIBRARY} libisc-pkcs11.@A@ ${DESTDIR}${libdir}
+ 
+ uninstall::
+-	${LIBTOOL_MODE_UNINSTALL} rm -f ${DESTDIR}${libdir}/libisc.@A@
++	${LIBTOOL_MODE_UNINSTALL} rm -f ${DESTDIR}${libdir}/libisc-pkcs11.@A@
  
  clean distclean::
 -	rm -f libisc.@A@ libisc-nosymtbl.@A@ libisc.la \
