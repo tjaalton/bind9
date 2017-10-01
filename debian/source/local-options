@@ -1,0 +1,8 @@
+# win32 stuff
+extend-diff-ignore = bin/.*/win32/.*dsw|bin/win32/.*/.*dsw|lib/win32/.*/.*dsw|lib/.*/win32/.*dsw|win32utils
+
+# some docs
+extend-diff-ignore = doc/design|doc/dev/|doc/draft/|lib/lwres/man/resolver.5|EXCLUDED
+
+# perl macros, copyright tools
+extend-diff-ignore = conftools/perllib/dnsconf/|util/
