@@ -2,7 +2,11 @@ Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: BIND
 Upstream-Contact: Internet Systems Consortium <info@isc.org>
 Source: https://ftp.isc.org/isc/bind9/
-Files-Excluded: contrib/*
+Files-Excluded: contrib/dnsperf-2.1.0.0-1
+		contrib/nslint-3.0a2
+		contrib/query-loc-0.4.0
+		contrib/queryperf
+		contrib/zkt-1.1.3
 
 Files: *
 Copyright: 2004-2017  Internet Systems Consortium, Inc.
