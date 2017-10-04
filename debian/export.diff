@@ -1,7 +1,7 @@
-diff -ur lib/dns/Makefile lib/dns/Makefile
---- lib/dns/Makefile	2016-03-16 19:44:06.100863999 +0000
-+++ lib/dns/Makefile	2016-03-16 20:03:45.980863999 +0000
-@@ -113,9 +113,9 @@
+diff -urNap lib/dns/Makefile lib/dns/Makefile
+--- lib/dns/Makefile	2017-10-04 21:26:10.573804789 +0000
++++ lib/dns/Makefile	2017-10-04 21:26:34.633748279 +0000
+@@ -126,9 +126,9 @@ CDEFINES =	-DUSE_MD5   ${USE_ISC_SPNEGO}
  
  CWARNINGS =
  
@@ -13,10 +13,10 @@ diff -ur lib/dns/Makefile lib/dns/Makefile
  
  LIBS =		-ldl  -L../../lib/isc -lcrypto
  
-diff -ur lib/irs/Makefile lib/irs/Makefile
---- lib/irs/Makefile	2016-03-16 19:44:06.104863999 +0000
-+++ lib/irs/Makefile	2016-03-16 20:04:10.700863999 +0000
-@@ -101,7 +101,7 @@
+diff -urNap lib/irs/Makefile lib/irs/Makefile
+--- lib/irs/Makefile	2017-10-04 21:26:10.577804779 +0000
++++ lib/irs/Makefile	2017-10-04 21:26:34.637748269 +0000
+@@ -115,7 +115,7 @@ SRCS =		context.c \
  		gai_strerror.c getaddrinfo.c getnameinfo.c \
  		resconf.c
  
@@ -24,12 +24,12 @@ diff -ur lib/irs/Makefile lib/irs/Makefile
 +LIBS =		-ldl  -L../../lib/isc -L../../lib/dns -L../../lib/isccfg -lcrypto -lisc-export -ldns-export -lisccfg-export
  
  SUBDIRS =	include
- TARGETS =	timestamp
-diff -ur lib/isccc/Makefile lib/isccc/Makefile
---- lib/isccc/Makefile	2016-03-16 19:44:06.108863999 +0000
-+++ lib/isccc/Makefile	2016-03-16 20:04:22.212863999 +0000
-@@ -89,10 +89,10 @@
- CDEFINES =
+ TESTDIRS =	
+diff -urNap lib/isccc/Makefile lib/isccc/Makefile
+--- lib/isccc/Makefile	2017-10-04 21:26:10.585804760 +0000
++++ lib/isccc/Makefile	2017-10-04 21:26:34.637748269 +0000
+@@ -103,10 +103,10 @@ CINCLUDES =	-I. ${DNS_INCLUDES} ${ISC_IN
+ CDEFINES =	
  CWARNINGS =
  
 -ISCLIBS =	../../lib/isc/libisc.la
@@ -41,18 +41,16 @@ diff -ur lib/isccc/Makefile lib/isccc/Makefile
  ISCCCDEPLIBS =	libisccc-export.la
  
  LIBS =		-ldl  -L../../lib/isc
-diff -ur lib/isccfg/Makefile lib/isccfg/Makefile
---- lib/isccfg/Makefile	2016-03-16 19:44:06.112863999 +0000
-+++ lib/isccfg/Makefile	2016-03-16 20:04:45.976863999 +0000
-@@ -89,12 +89,12 @@
+diff -urNap lib/isccfg/Makefile lib/isccfg/Makefile
+--- lib/isccfg/Makefile	2017-10-04 21:26:10.589804751 +0000
++++ lib/isccfg/Makefile	2017-10-04 21:26:55.969698162 +0000
+@@ -102,11 +102,11 @@ CINCLUDES =	-I. ${DNS_INCLUDES} ${ISC_IN
  CDEFINES =
  CWARNINGS =
  
 -ISCLIBS =	../../lib/isc/libisc.la
--ISCCCLIBS =	../../lib/isccc/libisccc.la
 -DNSLIBS =	../../lib/dns/libdns.la
 +ISCLIBS =	../../lib/isc/libisc-export.la
-+ISCCCLIBS =	../../lib/isccc/libisccc-export.la
 +DNSLIBS =	../../lib/dns/libdns-export.la
  ISCCFGLIBS =	../../lib/cfg/libisccfg-export.la
  
@@ -61,19 +59,19 @@ diff -ur lib/isccfg/Makefile lib/isccfg/Makefile
  ISCCFGDEPLIBS =	libisccfg-export.la
  
  LIBS =		-ldl  -L../dns -L../isc -L../isccc
-@@ -489,6 +489,7 @@
+@@ -506,6 +506,7 @@ libisccfg-export.la: ${OBJS}
  		-version-info ${LIBINTERFACE}:${LIBREVISION}:${LIBAGE} \
- 		${OBJS} ${DNSLIBS} ${ISCCCLIBS} ${ISCLIBS}  \
+ 		${OBJS} ${DNSLIBS} ${ISCLIBS}  \
  		${LIBS}
 +	ln -sf .libs/libisccfg-export.so .
  
  timestamp: libisccfg-export.la
  	touch timestamp
-diff -ur lib/samples/Makefile lib/samples/Makefile
---- lib/samples/Makefile	2016-03-16 19:44:04.832863999 +0000
-+++ lib/samples/Makefile	2016-03-16 20:05:17.608863999 +0000
-@@ -78,15 +78,15 @@
- CDEFINES =	-DVERSION=\"${VERSION}\" -DSYSCONFDIR=\"${sysconfdir}\"
+diff -urNap lib/samples/Makefile lib/samples/Makefile
+--- lib/samples/Makefile	2017-10-04 21:25:49.853853465 +0000
++++ lib/samples/Makefile	2017-10-04 21:26:34.641748259 +0000
+@@ -89,15 +89,15 @@ CDEFINES =	 -DVERSION=\"${VERSION}\" \
+ 		-DSYSCONFDIR=\"${sysconfdir}\"
  CWARNINGS =
  
 -ISCLIBS =	../isc/libisc.la
@@ -96,10 +94,10 @@ diff -ur lib/samples/Makefile lib/samples/Makefile
  
  DEPLIBS =	${DNSDEPLIBS} ${ISCCFGDEPLIBS} ${ISCDEPLIBS}
  
-diff -ur lib/tests/Makefile lib/tests/Makefile
---- lib/tests/Makefile	2016-03-16 19:44:04.756863999 +0000
-+++ lib/tests/Makefile	2016-03-16 20:05:41.540863999 +0000
-@@ -75,11 +75,11 @@
+diff -urNap lib/tests/Makefile lib/tests/Makefile
+--- lib/tests/Makefile	2017-10-04 21:25:49.801853588 +0000
++++ lib/tests/Makefile	2017-10-04 21:26:34.641748259 +0000
+@@ -85,11 +85,11 @@ CINCLUDES =	${DNS_INCLUDES} ${ISC_INCLUD
  CDEFINES =
  CWARNINGS =
  
