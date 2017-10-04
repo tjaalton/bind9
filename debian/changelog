@@ -1,3 +1,34 @@
+bind9 (1:9.10.6+dfsg-1) unstable; urgency=medium
+
+  * New upstream version 9.10.6+dfsg
+  * Use OpenSSL 1.1.0 for crypto
+  * Add support for downloading upstream sources using d/watch
+    + Make d/copyright machine readable for Files-Excluded: support
+    + Update Files-Exclude: * to remove obsolete software dropped in
+      contrib/, but not really used
+  * Add initial README.source
+  * Limit the d/watch to 9.10.x (aka stable) for now
+  * Update patches for BIND 9.10.6 release
+  * Update PKCS11 patch
+  * Move under pkg-dns umbrella
+  * Reformat files in debian/ with wrap-and-sort -a for better maintainability
+  * Update the d/export.diff for BIND 9.10.6
+  * Remove FAQ from d/bind9.docs
+  * Bump SONAME versions for BIND libraries
+  * Add symbols files for libraries and enable strict symbol checks
+  * arpaname and named-rrchecker has been moved to /usr/bin
+  * Install required python library into bind9utils to accompany
+    dnssec-checkds and dnssec-coverage
+  * Change Vcs-* to pkg-dns/bind9
+  * Also exclude idnkit from upstream tarball
+  * Finish the debian/copyright update into machine readable format
+  * Enable Multi-Arch on libirs-export189
+  * Cleanup maintainer scripts
+  * Add lintian override for false positive on full-path command
+  * Remove unnecessary complexity when generating ${Description} to d/control
+
+ -- Ondřej Surý <ondrej@debian.org>  Fri, 06 Oct 2017 06:18:21 +0000
+
 bind9 (1:9.10.3.dfsg.P4-12) unstable; urgency=high
 
   * Merge and accept the non-maintainer upload.
