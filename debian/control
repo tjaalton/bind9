@@ -11,6 +11,7 @@ Build-Depends: autotools-dev,
                debhelper (>= 9),
                dh-autoreconf,
                dh-exec,
+               dh-python,
                dh-systemd,
                dpkg-dev (>= 1.16.1~),
                libcap2-dev [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386],
@@ -55,6 +56,7 @@ Package: bind9utils
 Architecture: any
 Depends: python3,
          ${misc:Depends},
+         ${python3:Depends},
          ${shlibs:Depends}
 Description: Utilities for BIND
  This package provides various utilities that are useful for maintaining a
@@ -101,7 +103,7 @@ Depends: libbind9-141 (=${binary:Version}),
          libdns190 (=${binary:Version}),
          libirs141 (=${binary:Version}),
          libisc189 (=${binary:Version}),
-	 libisccc140 (=${binary:Version}),
+         libisccc140 (=${binary:Version}),
          libisccfg144 (=${binary:Version}),
          liblwres141 (=${binary:Version}),
          ${misc:Depends}

@@ -8,3 +8,4 @@
 33_resource_missing_include.diff
 34_prepare_native_pkcs11.diff
 75_ctxstart_no_sighandling.diff
+Add_--install-layout=deb_to_setup.py_call.patch
