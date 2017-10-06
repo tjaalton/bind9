@@ -82,7 +82,7 @@ if [ "$1" = configure ]; then
                 db_set bind9/start-as-user bind || true
 	fi
    
-        echo '#' 
+        echo '#' >> $config
         echo '# run resolvconf?' >> $config
         db_get bind9/run-resolvconf
         if [ ! -z "$RET" ] && [ "$RET" = "true" ]; then
@@ -123,7 +123,7 @@ if [ "$1" = configure ]; then
                         sed -e "s#\([[:space:]]*OPTIONS[[:space:]]*\)=\"\([^\"]*\)\"#\1=\"\2 -u $RET\"#g" -i $config
                 fi
             else
-                echo "OPTIONS=\"-u $RET\""
+                echo "OPTIONS=\"-u $RET\"" >> $config
             fi
         fi
         db_get bind9/different-configuration-file
@@ -167,3 +167,5 @@ fi
 db_stop
 
 #DEBHELPER#
+
+exit 0
