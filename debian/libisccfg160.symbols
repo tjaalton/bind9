@@ -35,6 +35,7 @@ libisccfg.so.160 libisccfg160 #MINVER#
  cfg_obj_asboolean@Base 9.10.6+dfsg
  cfg_obj_asfixedpoint@Base 9.10.6+dfsg
  cfg_obj_asnetprefix@Base 9.10.6+dfsg
+ cfg_obj_aspercentage@Base 9.11.2+dfsg
  cfg_obj_assockaddr@Base 9.10.6+dfsg
  cfg_obj_asstring@Base 9.10.6+dfsg
  cfg_obj_asuint32@Base 9.10.6+dfsg
@@ -44,9 +45,11 @@ libisccfg.so.160 libisccfg160 #MINVER#
  cfg_obj_file@Base 9.10.6+dfsg
  cfg_obj_getdscp@Base 9.10.6+dfsg
  cfg_obj_isboolean@Base 9.10.6+dfsg
+ cfg_obj_isfixedpoint@Base 9.11.2+dfsg
  cfg_obj_islist@Base 9.10.6+dfsg
  cfg_obj_ismap@Base 9.10.6+dfsg
  cfg_obj_isnetprefix@Base 9.10.6+dfsg
+ cfg_obj_ispercentage@Base 9.11.2+dfsg
  cfg_obj_issockaddr@Base 9.10.6+dfsg
  cfg_obj_isstring@Base 9.10.6+dfsg
  cfg_obj_istuple@Base 9.10.6+dfsg
@@ -60,6 +63,8 @@ libisccfg.so.160 libisccfg160 #MINVER#
  cfg_parse_astring@Base 9.10.6+dfsg
  cfg_parse_boolean@Base 9.10.6+dfsg
  cfg_parse_bracketed_list@Base 9.10.6+dfsg
+ cfg_parse_buffer2@Base 9.11.2+dfsg
+ cfg_parse_buffer3@Base 9.11.2+dfsg
  cfg_parse_buffer@Base 9.10.6+dfsg
  cfg_parse_dscp@Base 9.10.6+dfsg
  cfg_parse_enum@Base 9.10.6+dfsg
@@ -72,6 +77,7 @@ libisccfg.so.160 libisccfg160 #MINVER#
  cfg_parse_netprefix@Base 9.10.6+dfsg
  cfg_parse_netprefix_map@Base 9.10.6+dfsg
  cfg_parse_obj@Base 9.10.6+dfsg
+ cfg_parse_percentage@Base 9.11.2+dfsg
  cfg_parse_qstring@Base 9.10.6+dfsg
  cfg_parse_rawaddr@Base 9.10.6+dfsg
  cfg_parse_rawport@Base 9.10.6+dfsg
@@ -86,6 +92,8 @@ libisccfg.so.160 libisccfg160 #MINVER#
  cfg_parser_create@Base 9.10.6+dfsg
  cfg_parser_destroy@Base 9.10.6+dfsg
  cfg_parser_error@Base 9.10.6+dfsg
+ cfg_parser_mapadd@Base 9.11.2+dfsg
+ cfg_parser_reset@Base 9.11.2+dfsg
  cfg_parser_setcallback@Base 9.10.6+dfsg
  cfg_parser_warning@Base 9.10.6+dfsg
  cfg_peektoken@Base 9.10.6+dfsg
@@ -99,6 +107,7 @@ libisccfg.so.160 libisccfg160 #MINVER#
  cfg_print_map@Base 9.10.6+dfsg
  cfg_print_mapbody@Base 9.10.6+dfsg
  cfg_print_obj@Base 9.10.6+dfsg
+ cfg_print_percentage@Base 9.11.2+dfsg
  cfg_print_rawaddr@Base 9.10.6+dfsg
  cfg_print_rawuint@Base 9.10.6+dfsg
  cfg_print_sockaddr@Base 9.10.6+dfsg
@@ -114,6 +123,7 @@ libisccfg.so.160 libisccfg160 #MINVER#
  cfg_rep_list@Base 9.10.6+dfsg
  cfg_rep_map@Base 9.10.6+dfsg
  cfg_rep_netprefix@Base 9.10.6+dfsg
+ cfg_rep_percentage@Base 9.11.2+dfsg
  cfg_rep_sockaddr@Base 9.10.6+dfsg
  cfg_rep_string@Base 9.10.6+dfsg
  cfg_rep_tuple@Base 9.10.6+dfsg
@@ -125,7 +135,9 @@ libisccfg.so.160 libisccfg160 #MINVER#
  cfg_type_astring@Base 9.10.6+dfsg
  cfg_type_bindkeys@Base 9.10.6+dfsg
  cfg_type_boolean@Base 9.10.6+dfsg
+ cfg_type_bracketed_text@Base 9.11.2+dfsg
  cfg_type_dnsconf@Base 9.10.6+dfsg
+ cfg_type_ecsprefix@Base 9.11.2+dfsg
  cfg_type_fixedpoint@Base 9.10.6+dfsg
  cfg_type_keyref@Base 9.10.6+dfsg
  cfg_type_namedconf@Base 9.10.6+dfsg
@@ -135,7 +147,7 @@ libisccfg.so.160 libisccfg160 #MINVER#
  cfg_type_netaddr6wild@Base 9.10.6+dfsg
  cfg_type_netaddr@Base 9.10.6+dfsg
  cfg_type_netprefix@Base 9.10.6+dfsg
- cfg_type_newzones@Base 9.10.6+dfsg
+ cfg_type_percentage@Base 9.11.2+dfsg
  cfg_type_qstring@Base 9.10.6+dfsg
  cfg_type_rndcconf@Base 9.10.6+dfsg
  cfg_type_rndckey@Base 9.10.6+dfsg
