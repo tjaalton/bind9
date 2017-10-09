@@ -1,6 +1,6 @@
---- bind9.orig/isc-config.sh.in
-+++ bind9/isc-config.sh.in
-@@ -21,7 +21,6 @@ prefix=@prefix@
+--- a/isc-config.sh.in
++++ b/isc-config.sh.in
+@@ -12,7 +12,6 @@ prefix=@prefix@
  exec_prefix=@exec_prefix@
  exec_prefix_set=
  includedir=@includedir@
@@ -8,7 +8,7 @@
  
  usage()
  {
-@@ -140,7 +139,7 @@ if test x"$echo_libs" = x"true"; then
+@@ -131,7 +130,7 @@ if test x"$echo_libs" = x"true"; then
  	if test x"${exec_prefix_set}" = x"true"; then
  		libs="-L${exec_prefix}/lib"
  	else

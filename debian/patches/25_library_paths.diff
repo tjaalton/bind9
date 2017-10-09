@@ -8,9 +8,9 @@ Date:   Thu Nov 8 15:16:39 2007 -0700
 
     Signed-off-by: LaMont Jones <lamont@debian.org>
 
---- bind9.orig/lib/dns/Makefile.in
-+++ bind9/lib/dns/Makefile.in
-@@ -43,7 +43,7 @@ ISCLIBS =	../../lib/isc/libisc.@A@
+--- a/lib/dns/Makefile.in
++++ b/lib/dns/Makefile.in
+@@ -34,7 +34,7 @@ ISCLIBS =	../../lib/isc/libisc.@A@
  
  ISCDEPLIBS =	../../lib/isc/libisc.@A@
  
@@ -19,7 +19,7 @@ Date:   Thu Nov 8 15:16:39 2007 -0700
  
  # Alphabetically
  
-@@ -146,6 +146,7 @@ libdns.la: ${OBJS}
+@@ -144,6 +144,7 @@ libdns.la: ${OBJS}
  		${CC} ${ALL_CFLAGS} ${LDFLAGS} -o libdns.la -rpath ${libdir} \
  		-version-info ${LIBINTERFACE}:${LIBREVISION}:${LIBAGE} \
  		${OBJS} ${ISCLIBS} @DNS_CRYPTO_LIBS@ ${LIBS}
@@ -27,17 +27,17 @@ Date:   Thu Nov 8 15:16:39 2007 -0700
  
  include: gen
  	${MAKE} include/dns/enumtype.h
-@@ -192,6 +193,7 @@ clean distclean::
- 	rm -f libdns.@A@ timestamp
- 	rm -f gen code.h include/dns/enumtype.h include/dns/enumclass.h
+@@ -195,6 +196,7 @@ clean distclean::
+ newrr::
+ 	rm -f code.h include/dns/enumtype.h include/dns/enumclass.h
  	rm -f include/dns/rdatastruct.h
 +	rm -f libdns.so
  
- newrr::
- 	rm -f code.h include/dns/enumtype.h include/dns/enumclass.h
---- bind9.orig/lib/isc/Makefile.in
-+++ bind9/lib/isc/Makefile.in
-@@ -123,12 +123,14 @@ libisc.la: ${OBJS} ${SYMTBLOBJS}
+ rdata.@O@: include
+ 
+--- a/lib/isc/Makefile.in
++++ b/lib/isc/Makefile.in
+@@ -117,12 +117,14 @@ libisc.la: ${OBJS} ${SYMTBLOBJS}
  		${CC} ${ALL_CFLAGS} ${LDFLAGS} -o libisc.la -rpath ${libdir} \
  		-version-info ${LIBINTERFACE}:${LIBREVISION}:${LIBAGE} \
  		${OBJS} ${SYMTBLOBJS} ${LIBS}
@@ -52,14 +52,14 @@ Date:   Thu Nov 8 15:16:39 2007 -0700
  
  timestamp: libisc.@A@ libisc-nosymtbl.@A@
  	touch timestamp
-@@ -147,3 +149,4 @@ uninstall::
+@@ -141,3 +143,4 @@ uninstall::
  clean distclean::
  	rm -f libisc.@A@ libisc-nosymtbl.@A@ libisc.la \
  	libisc-nosymtbl.la timestamp
 +	rm -f libisc.so libisc-nosymtbl.so
---- bind9.orig/lib/isccc/Makefile.in
-+++ bind9/lib/isccc/Makefile.in
-@@ -37,7 +37,7 @@ ISCCCLIBS =	../../lib/isccc/libisccc.@A@
+--- a/lib/isccc/Makefile.in
++++ b/lib/isccc/Makefile.in
+@@ -28,7 +28,7 @@ ISCCCLIBS =	../../lib/isccc/libisccc.@A@
  ISCDEPLIBS =	../../lib/isc/libisc.@A@
  ISCCCDEPLIBS =	libisccc.@A@
  
@@ -68,7 +68,7 @@ Date:   Thu Nov 8 15:16:39 2007 -0700
  
  SUBDIRS =	include
  
-@@ -73,6 +73,7 @@ libisccc.la: ${OBJS}
+@@ -64,6 +64,7 @@ libisccc.la: ${OBJS}
  		${CC} ${ALL_CFLAGS} ${LDFLAGS} -o libisccc.la -rpath ${libdir} \
  		-version-info ${LIBINTERFACE}:${LIBREVISION}:${LIBAGE} \
  		${OBJS} ${ISCLIBS} ${LIBS}
@@ -76,14 +76,14 @@ Date:   Thu Nov 8 15:16:39 2007 -0700
  
  timestamp: libisccc.@A@
  	touch timestamp
-@@ -88,3 +89,4 @@ uninstall::
+@@ -79,3 +80,4 @@ uninstall::
  
  clean distclean::
  	rm -f libisccc.@A@ timestamp
 +	rm -f libisccc.so
---- bind9.orig/lib/isccfg/Makefile.in
-+++ bind9/lib/isccfg/Makefile.in
-@@ -37,7 +37,7 @@ ISCCFGLIBS =	../../lib/cfg/libisccfg.@A@
+--- a/lib/isccfg/Makefile.in
++++ b/lib/isccfg/Makefile.in
+@@ -26,7 +26,7 @@ ISCCFGLIBS =	../../lib/cfg/libisccfg.@A@
  ISCDEPLIBS =	../../lib/isc/libisc.@A@
  ISCCFGDEPLIBS =	libisccfg.@A@
  
@@ -91,10 +91,10 @@ Date:   Thu Nov 8 15:16:39 2007 -0700
 +LIBS =		@LIBS@ -L../dns -L../isc -L../isccc
  
  SUBDIRS =	include
- 
---- bind9.orig/lib/irs/Makefile.in
-+++ bind9/lib/irs/Makefile.in
-@@ -43,7 +43,7 @@ SRCS =		context.c \
+ TESTDIRS =	@UNITTESTS@
+--- a/lib/irs/Makefile.in
++++ b/lib/irs/Makefile.in
+@@ -35,7 +35,7 @@ SRCS =		context.c \
  		gai_strerror.c getaddrinfo.c getnameinfo.c \
  		resconf.c
  
@@ -103,7 +103,7 @@ Date:   Thu Nov 8 15:16:39 2007 -0700
  
  SUBDIRS =	include
  TESTDIRS =	@UNITTESTS@
-@@ -68,6 +68,7 @@ libirs.la: ${OBJS} version.@O@
+@@ -60,6 +60,7 @@ libirs.la: ${OBJS} version.@O@
  		${CC} ${ALL_CFLAGS} ${LDFLAGS} -o libirs.la -rpath ${libdir} \
  		-version-info ${LIBINTERFACE}:${LIBREVISION}:${LIBAGE} \
  		${OBJS} version.@O@ ${LIBS}
@@ -111,7 +111,7 @@ Date:   Thu Nov 8 15:16:39 2007 -0700
  
  timestamp: libirs.@A@
  	touch timestamp
-@@ -85,3 +86,4 @@ uninstall::
+@@ -77,3 +78,4 @@ uninstall::
  
  clean distclean::
  	rm -f libirs.@A@ libirs.la timestamp

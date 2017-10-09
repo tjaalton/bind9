@@ -17,9 +17,9 @@ Date:   Mon Mar 10 11:38:41 2008 -0600
 
     Signed-off-by: LaMont Jones <lamont@ubuntu.com>
 
---- bind9.orig/bin/named/server.c
-+++ bind9/bin/named/server.c
-@@ -1213,6 +1213,8 @@ configure_order(dns_order_t *order, cons
+--- a/bin/named/server.c
++++ b/bin/named/server.c
+@@ -1291,6 +1291,8 @@ configure_order(dns_order_t *order, cons
  #endif /* DNS_RDATASET_FIXED */
  	else if (!strcasecmp(str, "random"))
  		mode = DNS_RDATASETATTR_RANDOMIZE;
@@ -28,9 +28,9 @@ Date:   Mon Mar 10 11:38:41 2008 -0600
  	else if (!strcasecmp(str, "cyclic"))
  		mode = 0;
  	else
---- bind9.orig/lib/bind9/check.c
-+++ bind9/lib/bind9/check.c
-@@ -150,6 +150,7 @@ check_orderent(const cfg_obj_t *ent, isc
+--- a/lib/bind9/check.c
++++ b/lib/bind9/check.c
+@@ -134,6 +134,7 @@ check_orderent(const cfg_obj_t *ent, isc
  			    "compilation time");
  #endif
  	} else if (strcasecmp(cfg_obj_asstring(obj), "random") != 0 &&
@@ -38,9 +38,9 @@ Date:   Mon Mar 10 11:38:41 2008 -0600
  		   strcasecmp(cfg_obj_asstring(obj), "cyclic") != 0) {
  		cfg_obj_log(obj, logctx, ISC_LOG_ERROR,
  			    "rrset-order: invalid order '%s'",
---- bind9.orig/lib/dns/include/dns/rdataset.h
-+++ bind9/lib/dns/include/dns/rdataset.h
-@@ -209,6 +209,8 @@ struct dns_rdataset {
+--- a/lib/dns/include/dns/rdataset.h
++++ b/lib/dns/include/dns/rdataset.h
+@@ -201,6 +201,8 @@ struct dns_rdataset {
  #define DNS_RDATASETATTR_NEGATIVE	0x00200000
  #define DNS_RDATASETATTR_PREFETCH	0x00400000
  
@@ -49,9 +49,9 @@ Date:   Mon Mar 10 11:38:41 2008 -0600
  /*%
   * _OMITDNSSEC:
   * 	Omit DNSSEC records when rendering ncache records.
---- bind9.orig/lib/dns/order.c
-+++ bind9/lib/dns/order.c
-@@ -88,6 +88,7 @@ dns_order_add(dns_order_t *order, dns_na
+--- a/lib/dns/order.c
++++ b/lib/dns/order.c
+@@ -79,6 +79,7 @@ dns_order_add(dns_order_t *order, dns_na
  
  	REQUIRE(DNS_ORDER_VALID(order));
  	REQUIRE(mode == DNS_RDATASETATTR_RANDOMIZE ||
@@ -59,9 +59,9 @@ Date:   Mon Mar 10 11:38:41 2008 -0600
  		mode == DNS_RDATASETATTR_FIXEDORDER ||
  		mode == 0 /* DNS_RDATASETATTR_CYCLIC */ );
  
---- bind9.orig/lib/dns/rdataset.c
-+++ bind9/lib/dns/rdataset.c
-@@ -297,6 +297,7 @@ dns_rdataset_current(dns_rdataset_t *rda
+--- a/lib/dns/rdataset.c
++++ b/lib/dns/rdataset.c
+@@ -291,6 +291,7 @@ dns_rdataset_current(dns_rdataset_t *rda
  #define MAX_SHUFFLE	32
  #define WANT_FIXED(r)	(((r)->attributes & DNS_RDATASETATTR_FIXEDORDER) != 0)
  #define WANT_RANDOM(r)	(((r)->attributes & DNS_RDATASETATTR_RANDOMIZE) != 0)
@@ -69,7 +69,7 @@ Date:   Mon Mar 10 11:38:41 2008 -0600
  
  struct towire_sort {
  	int key;
-@@ -321,6 +322,7 @@ towiresorted(dns_rdataset_t *rdataset, c
+@@ -315,6 +316,7 @@ towiresorted(dns_rdataset_t *rdataset, c
  	isc_region_t r;
  	isc_result_t result;
  	unsigned int i, count = 0, added, choice;
@@ -77,7 +77,7 @@ Date:   Mon Mar 10 11:38:41 2008 -0600
  	isc_buffer_t savedbuffer, rdlen, rrbuffer;
  	unsigned int headlen;
  	isc_boolean_t question = ISC_FALSE;
-@@ -363,6 +365,7 @@ towiresorted(dns_rdataset_t *rdataset, c
+@@ -359,6 +361,7 @@ towiresorted(dns_rdataset_t *rdataset, c
  		if (result != ISC_R_SUCCESS)
  			return (result);
  	}
@@ -85,7 +85,7 @@ Date:   Mon Mar 10 11:38:41 2008 -0600
  
  	/*
  	 * Do we want to shuffle this answer?
-@@ -430,6 +433,9 @@ towiresorted(dns_rdataset_t *rdataset, c
+@@ -426,6 +429,9 @@ towiresorted(dns_rdataset_t *rdataset, c
  					sorted[i].key = 0; /* Unused */
  				sorted[i].rdata = &shuffled[i];
  			}
@@ -95,7 +95,7 @@ Date:   Mon Mar 10 11:38:41 2008 -0600
  		} else {
  			/*
  			 * "Cyclic" order.
-@@ -550,9 +556,9 @@ towiresorted(dns_rdataset_t *rdataset, c
+@@ -551,9 +557,9 @@ towiresorted(dns_rdataset_t *rdataset, c
  
   cleanup:
  	if (sorted != NULL && sorted != sorted_fixed)

@@ -9,7 +9,7 @@ Forwarded: yes RT#41967
 
 --- a/lib/isc/unix/resource.c
 +++ b/lib/isc/unix/resource.c
-@@ -29,6 +29,7 @@
+@@ -20,6 +20,7 @@
  #include <isc/util.h>
  
  #ifdef __linux__
