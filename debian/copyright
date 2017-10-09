@@ -8,6 +8,7 @@ Files-Excluded: contrib/idn
 		contrib/query-loc-0.4.0
 		contrib/queryperf
 		contrib/zkt-1.1.3
+		doc/arm/Bv9ARM.pdf
 
 Files: *
 Copyright: 2004-2017, Internet Systems Consortium, Inc. ("ISC") 
