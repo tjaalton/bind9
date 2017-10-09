@@ -1,8 +1,6 @@
-diff --git a/bin/dnssec-pkcs11/Makefile.in b/bin/dnssec-pkcs11/Makefile.in
-index af51fd8d7..ce70b5ee2 100644
 --- a/bin/dnssec-pkcs11/Makefile.in
 +++ b/bin/dnssec-pkcs11/Makefile.in
-@@ -23,18 +23,18 @@ VERSION=@BIND9_VERSION@
+@@ -14,18 +14,18 @@ VERSION=@BIND9_VERSION@
  
  @BIND9_MAKE_INCLUDES@
  
@@ -29,7 +27,7 @@ index af51fd8d7..ce70b5ee2 100644
  
  DEPLIBS =	${DNSDEPLIBS} ${ISCDEPLIBS}
  
-@@ -43,10 +43,10 @@ LIBS =		${DNSLIBS} ${ISCLIBS} @LIBS@
+@@ -34,10 +34,10 @@ LIBS =		${DNSLIBS} ${ISCLIBS} @LIBS@
  NOSYMLIBS =	${DNSLIBS} ${ISCNOSYMLIBS} @LIBS@
  
  # Alphabetically
@@ -44,7 +42,7 @@ index af51fd8d7..ce70b5ee2 100644
  
  OBJS =		dnssectool.@O@
  
-@@ -67,15 +67,15 @@ MANOBJS =	${MANPAGES} ${HTMLPAGES}
+@@ -58,15 +58,15 @@ MANOBJS =	${MANPAGES} ${HTMLPAGES}
  
  @BIND9_MAKE_RULES@
  
@@ -63,7 +61,7 @@ index af51fd8d7..ce70b5ee2 100644
  	export BASEOBJS="dnssec-keygen.@O@ ${OBJS}"; \
  	${FINALBUILDCMD}
  
-@@ -83,7 +83,7 @@ dnssec-signzone.@O@: dnssec-signzone.c
+@@ -74,7 +74,7 @@ dnssec-signzone.@O@: dnssec-signzone.c
  	${LIBTOOL_MODE_COMPILE} ${CC} ${ALL_CFLAGS} -DVERSION=\"${VERSION}\" \
  		-c ${srcdir}/dnssec-signzone.c
  
@@ -72,7 +70,7 @@ index af51fd8d7..ce70b5ee2 100644
  	export BASEOBJS="dnssec-signzone.@O@ ${OBJS}"; \
  	${FINALBUILDCMD}
  
-@@ -91,19 +91,19 @@ dnssec-verify.@O@: dnssec-verify.c
+@@ -82,19 +82,19 @@ dnssec-verify.@O@: dnssec-verify.c
  	${LIBTOOL_MODE_COMPILE} ${CC} ${ALL_CFLAGS} -DVERSION=\"${VERSION}\" \
  		-c ${srcdir}/dnssec-verify.c
  
@@ -96,7 +94,7 @@ index af51fd8d7..ce70b5ee2 100644
  	${LIBTOOL_MODE_LINK} ${PURIFY} ${CC} ${CFLAGS} ${LDFLAGS} -o $@ \
  	dnssec-importkey.@O@ ${OBJS} ${LIBS}
  
-@@ -114,11 +114,9 @@ docclean manclean maintainer-clean::
+@@ -105,11 +105,9 @@ docclean manclean maintainer-clean::
  
  installdirs:
  	$(SHELL) ${top_srcdir}/mkinstalldirs ${DESTDIR}${sbindir}
@@ -108,11 +106,9 @@ index af51fd8d7..ce70b5ee2 100644
  
  uninstall::
  	for m in ${MANPAGES}; do rm -f ${DESTDIR}${mandir}/man8/$$m ; done
-diff --git a/bin/named-pkcs11/Makefile.in b/bin/named-pkcs11/Makefile.in
-index 1377deb24..ab0f3da19 100644
 --- a/bin/named-pkcs11/Makefile.in
 +++ b/bin/named-pkcs11/Makefile.in
-@@ -47,26 +47,26 @@ DLZDRIVER_INCLUDES =	@DLZ_DRIVER_INCLUDES@
+@@ -36,26 +36,26 @@ DLZDRIVER_INCLUDES =	@DLZ_DRIVER_INCLUDE
  DLZDRIVER_LIBS =	@DLZ_DRIVER_LIBS@
  
  CINCLUDES =	-I${srcdir}/include -I${srcdir}/unix/include -I. \
@@ -148,7 +144,7 @@ index 1377deb24..ab0f3da19 100644
  LWRESDEPLIBS =	../../lib/lwres/liblwres.@A@
  BIND9DEPLIBS =	../../lib/bind9/libbind9.@A@
  
-@@ -75,15 +75,15 @@ DEPLIBS =	${LWRESDEPLIBS} ${DNSDEPLIBS} ${BIND9DEPLIBS} \
+@@ -64,15 +64,15 @@ DEPLIBS =	${LWRESDEPLIBS} ${DNSDEPLIBS}
  
  LIBS =		${LWRESLIBS} ${DNSLIBS} ${BIND9LIBS} \
  		${ISCCFGLIBS} ${ISCCCLIBS} ${ISCLIBS} \
@@ -167,7 +163,7 @@ index 1377deb24..ab0f3da19 100644
  
  GEOIPLINKOBJS = geoip.@O@
  
-@@ -94,8 +94,7 @@ OBJS =		builtin.@O@ client.@O@ config.@O@ control.@O@ \
+@@ -83,8 +83,7 @@ OBJS =		builtin.@O@ client.@O@ config.@O
  		tkeyconf.@O@ tsigconf.@O@ update.@O@ xfrout.@O@ \
  		zoneconf.@O@ \
  		lwaddr.@O@ lwresd.@O@ lwdclient.@O@ lwderror.@O@ lwdgabn.@O@ \
@@ -177,7 +173,7 @@ index 1377deb24..ab0f3da19 100644
  
  UOBJS =		unix/os.@O@ unix/dlz_dlopen_driver.@O@
  
-@@ -110,8 +109,7 @@ SRCS =		builtin.c client.c config.c control.c \
+@@ -99,8 +98,7 @@ SRCS =		builtin.c client.c config.c cont
  		tkeyconf.c tsigconf.c update.c xfrout.c \
  		zoneconf.c \
  		lwaddr.c lwresd.c lwdclient.c lwderror.c lwdgabn.c \
@@ -187,16 +183,16 @@ index 1377deb24..ab0f3da19 100644
  
  MANPAGES =	named.8 lwresd.8 named.conf.5
  
-@@ -140,7 +138,7 @@ config.@O@: config.c
- 		-DNS_SYSCONFDIR=\"${sysconfdir}\" \
- 		-c ${srcdir}/config.c
+@@ -135,7 +133,7 @@ server.@O@: server.c
+ 		-DPRODUCT=\"${PRODUCT}\" \
+ 		-DVERSION=\"${VERSION}\" -c ${srcdir}/server.c
  
 -named@EXEEXT@: ${OBJS} ${UOBJS} ${DEPLIBS}
 +named-pkcs11@EXEEXT@: ${OBJS} ${UOBJS} ${DEPLIBS}
  	export MAKE_SYMTABLE="yes"; \
  	export BASEOBJS="${OBJS} ${UOBJS}"; \
  	${FINALBUILDCMD}
-@@ -167,22 +165,12 @@ statschannel.@O@: bind9.xsl.h
+@@ -162,22 +160,12 @@ statschannel.@O@: bind9.xsl.h
  
  installdirs:
  	$(SHELL) ${top_srcdir}/mkinstalldirs ${DESTDIR}${sbindir}
@@ -222,11 +218,9 @@ index 1377deb24..ab0f3da19 100644
  
  @DLZ_DRIVER_RULES@
  
-diff --git a/lib/dns-pkcs11/Makefile.in b/lib/dns-pkcs11/Makefile.in
-index b3e9e151a..88bb0b1a5 100644
 --- a/lib/dns-pkcs11/Makefile.in
 +++ b/lib/dns-pkcs11/Makefile.in
-@@ -32,18 +32,18 @@ VERSION=@BIND9_VERSION@
+@@ -23,18 +23,18 @@ VERSION=@BIND9_VERSION@
  
  USE_ISC_SPNEGO = @USE_ISC_SPNEGO@
  
@@ -251,7 +245,7 @@ index b3e9e151a..88bb0b1a5 100644
  
  # Alphabetically
  
-@@ -137,7 +137,7 @@ version.@O@: version.c
+@@ -135,16 +135,16 @@ version.@O@: version.c
  		-DLIBAGE=${LIBAGE} \
  		-c ${srcdir}/version.c
  
@@ -259,10 +253,6 @@ index b3e9e151a..88bb0b1a5 100644
 +libdns-pkcs11.@SA@: ${OBJS}
  	${AR} ${ARFLAGS} $@ ${OBJS}
  	${RANLIB} $@
- 
-@@ -147,12 +147,12 @@ dynamic_db.@O@: dynamic_db.c
- 	-c ${srcdir}/dynamic_db.c
- 
  
 -libdns.la: ${OBJS}
 +libdns-pkcs11.la: ${OBJS}
@@ -277,7 +267,7 @@ index b3e9e151a..88bb0b1a5 100644
  
  include: gen
  	${MAKE} include/dns/enumtype.h
-@@ -178,28 +178,28 @@ code.h:	gen
+@@ -170,25 +170,25 @@ code.h:	gen
  	./gen -s ${srcdir} > code.h || { rm -f $@ ; exit 1; }
  
  gen: gen.c
@@ -308,40 +298,19 @@ index b3e9e151a..88bb0b1a5 100644
 +	rm -f libdns-pkcs11.@A@ timestamp
  	rm -f gen code.h include/dns/enumtype.h include/dns/enumclass.h
  	rm -f include/dns/rdatastruct.h
--	rm -f libdns.so
-+	rm -f libdns-pkcs11.so
- 
+ 	rm -f dnstap.pb-c.c dnstap.pb-c.h include/dns/dnstap.pb-c.h
+@@ -196,7 +196,7 @@ clean distclean::
  newrr::
  	rm -f code.h include/dns/enumtype.h include/dns/enumclass.h
-diff --git a/lib/dns/Makefile.in b/lib/dns/Makefile.in
-index b3e9e151a..a6bbc29b3 100644
---- a/lib/dns/Makefile.in
-+++ b/lib/dns/Makefile.in
-@@ -151,8 +151,8 @@ libdns.la: ${OBJS}
- 	${LIBTOOL_MODE_LINK} \
- 		${CC} ${ALL_CFLAGS} ${LDFLAGS} -o libdns.la -rpath ${libdir} \
- 		-version-info ${LIBINTERFACE}:${LIBREVISION}:${LIBAGE} \
--		${OBJS} ${ISCLIBS} @DNS_CRYPTO_LIBS@ ${LIBS}
--	ln -sf .libs/libdns.so .
-+		${OBJS} ${ISCLIBS} @DNS_CRYPTO_PK11_LIBS@ ${LIBS}
-+	ln -sf .libs/libdns-pkcs11.so .
- 
- include: gen
- 	${MAKE} include/dns/enumtype.h
-@@ -199,7 +199,7 @@ clean distclean::
- 	rm -f libdns.@A@ timestamp
- 	rm -f gen code.h include/dns/enumtype.h include/dns/enumclass.h
  	rm -f include/dns/rdatastruct.h
 -	rm -f libdns.so
 +	rm -f libdns-pkcs11.so
  
- newrr::
- 	rm -f code.h include/dns/enumtype.h include/dns/enumclass.h
-diff --git a/lib/isc-pkcs11/Makefile.in b/lib/isc-pkcs11/Makefile.in
-index 069d4b1eb..96f45be0a 100644
+ rdata.@O@: include
+ 
 --- a/lib/isc-pkcs11/Makefile.in
 +++ b/lib/isc-pkcs11/Makefile.in
-@@ -29,8 +29,8 @@ CINCLUDES =	-I${srcdir}/unix/include \
+@@ -20,8 +20,8 @@ CINCLUDES =	-I${srcdir}/unix/include \
  		-I${srcdir}/@ISC_THREAD_DIR@/include \
  		-I${srcdir}/@ISC_ARCH_DIR@/include \
  		-I./include \
@@ -352,7 +321,7 @@ index 069d4b1eb..96f45be0a 100644
  CWARNINGS =
  
  # Alphabetically
-@@ -110,43 +110,43 @@ version.@O@: version.c
+@@ -104,43 +104,43 @@ version.@O@: version.c
  		-DLIBAGE=${LIBAGE} \
  		-c ${srcdir}/version.c
  
