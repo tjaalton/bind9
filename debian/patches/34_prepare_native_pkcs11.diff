@@ -1,0 +1,215 @@
+--- bind9.orig/bin/Makefile.in
++++ bind9/bin/Makefile.in
+@@ -19,7 +19,7 @@ srcdir =	@srcdir@
+ VPATH =		@srcdir@
+ top_srcdir =	@top_srcdir@
+ 
+-SUBDIRS =	named rndc dig delv dnssec tools tests nsupdate \
++SUBDIRS =	named named-pkcs11 rndc dig delv dnssec dnssec-pkcs11 tools tests nsupdate \
+ 		check confgen @PYTHON_TOOLS@ @PKCS11_TOOLS@
+ TARGETS =
+ 
+--- bind9.orig/bin/pkcs11/Makefile.in
++++ bind9/bin/pkcs11/Makefile.in
+@@ -20,13 +20,13 @@ top_srcdir =	@top_srcdir@
+ 
+ @BIND9_MAKE_INCLUDES@
+ 
+-CINCLUDES =	${ISC_INCLUDES}
++CINCLUDES =	${ISC_PKCS11_INCLUDES}
+ 
+ CDEFINES =
+ 
+-ISCLIBS =	../../lib/isc/libisc.@A@ @ISC_OPENSSL_LIBS@
++ISCLIBS =	../../lib/isc-pkcs11/libisc-pkcs11.@A@ @ISC_OPENSSL_LIBS@
+ 
+-ISCDEPLIBS =	../../lib/isc/libisc.@A@
++ISCDEPLIBS =	../../lib/isc-pkcs11/libisc-pkcs11.@A@
+ 
+ DEPLIBS =	${ISCDEPLIBS}
+ 
+--- bind9.orig/configure.in
++++ bind9/configure.in
+@@ -1109,12 +1109,14 @@ AC_SUBST(USE_GSSAPI)
+ AC_SUBST(DST_GSSAPI_INC)
+ AC_SUBST(DNS_GSSAPI_LIBS)
+ DNS_CRYPTO_LIBS="$DNS_GSSAPI_LIBS $DNS_CRYPTO_LIBS"
++DNS_CRYPTO_PK11_LIBS="$DNS_GSSAPI_LIBS $DNS_CRYPTO_PK11_LIBS"
+ 
+ #
+ # Applications linking with libdns also need to link with these libraries.
+ #
+ 
+ AC_SUBST(DNS_CRYPTO_LIBS)
++AC_SUBST(DNS_CRYPTO_PK11_LIBS)
+ 
+ #
+ # was --with-randomdev specified?
+@@ -1517,11 +1519,6 @@ fi
+ AC_MSG_CHECKING(for OpenSSL library)
+ OPENSSL_WARNING=
+ openssldirs="/usr /usr/local /usr/local/ssl /usr/pkg /usr/sfw"
+-if test "yes" = "$want_native_pkcs11"
+-then
+-	use_openssl="native_pkcs11"
+-	AC_MSG_RESULT(use of native PKCS11 instead)
+-fi
+ 
+ if test "auto" = "$use_openssl"
+ then
+@@ -1534,6 +1531,7 @@ then
+ 		fi
+ 	done
+ fi
++CRYPTO_PK11=""
+ OPENSSL_ECDSA=""
+ OPENSSL_GOST=""
+ gosttype="raw"
+@@ -1554,16 +1552,17 @@ case "$with_gost" in
+ 		;;
+ esac
+ 
+-case "$use_openssl" in
+-	native_pkcs11)
+-		AC_MSG_RESULT(disabled because of native PKCS11)
++if test "$want_native_pkcs11" = "yes"
++then
+ 		DST_OPENSSL_INC=""
+-		CRYPTO="-DPKCS11CRYPTO"
++		CRYPTO_PK11="-DPKCS11CRYPTO"
+ 		OPENSSLGOSTLINKOBJS=""
+ 		OPENSSLGOSTLINKSRS=""
+ 		OPENSSLLINKOBJS=""
+ 		OPENSSLLINKSRCS=""
+-		;;
++fi
++
++case "$use_openssl" in
+ 	no)
+ 		AC_MSG_RESULT(no)
+ 		DST_OPENSSL_INC=""
+@@ -1585,11 +1584,6 @@ case "$use_openssl" in
+ If you don't want OpenSSL, use --without-openssl])
+ 		;;
+ 	*)
+-		if test "yes" = "$want_native_pkcs11"
+-		then
+-                        AC_MSG_RESULT()
+-			AC_MSG_ERROR([OpenSSL and native PKCS11 cannot be used together.])
+-		fi
+ 		if test "yes" = "$use_openssl"
+ 		then
+ 			# User did not specify a path - guess it
+@@ -1945,6 +1939,7 @@ AC_SUBST(OPENSSL_ECDSA)
+ AC_SUBST(OPENSSL_GOST)
+ 
+ DNS_CRYPTO_LIBS="$DNS_CRYPTO_LIBS $DST_OPENSSL_LIBS"
++DNS_CRYPTO_PK11_LIBS="$DNS_CRYPTO_LIBS"
+ 
+ ISC_PLATFORM_WANTAES="#undef ISC_PLATFORM_WANTAES"
+ if test "yes" = "$with_aes"
+@@ -2255,6 +2250,7 @@ esac
+ AC_SUBST(PKCS11LINKOBJS)
+ AC_SUBST(PKCS11LINKSRCS)
+ AC_SUBST(CRYPTO)
++AC_SUBST(CRYPTO_PK11)
+ AC_SUBST(PKCS11_ECDSA)
+ AC_SUBST(PKCS11_GOST)
+ AC_SUBST(PKCS11_TEST)
+@@ -4895,8 +4891,11 @@ AC_CONFIG_FILES([
+ 	bin/delv/Makefile
+ 	bin/dig/Makefile
+ 	bin/dnssec/Makefile
++	bin/dnssec-pkcs11/Makefile
+ 	bin/named/Makefile
+ 	bin/named/unix/Makefile
++	bin/named-pkcs11/Makefile
++	bin/named-pkcs11/unix/Makefile
+ 	bin/nsupdate/Makefile
+ 	bin/pkcs11/Makefile
+ 	bin/python/Makefile
+@@ -4989,6 +4988,10 @@ AC_CONFIG_FILES([
+ 	lib/dns/include/dns/Makefile
+ 	lib/dns/include/dst/Makefile
+ 	lib/dns/tests/Makefile
++	lib/dns-pkcs11/Makefile
++	lib/dns-pkcs11/include/Makefile
++	lib/dns-pkcs11/include/dns/Makefile
++	lib/dns-pkcs11/include/dst/Makefile
+ 	lib/irs/Makefile
+ 	lib/irs/include/Makefile
+ 	lib/irs/include/irs/Makefile
+@@ -5013,6 +5016,24 @@ AC_CONFIG_FILES([
+ 	lib/isc/unix/include/Makefile
+ 	lib/isc/unix/include/isc/Makefile
+ 	lib/isc/unix/include/pkcs11/Makefile
++	lib/isc-pkcs11/$arch/Makefile
++	lib/isc-pkcs11/$arch/include/Makefile
++	lib/isc-pkcs11/$arch/include/isc/Makefile
++	lib/isc-pkcs11/$thread_dir/Makefile
++	lib/isc-pkcs11/$thread_dir/include/Makefile
++	lib/isc-pkcs11/$thread_dir/include/isc/Makefile
++	lib/isc-pkcs11/Makefile
++	lib/isc-pkcs11/include/Makefile
++	lib/isc-pkcs11/include/isc/Makefile
++	lib/isc-pkcs11/include/isc/platform.h
++	lib/isc-pkcs11/include/pk11/Makefile
++	lib/isc-pkcs11/include/pkcs11/Makefile
++	lib/isc-pkcs11/tests/Makefile
++	lib/isc-pkcs11/nls/Makefile
++	lib/isc-pkcs11/unix/Makefile
++	lib/isc-pkcs11/unix/include/Makefile
++	lib/isc-pkcs11/unix/include/isc/Makefile
++	lib/isc-pkcs11/unix/include/pkcs11/Makefile
+ 	lib/isccc/Makefile
+ 	lib/isccc/include/Makefile
+ 	lib/isccc/include/isccc/Makefile
+--- bind9.orig/lib/Makefile.in
++++ bind9/lib/Makefile.in
+@@ -23,7 +23,7 @@ top_srcdir =	@top_srcdir@
+ # Attempt to disable parallel processing.
+ .NOTPARALLEL:
+ .NO_PARALLEL:
+-SUBDIRS =	isc isccc dns isccfg bind9 lwres irs tests samples
++SUBDIRS =	isc isc-pkcs11 isccc dns dns-pkcs11 isccfg bind9 lwres irs tests samples
+ TARGETS =
+ 
+ @BIND9_MAKE_RULES@
+--- bind9.orig/make/includes.in
++++ bind9/make/includes.in
+@@ -49,3 +49,13 @@ BIND9_INCLUDES = @BIND9_BIND9_BUILDINCLU
+ 
+ TEST_INCLUDES = \
+ 	-I${top_srcdir}/lib/tests/include
++
++ISC_PKCS11_INCLUDES = @BIND9_ISC_BUILDINCLUDE@ \
++	-I${top_srcdir}/lib/isc-pkcs11 \
++	-I${top_srcdir}/lib/isc-pkcs11/include \
++	-I${top_srcdir}/lib/isc-pkcs11/unix/include \
++	-I${top_srcdir}/lib/isc-pkcs11/@ISC_THREAD_DIR@/include \
++	-I${top_srcdir}/lib/isc-pkcs11/@ISC_ARCH_DIR@/include
++
++DNS_PKCS11_INCLUDES = @BIND9_DNS_BUILDINCLUDE@ \
++	-I${top_srcdir}/lib/dns-pkcs11/include
+--- bind9.orig/bin/dnssec/Makefile.in
++++ bind9/bin/dnssec/Makefile.in
+@@ -25,7 +25,7 @@ VERSION=@BIND9_VERSION@
+ 
+ CINCLUDES =	${DNS_INCLUDES} ${ISC_INCLUDES} @DST_OPENSSL_INC@
+ 
+-CDEFINES =	-DVERSION=\"${VERSION}\" @USE_PKCS11@ @PKCS11_ENGINE@ \
++CDEFINES =	-DVERSION=\"${VERSION}\" \
+ 		@CRYPTO@ -DPK11_LIB_LOCATION=\"@PKCS11_PROVIDER@\"
+ CWARNINGS =
+ 
+--- bind9.orig/bin/named/Makefile.in
++++ bind9/bin/named/Makefile.in
+@@ -51,7 +51,7 @@ CINCLUDES =	-I${srcdir}/include -I${srcd
+ 		${ISCCFG_INCLUDES} ${ISCCC_INCLUDES} ${ISC_INCLUDES} \
+ 		${DLZDRIVER_INCLUDES} ${DBDRIVER_INCLUDES} @DST_OPENSSL_INC@
+ 
+-CDEFINES =      @CONTRIB_DLZ@ @USE_PKCS11@ @PKCS11_ENGINE@ @CRYPTO@
++CDEFINES =      @CONTRIB_DLZ@ @CRYPTO@
+ 
+ CWARNINGS =
+ 

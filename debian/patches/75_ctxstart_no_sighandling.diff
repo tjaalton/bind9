@@ -1,0 +1,21 @@
+Description: Do not modify signal handling for external isc apps
+ Not sure this is a un-fix but it looks like before the change there was
+ no modification of signal handlers when being called via appmethods
+ ctxstart.
+Forwarded: yes RT#41964
+Author: Stefan Bader <stefan.bader@canonical.com>
+
+Index: bind9-9.10.3.dfsg.P2/lib/isc/unix/app.c
+===================================================================
+--- bind9-9.10.3.dfsg.P2.orig/lib/isc/unix/app.c	2015-12-06 13:37:44.000000000 +0100
++++ bind9-9.10.3.dfsg.P2/lib/isc/unix/app.c	2016-03-17 16:32:58.221081810 +0100
+@@ -267,6 +267,9 @@ isc__app_ctxstart(isc_appctx_t *ctx0) {
+ 	ctx->want_reload = ISC_FALSE;
+ 	ctx->blocked = ISC_FALSE;
+ 
++	if (!isc_bind9)
++		return (ISC_R_SUCCESS);
++
+ #ifndef HAVE_SIGWAIT
+ 	/*
+ 	 * Install do-nothing handlers for SIGINT and SIGTERM.

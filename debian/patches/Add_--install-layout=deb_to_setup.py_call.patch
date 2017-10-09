@@ -1,0 +1,14 @@
+--- bind9.orig/bin/python/Makefile.in
++++ bind9/bin/python/Makefile.in
+@@ -55,9 +55,9 @@ install:: ${TARGETS} installdirs
+ 	${INSTALL_DATA} ${srcdir}/dnssec-coverage.8 ${DESTDIR}${mandir}/man8
+ 	if test -n "${PYTHON}" ; then \
+ 		if test -n "${DESTDIR}" ; then \
+-			${PYTHON} ${srcdir}/setup.py install --root=${DESTDIR} --prefix=${prefix} ; \
++			${PYTHON} ${srcdir}/setup.py install --root=${DESTDIR} --prefix=${prefix} --install-layout=deb ; \
+ 		else \
+-			${PYTHON} ${srcdir}/setup.py install --prefix=${prefix} ; \
++			${PYTHON} ${srcdir}/setup.py install --prefix=${prefix} --install-layout=deb ; \
+ 		fi \
+ 	fi
+ 

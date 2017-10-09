@@ -1,0 +1,115 @@
+diff -urNap lib/dns/Makefile lib/dns/Makefile
+--- lib/dns/Makefile	2017-10-04 21:26:10.573804789 +0000
++++ lib/dns/Makefile	2017-10-04 21:26:34.633748279 +0000
+@@ -126,9 +126,9 @@ CDEFINES =	-DUSE_MD5   ${USE_ISC_SPNEGO}
+ 
+ CWARNINGS =
+ 
+-ISCLIBS =	../../lib/isc/libisc.la
++ISCLIBS =	../../lib/isc/libisc-export.la
+ 
+-ISCDEPLIBS =	../../lib/isc/libisc.la
++ISCDEPLIBS =	../../lib/isc/libisc-export.la
+ 
+ LIBS =		-ldl  -L../../lib/isc -lcrypto
+ 
+diff -urNap lib/irs/Makefile lib/irs/Makefile
+--- lib/irs/Makefile	2017-10-04 21:26:10.577804779 +0000
++++ lib/irs/Makefile	2017-10-04 21:26:34.637748269 +0000
+@@ -115,7 +115,7 @@ SRCS =		context.c \
+ 		gai_strerror.c getaddrinfo.c getnameinfo.c \
+ 		resconf.c
+ 
+-LIBS =		-ldl  -L../../lib/isc -L../../lib/dns -L../../lib/isccfg -lcrypto -lisc -ldns -lisccfg
++LIBS =		-ldl  -L../../lib/isc -L../../lib/dns -L../../lib/isccfg -lcrypto -lisc-export -ldns-export -lisccfg-export
+ 
+ SUBDIRS =	include
+ TESTDIRS =	
+diff -urNap lib/isccc/Makefile lib/isccc/Makefile
+--- lib/isccc/Makefile	2017-10-04 21:26:10.585804760 +0000
++++ lib/isccc/Makefile	2017-10-04 21:26:34.637748269 +0000
+@@ -103,10 +103,10 @@ CINCLUDES =	-I. ${DNS_INCLUDES} ${ISC_IN
+ CDEFINES =	
+ CWARNINGS =
+ 
+-ISCLIBS =	../../lib/isc/libisc.la
++ISCLIBS =	../../lib/isc/libisc-export.la
+ ISCCCLIBS =	../../lib/isccc/libisccc-export.la
+ 
+-ISCDEPLIBS =	../../lib/isc/libisc.la
++ISCDEPLIBS =	../../lib/isc/libisc-export.la
+ ISCCCDEPLIBS =	libisccc-export.la
+ 
+ LIBS =		-ldl  -L../../lib/isc
+diff -urNap lib/isccfg/Makefile lib/isccfg/Makefile
+--- lib/isccfg/Makefile	2017-10-04 21:26:10.589804751 +0000
++++ lib/isccfg/Makefile	2017-10-04 21:26:55.969698162 +0000
+@@ -102,11 +102,11 @@ CINCLUDES =	-I. ${DNS_INCLUDES} ${ISC_IN
+ CDEFINES =
+ CWARNINGS =
+ 
+-ISCLIBS =	../../lib/isc/libisc.la
+-DNSLIBS =	../../lib/dns/libdns.la
++ISCLIBS =	../../lib/isc/libisc-export.la
++DNSLIBS =	../../lib/dns/libdns-export.la
+ ISCCFGLIBS =	../../lib/cfg/libisccfg-export.la
+ 
+-ISCDEPLIBS =	../../lib/isc/libisc.la
++ISCDEPLIBS =	../../lib/isc/libisc-export.la
+ ISCCFGDEPLIBS =	libisccfg-export.la
+ 
+ LIBS =		-ldl  -L../dns -L../isc -L../isccc
+@@ -506,6 +506,7 @@ libisccfg-export.la: ${OBJS}
+ 		-version-info ${LIBINTERFACE}:${LIBREVISION}:${LIBAGE} \
+ 		${OBJS} ${DNSLIBS} ${ISCLIBS}  \
+ 		${LIBS}
++	ln -sf .libs/libisccfg-export.so .
+ 
+ timestamp: libisccfg-export.la
+ 	touch timestamp
+diff -urNap lib/samples/Makefile lib/samples/Makefile
+--- lib/samples/Makefile	2017-10-04 21:25:49.853853465 +0000
++++ lib/samples/Makefile	2017-10-04 21:26:34.641748259 +0000
+@@ -89,15 +89,15 @@ CDEFINES =	 -DVERSION=\"${VERSION}\" \
+ 		-DSYSCONFDIR=\"${sysconfdir}\"
+ CWARNINGS =
+ 
+-ISCLIBS =	../isc/libisc.la
+-DNSLIBS =	../dns/libdns.la 
+-ISCCFGLIBS =	../isccfg/libisccfg.la
+-IRSLIBS =	../irs/libirs.la
++ISCLIBS =	../isc/libisc-export.la
++DNSLIBS =	../dns/libdns-export.la 
++ISCCFGLIBS =	../isccfg/libisccfg-export.la
++IRSLIBS =	../irs/libirs-export.la
+ 
+-ISCDEPLIBS =	../isc/libisc.la
+-DNSDEPLIBS =	../dns/libdns.la
+-ISCCFGDEPLIBS =	../isccfg/libisccfg.la
+-IRSDEPLIBS =	../irs/libirs.la
++ISCDEPLIBS =	../isc/libisc-export.la
++DNSDEPLIBS =	../dns/libdns-export.la
++ISCCFGDEPLIBS =	../isccfg/libisccfg-export.la
++IRSDEPLIBS =	../irs/libirs-export.la
+ 
+ DEPLIBS =	${DNSDEPLIBS} ${ISCCFGDEPLIBS} ${ISCDEPLIBS}
+ 
+diff -urNap lib/tests/Makefile lib/tests/Makefile
+--- lib/tests/Makefile	2017-10-04 21:25:49.801853588 +0000
++++ lib/tests/Makefile	2017-10-04 21:26:34.641748259 +0000
+@@ -85,11 +85,11 @@ CINCLUDES =	${DNS_INCLUDES} ${ISC_INCLUD
+ CDEFINES =
+ CWARNINGS =
+ 
+-ISCLIBS =	../../lib/isc/libisc.la
+-ISCCCLIBS =	../../lib/isccc/libisccc.la
++ISCLIBS =	../../lib/isc/libisc-export.la
++ISCCCLIBS =	../../lib/isccc/libisccc-export.la
+ 
+-ISCDEPLIBS =	../../lib/isc/libisc.la
+-ISCCCDEPLIBS =	libisccc.la
++ISCDEPLIBS =	../../lib/isc/libisc-export.la
++ISCCCDEPLIBS =	libisccc-export.la
+ 
+ OBJS =		t_api.lo
+ 

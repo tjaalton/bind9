@@ -1,0 +1,8 @@
+libbind9.so.141 libbind9-141 #MINVER#
+ bind9_check_key@Base 9.10.6+dfsg
+ bind9_check_namedconf@Base 9.10.6+dfsg
+ bind9_getaddresses@Base 9.10.6+dfsg
+ bind9_libage@Base 9.10.6+dfsg
+ bind9_libinterface@Base 9.10.6+dfsg
+ bind9_librevision@Base 9.10.6+dfsg
+ bind9_version@Base 9.10.6+dfsg

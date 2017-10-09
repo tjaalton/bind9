@@ -1,0 +1,4 @@
+etc/bind
+usr/sbin
+usr/share/doc/lwresd
+usr/share/man/man8

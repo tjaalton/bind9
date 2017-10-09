@@ -1,0 +1,19 @@
+Author: Roy Jamison <xteejyx@googlemail.com>
+Date:   Fri Nov 12 10:20:23 2010 -0700
+Forwarded: yes RT#41967
+
+    lib/isc/unix/resource.c was missing inttypes.h include.
+
+    Addresses-Ubuntu-Bug: 674199
+    Signed-off-by: LaMont Jones <lamont@debian.org>
+
+--- a/lib/isc/unix/resource.c
++++ b/lib/isc/unix/resource.c
+@@ -29,6 +29,7 @@
+ #include <isc/util.h>
+ 
+ #ifdef __linux__
++#include <inttypes.h>
+ #include <linux/fs.h>	/* To get the large NR_OPEN. */
+ #endif
+ 
