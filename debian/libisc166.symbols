@@ -1,4 +1,4 @@
-libisc.so.189 libisc189 #MINVER#
+libisc.so.166 libisc166 #MINVER#
  bsdcompat@Base 9.10.6+dfsg
  isc___errno2result@Base 9.10.6+dfsg
  isc___mem_allocate@Base 9.10.6+dfsg

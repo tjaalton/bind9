@@ -1,4 +1,4 @@
-libirs.so.141 libirs141 #MINVER#
+libirs.so.160 libirs160 #MINVER#
  freeaddrinfo@Base 9.10.6+dfsg
  gai_strerror@Base 9.10.6+dfsg
  getaddrinfo@Base 9.10.6+dfsg

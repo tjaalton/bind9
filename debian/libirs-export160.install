@@ -1,0 +1,2 @@
+#! /usr/bin/dh-exec
+../tmp-udeb/lib/*/libirs-export.so.160* lib/${DEB_HOST_MULTIARCH}

@@ -1,4 +1,4 @@
-libisccfg.so.144 libisccfg144 #MINVER#
+libisccfg.so.160 libisccfg160 #MINVER#
  cfg_acl_fromconfig2@Base 9.10.6+dfsg
  cfg_acl_fromconfig@Base 9.10.6+dfsg
  cfg_aclconfctx_attach@Base 9.10.6+dfsg

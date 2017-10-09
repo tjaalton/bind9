@@ -246,11 +246,11 @@ binary-arch: build install
 	dh_compress -a
 	dh_fixperms -a
 	dh_makeshlibs -a
-	dh_makeshlibs -plibdns-export190 --add-udeb=libdns-export190-udeb
-	dh_makeshlibs -plibirs-export141 --add-udeb=libirs-export141-udeb
-	dh_makeshlibs -plibisc-export189 --add-udeb=libisc-export189-udeb
-	dh_makeshlibs -plibisccc-export140 --add-udeb=libisccc-export140-udeb
-	dh_makeshlibs -plibisccfg-export144 --add-udeb=libisccfg-export144-udeb
+	dh_makeshlibs -plibdns-export169 --add-udeb=libdns-export169-udeb
+	dh_makeshlibs -plibirs-export160 --add-udeb=libirs-export160-udeb
+	dh_makeshlibs -plibisc-export166 --add-udeb=libisc-export166-udeb
+	dh_makeshlibs -plibisccc-export160 --add-udeb=libisccc-export160-udeb
+	dh_makeshlibs -plibisccfg-export160 --add-udeb=libisccfg-export160-udeb
 	dh_installdeb -a
 	dh_shlibdeps -a
 	dh_gencontrol -a
