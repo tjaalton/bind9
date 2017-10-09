@@ -98,7 +98,17 @@ override_dh_auto_configure:
 		--libdir=/lib/$(DEB_HOST_MULTIARCH) \
 		--includedir=/usr/include/bind-export
 
-	sh debian/apply-export-patch
+	cd build-udeb && \
+	    for lib in dns irs isc isccc isccfg lwres; do \
+	        sed -i "s/lib$${lib}\./lib$${lib}-export./g" lib/$${lib}/Makefile; \
+	    done
+
+	quilt import debian/patches/extra-udeb_export.diff && quilt push
+
+	cd build-udeb && \
+	    for lib in dns irs isc isccc isccfg lwres; do \
+		sed -i 's/\(lib'$${lib}'\).la/\1-export.la/g' $$(find . -name Makefile); \
+	    done
 
 	# no need to build these targets here
 	sed -i 's/dnssec-pkcs11//;s/named-pkcs11//' build-udeb/bin/Makefile
@@ -111,6 +121,7 @@ override_dh_auto_build:
 	dh_auto_build --builddirectory=build-udeb
 
 override_dh_auto_clean:
+	quilt delete extra-udeb_export.diff
 	rm -rf bin/dnssec-pkcs11 bin/named-pkcs11 lib/isc-pkcs11 lib/dns-pkcs11
 	rm -rf build build-udeb stamps debian/tmp-udeb
 	rm -f debian/substvars
