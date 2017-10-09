@@ -36,7 +36,7 @@ msgstats:
 msg-email:
 	@podebconf-report-po
 
-override_dh_autoreconf:
+prepare:
 	if [ ! -d autoreconf-bck ]; then \
 	    mkdir autoreconf-bck; \
 	    cp -pr config.h.in configure libtool.m4 ltmain.sh autoreconf-bck; \
@@ -45,9 +45,11 @@ override_dh_autoreconf:
 	cp -r bin/dnssec bin/dnssec-pkcs11
 	cp -r lib/isc lib/isc-pkcs11
 	cp -r lib/dns lib/dns-pkcs11
-	patch -p1 < debian/patches/extra-add_native_pkcs11.diff
+	quilt import debian/patches/extra-add_native_pkcs11.diff && quilt push
 	# disable GOST, can't use openssl with native pkcs11 anyway
 	sed -i 's/HAVE_OPENSSL_GOST/GOSTBUSTERS/' lib/dns-pkcs11/*.[ch]
+
+override_dh_autoreconf: prepare
 	dh_autotools-dev_updateconfig
 	dh_autoreconf
 
@@ -121,7 +123,12 @@ override_dh_auto_build:
 	dh_auto_build --builddirectory=build-udeb
 
 override_dh_auto_clean:
-	quilt delete extra-udeb_export.diff
+	if [ `grep extra-udeb_export.diff debian/patches/series` ]; then \
+	    quilt delete extra-udeb_export.diff; \
+	fi
+	if [ `grep extra-add_native_pkcs11.diff debian/patches/series` ]; then \
+	    quilt delete extra-add_native_pkcs11.diff; \
+	fi
 	rm -rf bin/dnssec-pkcs11 bin/named-pkcs11 lib/isc-pkcs11 lib/dns-pkcs11
 	rm -rf build build-udeb stamps debian/tmp-udeb
 	rm -f debian/substvars
